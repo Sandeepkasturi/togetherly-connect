@@ -35,6 +35,12 @@ export type DataType = {
     messageId: string;
     reaction: Reaction;
   };
+} | {
+  type: 'player_state';
+  payload: {
+    event: 'play' | 'pause';
+    currentTime: number;
+  };
 };
 
 export const usePeer = () => {

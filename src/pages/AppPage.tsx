@@ -123,6 +123,8 @@ const AppPage = () => {
   if (!nickname) {
     return null;
   }
+  
+  const playerSyncData = data?.type === 'player_state' ? data : null;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -134,7 +136,12 @@ const AppPage = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="flex flex-col gap-8"
         >
-          <YouTubePlayer videoId={selectedVideoId} />
+          <YouTubePlayer 
+            videoId={selectedVideoId} 
+            sendData={sendData}
+            playerData={playerSyncData}
+            isConnected={isConnected}
+          />
           <YouTubeSearch onVideoSelect={handleVideoSelect} isConnected={isConnected} />
         </motion.div>
         <motion.div 
