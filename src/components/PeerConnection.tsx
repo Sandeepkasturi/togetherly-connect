@@ -62,74 +62,83 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
 
   return (
     <div className="p-4 bg-secondary/30 rounded-lg border border-border">
-      <h2 className="text-lg font-semibold mb-2">Connection</h2>
-      <div className="flex items-center gap-2 mb-2">
-        <User className="text-muted-foreground" />
-        {!isEditingNickname ? (
-          <div className="flex items-center gap-1">
-            <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNickname(true)}>
-              <Edit className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 w-full">
-            <Input 
-              value={newNickname} 
-              onChange={(e) => setNewNickname(e.target.value)} 
-              onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
-              className="h-8"
-              placeholder="New nickname"
-            />
-            <Button size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleNicknameChange}><Check className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
-          </div>
-        )}
-      </div>
-      <div className="flex items-center gap-2 mb-4">
-        <Input value={peerId} readOnly className="bg-background/50" />
-        <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
-          <Copy className="h-4 w-4" />
-        </Button>
-        <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
-          <Share2 className="h-4 w-4" />
-        </Button>
-      </div>
-      {!isConnected && (
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold">Connection</h2>
+        
         <div className="flex items-center gap-2">
-          <Input
-            placeholder="Friend's Peer ID"
-            value={remoteId}
-            onChange={(e) => setRemoteId(e.target.value)}
-          />
-          <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
-            <LinkIcon className="h-4 w-4 mr-2" /> Connect
+          <User className="text-muted-foreground" />
+          {!isEditingNickname ? (
+            <div className="flex items-center gap-1">
+              <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNickname(true)}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 w-full">
+              <Input 
+                value={newNickname} 
+                onChange={(e) => setNewNickname(e.target.value)} 
+                onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
+                className="h-8"
+                placeholder="New nickname"
+              />
+              <Button size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleNicknameChange}><Check className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
+            </div>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Input value={peerId} readOnly className="bg-background/50" />
+          <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
+            <Copy className="h-4 w-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
+            <Share2 className="h-4 w-4" />
           </Button>
         </div>
-      )}
-      {isConnected && !isCallActive && (
-        <div className="mt-4 flex flex-col sm:flex-row gap-2">
-            <Button onClick={() => startCall('audio')} className="w-full bg-green-500 hover:bg-green-600">
-                <Phone className="h-4 w-4 mr-2" />
-                Audio Call
+        
+        {!isConnected && (
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Friend's Peer ID"
+              value={remoteId}
+              onChange={(e) => setRemoteId(e.target.value)}
+            />
+            <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
+              <LinkIcon className="h-4 w-4 mr-2" /> Connect
             </Button>
-            <Button onClick={() => startCall('video')} className="w-full">
-                <Video className="h-4 w-4 mr-2" />
-                Video Call
-            </Button>
+          </div>
+        )}
+        
+        {isConnected && !isCallActive && (
+          <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={() => startCall('audio')} className="w-full bg-green-500 hover:bg-green-600">
+                  <Phone className="h-4 w-4 mr-2" />
+                  Audio Call
+              </Button>
+              <Button onClick={() => startCall('video')} className="w-full">
+                  <Video className="h-4 w-4 mr-2" />
+                  Video Call
+              </Button>
+          </div>
+        )}
+        
+        <div>
+          <div className="text-sm flex items-center gap-2">
+            <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
+            <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
+              Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
+            </p>
+          </div>
+          {isConnected && (
+            <p className="mt-1 text-xs text-muted-foreground pl-8">
+              Your connection is secure and peer-to-peer.
+            </p>
+          )}
         </div>
-      )}
-      <div className="mt-2 text-sm flex items-center gap-2">
-        <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
-        <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
-          Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
-        </p>
       </div>
-      {isConnected && (
-        <p className="mt-1 text-xs text-muted-foreground pl-8">
-          Your connection is secure and peer-to-peer.
-        </p>
-      )}
     </div>
   );
 };

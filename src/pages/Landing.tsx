@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -34,17 +33,17 @@ const Landing = () => {
       <Header />
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="text-center py-16 md:py-24">
+        <section className="text-center py-12 md:py-20">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="container mx-auto px-4"
           >
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-primary mb-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-primary mb-4">
               Your Private Space for Real-Time Connection.
             </h1>
-            <p className="max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground mb-8">
+            <p className="max-w-3xl mx-auto text-base md:text-lg text-muted-foreground mb-8">
               Togetherly offers a suite of private, real-time collaboration tools. All interactions are peer-to-peer, ensuring your data stays between you and your connections, with no servers in the middle.
             </p>
             <div className="max-w-sm mx-auto space-y-4">
@@ -68,7 +67,7 @@ const Landing = () => {
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-16 md:py-24 bg-background/50">
+        <section id="features" className="py-12 md:py-20 bg-background/50">
             <div className="container mx-auto px-4">
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Core Features</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -105,7 +104,7 @@ const Landing = () => {
         </section>
 
         {/* How it Works Section */}
-        <section id="how-it-works" className="py-16 md:py-24">
+        <section id="how-it-works" className="py-12 md:py-20">
             <div className="container mx-auto px-4">
                 <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">How It Works</h2>
                 <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-10 text-center">
