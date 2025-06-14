@@ -9,6 +9,8 @@ import AppPage from "./pages/AppPage";
 import JoinPage from "./pages/JoinPage";
 import NotFound from "./pages/NotFound";
 import { UserProvider } from "./contexts/UserContext";
+import AppLayout from "./layouts/AppLayout";
+import WatchPage from "./pages/WatchPage";
 
 const queryClient = new QueryClient();
 
@@ -21,7 +23,10 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/app" element={<AppPage />} />
+            <Route element={<AppLayout />}>
+              <Route path="/app" element={<AppPage />} />
+              <Route path="/watch" element={<WatchPage />} />
+            </Route>
             <Route path="/join" element={<JoinPage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
