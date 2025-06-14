@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -64,6 +63,9 @@ const Landing = () => {
                 Launch App
               </Button>
             </div>
+            <p className="mt-8 text-sm text-muted-foreground">
+              All my inspiration and love goes to 'S' — thank you for being my strength. ❤️
+            </p>
           </motion.div>
         </section>
 
