@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
-import type { DataConnection } from 'peerjs';
+import type { DataConnection, MediaConnection } from 'peerjs';
 
 export interface Reaction {
   emoji: string;
@@ -68,6 +67,27 @@ export const usePeer = () => {
   const [data, setData] = useState<DataType | null>(null);
   const peerInstance = useRef<Peer | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  
+  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const mediaCallInstance = useRef<MediaConnection | null>(null);
+
+  const endCall = useCallback(() => {
+    if (mediaCallInstance.current) {
+      mediaCallInstance.current.close();
+    }
+    setLocalStream(prevStream => {
+      if (prevStream) {
+        prevStream.getTracks().forEach(track => track.stop());
+      }
+      return null;
+    });
+    setRemoteStream(null);
+    setIsCallActive(false);
+    mediaCallInstance.current = null;
+    setData({ type: 'system', payload: 'Call ended.' });
+  }, []);
 
   useEffect(() => {
     const initializePeer = async () => {
@@ -85,6 +105,36 @@ export const usePeer = () => {
       newPeer.on('connection', (newConn: DataConnection) => {
         setConn(newConn);
       });
+
+      const setupCallListeners = (call: MediaConnection) => {
+        call.on('stream', (stream) => {
+          setRemoteStream(stream);
+        });
+        call.on('close', () => {
+          endCall();
+        });
+        call.on('error', (err) => {
+          console.error('Call error:', err);
+          setData({ type: 'system', payload: `Call error: ${err.message}` });
+          endCall();
+        });
+        mediaCallInstance.current = call;
+        setIsCallActive(true);
+      };
+
+      newPeer.on('call', (incomingCall: MediaConnection) => {
+        setData({ type: 'system', payload: `Incoming call from ${incomingCall.peer}...` });
+        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+          .then(stream => {
+            setLocalStream(stream);
+            incomingCall.answer(stream);
+            setupCallListeners(incomingCall);
+          })
+          .catch(err => {
+            console.error('Failed to get local stream on incoming call', err);
+            setData({ type: 'system', payload: 'Could not start camera/mic.' });
+          });
+      });
     };
 
     initializePeer();
@@ -94,7 +144,7 @@ export const usePeer = () => {
         peerInstance.current.destroy();
       }
     };
-  }, []);
+  }, [endCall]);
 
   useEffect(() => {
     if (!conn) return;
@@ -151,5 +201,45 @@ export const usePeer = () => {
     }
   }, [conn]);
 
-  return { peerId, connectToPeer, sendData, data, isConnected, conn };
+  const startCall = useCallback(() => {
+    if (!peer || !conn) return;
+
+    const setupCallListeners = (call: MediaConnection) => {
+        call.on('stream', (stream) => {
+          setRemoteStream(stream);
+        });
+        call.on('close', () => {
+          endCall();
+        });
+        call.on('error', (err) => {
+          console.error('Call error:', err);
+          setData({ type: 'system', payload: `Call error: ${err.message}` });
+          endCall();
+        });
+        mediaCallInstance.current = call;
+        setIsCallActive(true);
+    };
+
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then(stream => {
+            setLocalStream(stream);
+            const outgoingCall = peer.call(conn.peer, stream);
+            setupCallListeners(outgoingCall);
+        })
+        .catch(err => {
+            console.error('Failed to get local stream', err);
+            setData({ type: 'system', payload: 'Could not start camera/mic. Please check permissions.' });
+        });
+  }, [peer, conn, endCall]);
+
+  const toggleMedia = useCallback((type: 'audio' | 'video') => {
+    if (localStream) {
+      const tracks = type === 'audio' ? localStream.getAudioTracks() : localStream.getVideoTracks();
+      if (tracks[0]) {
+          tracks[0].enabled = !tracks[0].enabled;
+      }
+    }
+  }, [localStream]);
+
+  return { peerId, connectToPeer, sendData, data, isConnected, conn, localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia };
 };
