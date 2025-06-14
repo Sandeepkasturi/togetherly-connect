@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { usePeer, Message, DataType } from '@/hooks/usePeer';
+import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
 import Header from '@/components/Header';
 import PeerConnection from '@/components/PeerConnection';
@@ -47,15 +47,35 @@ const AppPage = () => {
         setMessages((prev) => [...prev, systemMessage]);
       } else if (data.type === 'nickname') {
         if (remoteNickname !== data.payload) {
+          const isFirstTime = remoteNickname === 'Friend';
+          const messageContent = isFirstTime
+            ? `${data.payload} has joined the room.`
+            : `${remoteNickname} changed their name to ${data.payload}.`;
+          
           setRemoteNickname(data.payload);
+          
           const systemMessage: Message = { 
             id: Date.now().toString(), 
-            content: `${data.payload} has joined the room.`, 
+            content: messageContent, 
             sender: 'system', 
             timestamp: new Date().toLocaleTimeString() 
           };
           setMessages((prev) => [...prev, systemMessage]);
         }
+      } else if (data.type === 'reaction') {
+        setMessages(prevMessages =>
+          prevMessages.map(msg => {
+            if (msg.id === data.payload.messageId) {
+              const reaction = data.payload.reaction;
+              const alreadyReacted = msg.reactions?.some(r => r.emoji === reaction.emoji && r.by === reaction.by);
+              if (alreadyReacted) return msg;
+              
+              const newReactions = [...(msg.reactions || []), reaction];
+              return { ...msg, reactions: newReactions };
+            }
+            return msg;
+          })
+        );
       }
     }
   }, [data, remoteNickname]);
@@ -78,6 +98,28 @@ const AppPage = () => {
     sendData(dataToSend);
   };
   
+  const handleSendReaction = (messageId: string, emoji: string) => {
+    if (!nickname) return;
+    
+    const message = messages.find(m => m.id === messageId);
+    const alreadyReacted = message?.reactions?.some(r => r.emoji === emoji && r.by === nickname);
+    if(alreadyReacted) return;
+
+    const reaction: Reaction = { emoji, by: nickname };
+    const dataToSend: DataType = { type: 'reaction', payload: { messageId, reaction } };
+    sendData(dataToSend);
+
+    setMessages(prevMessages =>
+      prevMessages.map(msg => {
+        if (msg.id === messageId) {
+          const newReactions = [...(msg.reactions || []), reaction];
+          return { ...msg, reactions: newReactions };
+        }
+        return msg;
+      })
+    );
+  };
+
   if (!nickname) {
     return null;
   }
@@ -107,8 +149,9 @@ const AppPage = () => {
             isConnected={isConnected} 
             myNickname={nickname} 
             remoteNickname={remoteNickname}
+            sendData={sendData}
           />
-          <Chat messages={messages} sendMessage={handleSendMessage} isConnected={isConnected} />
+          <Chat messages={messages} sendMessage={handleSendMessage} isConnected={isConnected} handleSendReaction={handleSendReaction} />
         </motion.div>
       </main>
     </div>

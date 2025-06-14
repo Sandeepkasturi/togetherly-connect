@@ -1,8 +1,12 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
+
+export interface Reaction {
+  emoji: string;
+  by: string;
+}
 
 export interface Message {
   id: string;
@@ -10,6 +14,7 @@ export interface Message {
   content: string;
   timestamp: string;
   nickname?: string;
+  reactions?: Reaction[];
 }
 
 export type DataType = {
@@ -24,7 +29,13 @@ export type DataType = {
 } | {
   type: 'nickname';
   payload: string;
-}
+} | {
+  type: 'reaction';
+  payload: {
+    messageId: string;
+    reaction: Reaction;
+  };
+};
 
 export const usePeer = () => {
   const [peer, setPeer] = useState<Peer | null>(null);
