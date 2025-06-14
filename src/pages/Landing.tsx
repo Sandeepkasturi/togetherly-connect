@@ -39,10 +39,10 @@ const Landing = () => {
           className="container mx-auto px-4"
         >
           <h2 className="text-5xl md:text-6xl font-extrabold tracking-tight text-primary mb-4">
-            Watch YouTube Together.
+            Your Private Space for Real-Time Connection.
           </h2>
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-8">
-            Create a private room and enjoy YouTube in sync with friends. Your connection is peer-to-peer, ensuring your chat and interactions are secure and private.
+            Enjoy synchronized YouTube, secure chat, file sharing, and video calls. All peer-to-peer, ensuring your interactions are private and seamless.
           </p>
           <div className="max-w-sm mx-auto space-y-4">
             <div className="grid w-full items-center gap-1.5 text-left">
