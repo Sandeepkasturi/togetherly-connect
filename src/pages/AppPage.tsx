@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
@@ -9,6 +8,7 @@ import YouTubePlayer from '@/components/YouTubePlayer';
 import YouTubeSearch from '@/components/YouTubeSearch';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const AppPage = () => {
   const { nickname } = useUser();
@@ -17,6 +17,7 @@ const AppPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
   const [remoteNickname, setRemoteNickname] = useState('Friend');
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!nickname) {
@@ -33,8 +34,22 @@ const AppPage = () => {
   useEffect(() => {
     if (data) {
       if (data.type === 'chat') {
-        const newMessage: Message = { ...data.payload, sender: 'them' };
+        const newMessage: Message = { ...data.payload, sender: 'them', messageType: 'text' };
         setMessages((prev) => [...prev, newMessage]);
+      } else if (data.type === 'file') {
+        const fileMessage: Message = {
+          id: data.payload.id,
+          sender: 'them',
+          messageType: 'file',
+          content: data.payload.fileName,
+          timestamp: data.payload.timestamp,
+          nickname: data.payload.nickname,
+          fileName: data.payload.fileName,
+          fileType: data.payload.fileType,
+          fileSize: data.payload.fileSize,
+          fileData: data.payload.fileData,
+        };
+        setMessages(prev => [...prev, fileMessage]);
       } else if (data.type === 'video') {
         setSelectedVideoId(data.payload);
       } else if (data.type === 'system') {
@@ -42,7 +57,8 @@ const AppPage = () => {
           id: Date.now().toString(), 
           content: data.payload, 
           sender: 'system', 
-          timestamp: new Date().toLocaleTimeString() 
+          timestamp: new Date().toLocaleTimeString(),
+          messageType: 'system'
         };
         setMessages((prev) => [...prev, systemMessage]);
       } else if (data.type === 'nickname') {
@@ -58,7 +74,8 @@ const AppPage = () => {
             id: Date.now().toString(), 
             content: messageContent, 
             sender: 'system', 
-            timestamp: new Date().toLocaleTimeString() 
+            timestamp: new Date().toLocaleTimeString(),
+            messageType: 'system'
           };
           setMessages((prev) => [...prev, systemMessage]);
         }
@@ -86,10 +103,58 @@ const AppPage = () => {
       content,
       timestamp: new Date().toLocaleTimeString(),
       nickname: nickname,
+      messageType: 'text',
     };
     const dataToSend: DataType = { type: 'chat', payload: message };
     sendData(dataToSend);
     setMessages((prev) => [...prev, { ...message, sender: 'me' }]);
+  };
+
+  const handleSendFile = (file: File) => {
+    if (!nickname) return;
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "File is too large",
+        description: "Please select a file smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      const fileData = reader.result as string;
+      const messageId = Date.now().toString();
+
+      const dataToSend: DataType = {
+        type: 'file',
+        payload: {
+          id: messageId,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+          fileData,
+          timestamp: new Date().toLocaleTimeString(),
+          nickname,
+        },
+      };
+      sendData(dataToSend);
+
+      const fileMessage: Message = {
+        id: messageId,
+        sender: 'me',
+        messageType: 'file',
+        content: file.name,
+        timestamp: new Date().toLocaleTimeString(),
+        nickname,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        fileData,
+      };
+      setMessages((prev) => [...prev, fileMessage]);
+    };
   };
 
   const handleVideoSelect = (videoId: string) => {
@@ -158,7 +223,13 @@ const AppPage = () => {
             remoteNickname={remoteNickname}
             sendData={sendData}
           />
-          <Chat messages={messages} sendMessage={handleSendMessage} isConnected={isConnected} handleSendReaction={handleSendReaction} />
+          <Chat 
+            messages={messages} 
+            sendMessage={handleSendMessage} 
+            isConnected={isConnected} 
+            handleSendReaction={handleSendReaction}
+            handleSendFile={handleSendFile}
+          />
         </motion.div>
       </main>
     </div>
