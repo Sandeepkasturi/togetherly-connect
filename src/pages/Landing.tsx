@@ -63,9 +63,6 @@ const Landing = () => {
                 Launch App
               </Button>
             </div>
-            <p className="mt-8 text-sm text-muted-foreground">
-              All my inspiration and love goes to 'S' — thank you for being my strength. ❤️
-            </p>
           </motion.div>
         </section>
 
@@ -165,7 +162,7 @@ const Landing = () => {
             </div>
             <div className="mt-6 text-center border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">
-                    Inspiration and love goes to "S" ❤️
+                    All my inspiration and love goes to 'S' — thank you for being my strength. ❤️
                 </p>
             </div>
         </div>
