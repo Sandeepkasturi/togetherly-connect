@@ -1,17 +1,34 @@
 
 import { useState, useEffect } from 'react';
 import { usePeer, Message, DataType } from '@/hooks/usePeer';
+import { useUser } from '@/contexts/UserContext';
 import Header from '@/components/Header';
 import PeerConnection from '@/components/PeerConnection';
 import Chat from '@/components/Chat';
 import YouTubePlayer from '@/components/YouTubePlayer';
 import YouTubeSearch from '@/components/YouTubeSearch';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
-const Index = () => {
-  const { peerId, connectToPeer, sendData, data, isConnected } = usePeer();
+const AppPage = () => {
+  const { nickname } = useUser();
+  const navigate = useNavigate();
+  const { peerId, connectToPeer, sendData, data, isConnected, conn } = usePeer();
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
+  const [remoteNickname, setRemoteNickname] = useState('Friend');
+
+  useEffect(() => {
+    if (!nickname) {
+      navigate('/');
+    }
+  }, [nickname, navigate]);
+
+  useEffect(() => {
+    if (isConnected && conn && nickname) {
+      sendData({ type: 'nickname', payload: nickname });
+    }
+  }, [isConnected, conn, nickname, sendData]);
 
   useEffect(() => {
     if (data) {
@@ -28,6 +45,15 @@ const Index = () => {
           timestamp: new Date().toLocaleTimeString() 
         };
         setMessages((prev) => [...prev, systemMessage]);
+      } else if (data.type === 'nickname') {
+        setRemoteNickname(data.payload);
+        const systemMessage: Message = { 
+          id: Date.now().toString(), 
+          content: `${data.payload} has joined the room.`, 
+          sender: 'system', 
+          timestamp: new Date().toLocaleTimeString() 
+        };
+        setMessages((prev) => [...prev, systemMessage]);
       }
     }
   }, [data]);
@@ -37,6 +63,7 @@ const Index = () => {
       id: Date.now().toString(),
       content,
       timestamp: new Date().toLocaleTimeString(),
+      nickname: nickname,
     };
     const dataToSend: DataType = { type: 'chat', payload: message };
     sendData(dataToSend);
@@ -48,6 +75,10 @@ const Index = () => {
     const dataToSend: DataType = { type: 'video', payload: videoId };
     sendData(dataToSend);
   };
+  
+  if (!nickname) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -68,7 +99,13 @@ const Index = () => {
           transition={{ duration: 0.5, delay: 0.4 }}
           className="flex flex-col gap-8"
         >
-          <PeerConnection peerId={peerId} connectToPeer={connectToPeer} isConnected={isConnected} />
+          <PeerConnection 
+            peerId={peerId} 
+            connectToPeer={connectToPeer} 
+            isConnected={isConnected} 
+            myNickname={nickname} 
+            remoteNickname={remoteNickname}
+          />
           <Chat messages={messages} sendMessage={handleSendMessage} isConnected={isConnected} />
         </motion.div>
       </main>
@@ -76,4 +113,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default AppPage;

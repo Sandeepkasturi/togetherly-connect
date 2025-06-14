@@ -46,6 +46,9 @@ const Chat = ({ messages, sendMessage, isConnected }: ChatProps) => {
                 msg.sender === 'them' ? 'items-start' : 'items-center'
               }`}
             >
+              {msg.nickname && msg.sender === 'them' && (
+                <p className="text-xs text-muted-foreground/80 mb-1 px-2">{msg.nickname}</p>
+              )}
               <div
                 className={`max-w-xs p-3 rounded-lg ${
                   msg.sender === 'me'
@@ -55,7 +58,7 @@ const Chat = ({ messages, sendMessage, isConnected }: ChatProps) => {
                     : 'bg-transparent text-muted-foreground italic'
                 }`}
               >
-                <p>{msg.content}</p>
+                <p className="break-words">{msg.content}</p>
                  {msg.sender !== 'system' && <p className="text-xs text-muted-foreground/70 mt-1">{msg.timestamp}</p>}
               </div>
             </motion.div>
