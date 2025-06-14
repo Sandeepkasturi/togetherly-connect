@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,6 +36,14 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
   const [isMoviesLoading, setIsMoviesLoading] = useState(false);
   const [isSongsLoading, setIsSongsLoading] = useState(false);
   const [isShortsLoading, setIsShortsLoading] = useState(false);
+
+  const [teluguMovies, setTeluguMovies] = useState<YouTubeVideo[]>([]);
+  const [teluguSongs, setTeluguSongs] = useState<YouTubeVideo[]>([]);
+  const [teluguShorts, setTeluguShorts] = useState<YouTubeVideo[]>([]);
+  
+  const [isTeluguMoviesLoading, setIsTeluguMoviesLoading] = useState(false);
+  const [isTeluguSongsLoading, setIsTeluguSongsLoading] = useState(false);
+  const [isTeluguShortsLoading, setIsTeluguShortsLoading] = useState(false);
 
   const { toast } = useToast();
 
@@ -108,8 +117,17 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
       if (shorts.length === 0 && !isShortsLoading) {
         fetchCategoryVideos('popular #shorts', setShorts, setIsShortsLoading, 'Shorts');
       }
+      if (teluguMovies.length === 0 && !isTeluguMoviesLoading) {
+        fetchCategoryVideos('latest telugu movie trailers', setTeluguMovies, setIsTeluguMoviesLoading, 'Telugu Movies');
+      }
+      if (teluguSongs.length === 0 && !isTeluguSongsLoading) {
+        fetchCategoryVideos('trending telugu songs 2025', setTeluguSongs, setIsTeluguSongsLoading, 'Telugu Songs');
+      }
+      if (teluguShorts.length === 0 && !isTeluguShortsLoading) {
+        fetchCategoryVideos('telugu #shorts', setTeluguShorts, setIsTeluguShortsLoading, 'Telugu Shorts');
+      }
     }
-  }, [isConnected, fetchCategoryVideos, movies.length, songs.length, shorts.length, isMoviesLoading, isSongsLoading, isShortsLoading]);
+  }, [isConnected, API_KEY, fetchCategoryVideos, movies.length, songs.length, shorts.length, isMoviesLoading, isSongsLoading, isShortsLoading, teluguMovies.length, teluguSongs.length, teluguShorts.length, isTeluguMoviesLoading, isTeluguSongsLoading, isTeluguShortsLoading]);
 
   return (
     <div className="p-4 bg-secondary/30 rounded-lg border border-border">
@@ -163,6 +181,9 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
         <VideoCarousel title="Latest Movies & Trailers" videos={movies} onVideoSelect={onVideoSelect} isLoading={isMoviesLoading} isConnected={isConnected}/>
         <VideoCarousel title="Trending Music" videos={songs} onVideoSelect={onVideoSelect} isLoading={isSongsLoading} isConnected={isConnected}/>
         <VideoCarousel title="Popular Shorts" videos={shorts} onVideoSelect={onVideoSelect} isLoading={isShortsLoading} isConnected={isConnected}/>
+        <VideoCarousel title="Latest Telugu Movies & Trailers" videos={teluguMovies} onVideoSelect={onVideoSelect} isLoading={isTeluguMoviesLoading} isConnected={isConnected}/>
+        <VideoCarousel title="Trending Telugu Music" videos={teluguSongs} onVideoSelect={onVideoSelect} isLoading={isTeluguSongsLoading} isConnected={isConnected}/>
+        <VideoCarousel title="Popular Telugu Shorts" videos={teluguShorts} onVideoSelect={onVideoSelect} isLoading={isTeluguShortsLoading} isConnected={isConnected}/>
       </div>
     </div>
   );
