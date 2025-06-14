@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X } from 'lucide-react';
+import { useUser } from '@/contexts/UserContext';
+import { DataType } from '@/hooks/usePeer';
 
 interface PeerConnectionProps {
   peerId: string;
@@ -11,23 +13,69 @@ interface PeerConnectionProps {
   isConnected: boolean;
   myNickname: string;
   remoteNickname: string;
+  sendData: (data: DataType) => void;
 }
 
-const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname }: PeerConnectionProps) => {
+const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname, sendData }: PeerConnectionProps) => {
   const [remoteId, setRemoteId] = useState('');
   const { toast } = useToast();
+  const { setNickname } = useUser();
+  const [isEditingNickname, setIsEditingNickname] = useState(false);
+  const [newNickname, setNewNickname] = useState(myNickname);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(peerId);
     toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
   };
 
+  const handleNicknameChange = () => {
+    const trimmedNickname = newNickname.trim();
+    if (trimmedNickname.length < 3) {
+      toast({
+        title: 'Nickname too short',
+        description: 'Please enter a nickname with at least 3 characters.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setNickname(trimmedNickname);
+    if (isConnected) {
+      sendData({ type: 'nickname', payload: trimmedNickname });
+    }
+    setIsEditingNickname(false);
+    toast({ title: 'Success', description: 'Your nickname has been updated.' });
+  };
+  
+  const handleCancelEdit = () => {
+    setNewNickname(myNickname);
+    setIsEditingNickname(false);
+  }
+
   return (
     <div className="p-4 bg-secondary/30 rounded-lg border border-border">
       <h2 className="text-lg font-semibold mb-2">Connection</h2>
       <div className="flex items-center gap-2 mb-2">
         <User className="text-muted-foreground" />
-        <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
+        {!isEditingNickname ? (
+          <div className="flex items-center gap-1">
+            <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNickname(true)}>
+              <Edit className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 w-full">
+            <Input 
+              value={newNickname} 
+              onChange={(e) => setNewNickname(e.target.value)} 
+              onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
+              className="h-8"
+              placeholder="New nickname"
+            />
+            <Button size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleNicknameChange}><Check className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-2 mb-4">
         <Input value={peerId} readOnly className="bg-background/50" />
