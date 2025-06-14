@@ -142,7 +142,6 @@ const Landing = () => {
                     <h3 className="text-lg font-bold text-primary">Togetherly</h3>
                     <p className="text-muted-foreground">A project by <a href="https://skavtechs.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">SKAV TECH</a></p>
                     <p className="text-muted-foreground">Developed by Sandeep Kasturi.</p>
-                  <p>Inspiration and credits goes to S ❤️</p>
                 </div>
                 <div className="lg:mx-auto">
                     <h3 className="text-lg font-semibold text-primary mb-2">Connect with the developer</h3>
@@ -164,6 +163,7 @@ const Landing = () => {
             </div>
             <div className="mt-6 text-center border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">
+                    Inspiration and love goes to "S" ❤️
                 </p>
             </div>
         </div>
