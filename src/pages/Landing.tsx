@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { motion } from 'framer-motion';
 import Header from '@/components/Header';
 import { useUser } from '@/contexts/UserContext';
 import { useToast } from '@/hooks/use-toast';
+import { Github, Linkedin, Instagram } from 'lucide-react';
 
 const Landing = () => {
   const { nickname, setNickname } = useUser();
@@ -41,6 +41,9 @@ const Landing = () => {
           <h2 className="text-5xl md:text-6xl font-extrabold tracking-tight text-primary mb-4">
             Your Private Space for Real-Time Connection.
           </h2>
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-4">
+            Togetherly is a platform designed for private, real-time collaboration. Whether you're watching videos with friends, chatting securely, or sharing files, our peer-to-peer technology ensures your data stays between you and your connections, with no servers in the middle.
+          </p>
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-8">
             Enjoy synchronized YouTube, secure chat, file sharing, and video calls. All peer-to-peer, ensuring your interactions are private and seamless.
           </p>
@@ -63,8 +66,24 @@ const Landing = () => {
           </div>
         </motion.div>
       </main>
-      <footer className="p-4 text-center text-muted-foreground text-sm">
-        <p>Built with ❤️ by Lovable</p>
+      <footer className="p-8 border-t border-border text-center text-muted-foreground text-sm">
+        <div className="max-w-4xl mx-auto">
+            <p className="mb-4">
+                A project by <a href="https://skavtechs.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">SKAV TECH</a>, developed by Sandeep Kasturi.
+            </p>
+            <div className="flex justify-center gap-6 mb-4">
+                <a href="https://instagram.com/sandeep_kasturi_" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Instagram className="h-5 w-5" />
+                </a>
+                <a href="https://github.com/sandeepkasturi" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Github className="h-5 w-5" />
+                </a>
+                <a href="https://www.linkedin.com/in/sandeepkasturi9/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-muted-foreground hover:text-primary transition-colors">
+                    <Linkedin className="h-5 w-5" />
+                </a>
+            </div>
+            <p>&copy; {new Date().getFullYear()} <span className="font-semibold text-primary">Togetherly</span>. All Rights Reserved.</p>
+        </div>
       </footer>
     </div>
   );
