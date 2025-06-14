@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
-import Peer from 'peerjs';
-import type { DataConnection } from 'peerjs';
+// Note: The peerjs imports have been removed from here to fix the build error.
+// We will import it dynamically inside the useEffect hook.
 
 export interface Message {
   id: string;
@@ -22,36 +22,45 @@ export type DataType = {
 }
 
 export const usePeer = () => {
-  const [peer, setPeer] = useState<Peer | null>(null);
+  const [peer, setPeer] = useState<any | null>(null);
   const [peerId, setPeerId] = useState('');
-  const [conn, setConn] = useState<DataConnection | null>(null);
+  const [conn, setConn] = useState<any | null>(null);
   const [data, setData] = useState<DataType | null>(null);
-  const peerInstance = useRef<Peer | null>(null);
+  const peerInstance = useRef<any | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    const newPeer = new Peer();
-    peerInstance.current = newPeer;
-    setPeer(newPeer);
+    const initializePeer = async () => {
+      // Dynamically import PeerJS to solve module resolution issues with Vite
+      const { default: Peer } = await import('peerjs');
 
-    newPeer.on('open', (id) => {
-      setPeerId(id);
-    });
+      const newPeer = new Peer();
+      peerInstance.current = newPeer;
+      setPeer(newPeer);
 
-    newPeer.on('connection', (newConn) => {
-      setConn(newConn);
-      setIsConnected(true);
-      setData({ type: 'system', payload: `Connected to ${newConn.peer}` });
-    });
+      newPeer.on('open', (id: string) => {
+        setPeerId(id);
+      });
+
+      newPeer.on('connection', (newConn: any) => {
+        setConn(newConn);
+        setIsConnected(true);
+        setData({ type: 'system', payload: `Connected to ${newConn.peer}` });
+      });
+    };
+
+    initializePeer();
 
     return () => {
-      newPeer.destroy();
+      if (peerInstance.current) {
+        peerInstance.current.destroy();
+      }
     };
   }, []);
 
   useEffect(() => {
     if (!conn) return;
-    conn.on('data', (data) => {
+    conn.on('data', (data: DataType) => {
       setData(data as DataType);
     });
     conn.on('close', () => {
@@ -59,7 +68,7 @@ export const usePeer = () => {
       setConn(null);
       setData({ type: 'system', payload: 'Peer has disconnected.' });
     });
-    conn.on('error', (err) => {
+    conn.on('error', (err: Error) => {
       console.error(err);
       setData({ type: 'system', payload: `Connection error: ${err.message}` });
     });
@@ -83,3 +92,4 @@ export const usePeer = () => {
 
   return { peerId, connectToPeer, sendData, data, isConnected, conn };
 };
+
