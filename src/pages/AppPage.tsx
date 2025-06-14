@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
@@ -40,6 +41,14 @@ const AppPage = () => {
       navigate('/');
     }
   }, [nickname, navigate]);
+
+  useEffect(() => {
+    const peerIdToConnect = localStorage.getItem('peerIdToConnect');
+    if (peerIdToConnect && peerId && nickname && !isConnected && !conn) {
+      connectToPeer(peerIdToConnect, { nickname });
+      localStorage.removeItem('peerIdToConnect');
+    }
+  }, [peerId, nickname, isConnected, conn, connectToPeer]);
 
   useEffect(() => {
     if (incomingConn) {
