@@ -142,7 +142,7 @@ const Landing = () => {
                     <p className="text-muted-foreground">A project by <a href="https://skavtechs.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">SKAV TECH</a></p>
                     <p className="text-muted-foreground">Developed by Sandeep Kasturi.</p>
                     <p className="text-xs text-muted-foreground pt-2">
-                        All my inspiration and love goes to 'S' — thank you for being my strength. ❤️
+                        All my inspiration and love goes to 'S' — thank you for being my strength continuous supporter ❤️.
                     </p>
                 </div>
                 <div className="lg:mx-auto">
