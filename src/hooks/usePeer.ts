@@ -1,7 +1,8 @@
 
 import { useState, useEffect, useRef } from 'react';
-// Note: The peerjs imports have been removed from here to fix the build error.
-// We will import it dynamically inside the useEffect hook.
+// We use type-only imports for type safety, and dynamic import for the implementation.
+import type Peer from 'peerjs';
+import type { DataConnection } from 'peerjs';
 
 export interface Message {
   id: string;
@@ -22,11 +23,11 @@ export type DataType = {
 }
 
 export const usePeer = () => {
-  const [peer, setPeer] = useState<any | null>(null);
+  const [peer, setPeer] = useState<Peer | null>(null);
   const [peerId, setPeerId] = useState('');
-  const [conn, setConn] = useState<any | null>(null);
+  const [conn, setConn] = useState<DataConnection | null>(null);
   const [data, setData] = useState<DataType | null>(null);
-  const peerInstance = useRef<any | null>(null);
+  const peerInstance = useRef<Peer | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export const usePeer = () => {
         setPeerId(id);
       });
 
-      newPeer.on('connection', (newConn: any) => {
+      newPeer.on('connection', (newConn: DataConnection) => {
         setConn(newConn);
         setIsConnected(true);
         setData({ type: 'system', payload: `Connected to ${newConn.peer}` });
@@ -60,7 +61,7 @@ export const usePeer = () => {
 
   useEffect(() => {
     if (!conn) return;
-    conn.on('data', (data: DataType) => {
+    conn.on('data', (data: unknown) => {
       setData(data as DataType);
     });
     conn.on('close', () => {
@@ -92,4 +93,3 @@ export const usePeer = () => {
 
   return { peerId, connectToPeer, sendData, data, isConnected, conn };
 };
-
