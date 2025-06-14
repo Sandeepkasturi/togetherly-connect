@@ -9,6 +9,7 @@ export interface Message {
   sender: 'me' | 'them' | 'system';
   content: string;
   timestamp: string;
+  nickname?: string;
 }
 
 export type DataType = {
@@ -19,6 +20,9 @@ export type DataType = {
   payload: string;
 } | {
   type: 'system';
+  payload: string;
+} | {
+  type: 'nickname';
   payload: string;
 }
 

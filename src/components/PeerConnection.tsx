@@ -3,15 +3,17 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users } from 'lucide-react';
 
 interface PeerConnectionProps {
   peerId: string;
   connectToPeer: (id: string) => void;
   isConnected: boolean;
+  myNickname: string;
+  remoteNickname: string;
 }
 
-const PeerConnection = ({ peerId, connectToPeer, isConnected }: PeerConnectionProps) => {
+const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname }: PeerConnectionProps) => {
   const [remoteId, setRemoteId] = useState('');
   const { toast } = useToast();
 
@@ -23,6 +25,10 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected }: PeerConnectionPr
   return (
     <div className="p-4 bg-secondary/30 rounded-lg border border-border">
       <h2 className="text-lg font-semibold mb-2">Connection</h2>
+      <div className="flex items-center gap-2 mb-2">
+        <User className="text-muted-foreground" />
+        <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
+      </div>
       <div className="flex items-center gap-2 mb-4">
         <Input value={peerId} readOnly className="bg-background/50" />
         <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
@@ -41,11 +47,14 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected }: PeerConnectionPr
           </Button>
         </div>
       )}
-      <p className={`mt-2 text-sm ${isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
-        Status: {isConnected ? 'Connected' : 'Waiting for connection...'}
-      </p>
+      <div className="mt-2 text-sm flex items-center gap-2">
+        <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
+        <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
+          Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
+        </p>
+      </div>
       {isConnected && (
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-muted-foreground pl-8">
           Your connection is secure and peer-to-peer.
         </p>
       )}
