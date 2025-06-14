@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
 import type { DataConnection } from 'peerjs';
@@ -79,7 +79,7 @@ export const usePeer = () => {
     });
   }, [conn]);
 
-  const connectToPeer = (remoteId: string) => {
+  const connectToPeer = useCallback((remoteId: string) => {
     if (!peer) return;
     const newConn = peer.connect(remoteId);
     setConn(newConn);
@@ -87,13 +87,13 @@ export const usePeer = () => {
       setIsConnected(true);
       setData({ type: 'system', payload: `Connected to ${remoteId}` });
     });
-  };
+  }, [peer]);
   
-  const sendData = (data: DataType) => {
+  const sendData = useCallback((data: DataType) => {
     if (conn) {
       conn.send(data);
     }
-  };
+  }, [conn]);
 
   return { peerId, connectToPeer, sendData, data, isConnected, conn };
 };

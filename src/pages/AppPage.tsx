@@ -46,17 +46,19 @@ const AppPage = () => {
         };
         setMessages((prev) => [...prev, systemMessage]);
       } else if (data.type === 'nickname') {
-        setRemoteNickname(data.payload);
-        const systemMessage: Message = { 
-          id: Date.now().toString(), 
-          content: `${data.payload} has joined the room.`, 
-          sender: 'system', 
-          timestamp: new Date().toLocaleTimeString() 
-        };
-        setMessages((prev) => [...prev, systemMessage]);
+        if (remoteNickname !== data.payload) {
+          setRemoteNickname(data.payload);
+          const systemMessage: Message = { 
+            id: Date.now().toString(), 
+            content: `${data.payload} has joined the room.`, 
+            sender: 'system', 
+            timestamp: new Date().toLocaleTimeString() 
+          };
+          setMessages((prev) => [...prev, systemMessage]);
+        }
       }
     }
-  }, [data]);
+  }, [data, remoteNickname]);
 
   const handleSendMessage = (content: string) => {
     const message: Omit<Message, 'sender'> = {
