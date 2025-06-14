@@ -44,6 +44,11 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected }: PeerConnectionPr
       <p className={`mt-2 text-sm ${isConnected ? 'text-green-400' : 'text-yellow-400'}`}>
         Status: {isConnected ? 'Connected' : 'Waiting for connection...'}
       </p>
+      {isConnected && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Your connection is secure and peer-to-peer.
+        </p>
+      )}
     </div>
   );
 };

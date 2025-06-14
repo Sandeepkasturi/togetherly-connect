@@ -19,7 +19,7 @@ const Landing = () => {
             Watch YouTube Together.
           </h2>
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-8">
-            Create a private room, invite your friends, and enjoy YouTube videos in perfect sync. Chat, react, and share moments, no matter the distance.
+            Create a private room and enjoy YouTube in sync with friends. Your connection is peer-to-peer, ensuring your chat and interactions are secure and private.
           </p>
           <Button asChild size="lg">
             <Link to="/app">Launch App</Link>
