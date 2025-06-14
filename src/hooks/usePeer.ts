@@ -17,7 +17,7 @@ export interface Message {
   nickname?: string;
   reactions?: Reaction[];
   // New props for file sharing
-  messageType?: 'text' | 'file';
+  messageType?: 'text' | 'file' | 'system';
   fileName?: string;
   fileType?: string;
   fileSize?: number;
