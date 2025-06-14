@@ -141,6 +141,9 @@ const Landing = () => {
                     <h3 className="text-lg font-bold text-primary">Togetherly</h3>
                     <p className="text-muted-foreground">A project by <a href="https://skavtechs.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">SKAV TECH</a></p>
                     <p className="text-muted-foreground">Developed by Sandeep Kasturi.</p>
+                    <p className="text-xs text-muted-foreground pt-2">
+                        All my inspiration and love goes to 'S' — thank you for being my strength. ❤️
+                    </p>
                 </div>
                 <div className="lg:mx-auto">
                     <h3 className="text-lg font-semibold text-primary mb-2">Connect with the developer</h3>
@@ -159,11 +162,6 @@ const Landing = () => {
                 <div className="sm:col-span-2 lg:col-span-1 lg:text-right">
                     <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Togetherly. All Rights Reserved.</p>
                 </div>
-            </div>
-            <div className="mt-6 text-center border-t border-border pt-4">
-                <p className="text-xs text-muted-foreground">
-                    All my inspiration and love goes to 'S' — thank you for being my strength. ❤️
-                </p>
             </div>
         </div>
       </footer>
