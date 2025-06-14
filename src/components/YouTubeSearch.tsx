@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,10 +47,11 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
   const { toast } = useToast();
 
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
+  const API_KEY_ERROR_MESSAGE = 'YouTube API key is not configured. Please create a .env.local file with: VITE_YOUTUBE_API_KEY="your_key"';
 
   const handleSearch = async () => {
     if (!API_KEY) {
-      toast({ title: 'Error', description: 'YouTube API key is not configured.', variant: 'destructive' });
+      toast({ title: 'Configuration Error', description: API_KEY_ERROR_MESSAGE, variant: 'destructive' });
       return;
     }
     if (!query.trim()) return;
@@ -83,7 +83,7 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
     setLoading(true);
     try {
       if (!API_KEY) {
-        throw new Error('YouTube API key is not configured.');
+        throw new Error(API_KEY_ERROR_MESSAGE);
       }
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(categoryQuery)}&key=${API_KEY}&type=video&maxResults=10`
