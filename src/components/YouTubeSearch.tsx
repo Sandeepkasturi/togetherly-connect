@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,8 +47,10 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
 
   const { toast } = useToast();
 
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-  const API_KEY_ERROR_MESSAGE = 'YouTube API key is not configured. Please create a .env.local file with: VITE_YOUTUBE_API_KEY="your_key"';
+  // I've added your API key here to get it working.
+  // IMPORTANT: For security, it's best to use a .env.local file for your API key instead of hardcoding it.
+  const API_KEY = "AIzaSyCOXa8bs3l-4vYV68EmzLaxpz0p40PCUjc";
+  const API_KEY_ERROR_MESSAGE = 'The provided YouTube API key might be invalid or has exceeded its daily quota.';
 
   const handleSearch = async () => {
     if (!API_KEY) {
