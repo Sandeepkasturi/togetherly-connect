@@ -123,15 +123,19 @@ export const usePeer = () => {
       };
 
       newPeer.on('call', (incomingCall: MediaConnection) => {
-        setData({ type: 'system', payload: `Incoming call from ${incomingCall.peer}...` });
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        const callType = incomingCall.metadata?.callType === 'audio' ? 'audio' : 'video';
+        setData({ type: 'system', payload: `Incoming ${callType} call from ${incomingCall.peer}...` });
+        
+        const constraints = { video: callType === 'video', audio: true };
+
+        navigator.mediaDevices.getUserMedia(constraints)
           .then(stream => {
             setLocalStream(stream);
             incomingCall.answer(stream);
             setupCallListeners(incomingCall);
           })
           .catch(err => {
-            console.error('Failed to get local stream on incoming call', err);
+            console.error(`Failed to get local stream for incoming ${callType} call`, err);
             setData({ type: 'system', payload: 'Could not start camera/mic.' });
           });
       });
@@ -201,7 +205,7 @@ export const usePeer = () => {
     }
   }, [conn]);
 
-  const startCall = useCallback(() => {
+  const startCall = useCallback((type: 'audio' | 'video') => {
     if (!peer || !conn) return;
 
     const setupCallListeners = (call: MediaConnection) => {
@@ -219,11 +223,13 @@ export const usePeer = () => {
         mediaCallInstance.current = call;
         setIsCallActive(true);
     };
+    
+    const constraints = { video: type === 'video', audio: true };
 
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    navigator.mediaDevices.getUserMedia(constraints)
         .then(stream => {
             setLocalStream(stream);
-            const outgoingCall = peer.call(conn.peer, stream);
+            const outgoingCall = peer.call(conn.peer, stream, { metadata: { callType: type } });
             setupCallListeners(outgoingCall);
         })
         .catch(err => {

@@ -23,6 +23,7 @@ interface CallManagerProps {
 const CallManager = ({ localStream, remoteStream, isCallActive, endCall, toggleMedia, remoteNickname }: CallManagerProps) => {
     const [isMicMuted, setIsMicMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
+    const hasVideo = !!localStream?.getVideoTracks().length;
 
     const handleToggleMic = () => {
         toggleMedia('audio');
@@ -30,8 +31,10 @@ const CallManager = ({ localStream, remoteStream, isCallActive, endCall, toggleM
     };
 
     const handleToggleVideo = () => {
-        toggleMedia('video');
-        setIsVideoOff(prev => !prev);
+        if (hasVideo) {
+            toggleMedia('video');
+            setIsVideoOff(prev => !prev);
+        }
     };
 
     const onDialogChange = (open: boolean) => {
@@ -39,6 +42,8 @@ const CallManager = ({ localStream, remoteStream, isCallActive, endCall, toggleM
         endCall();
       }
     }
+    
+    const videoIsActuallyOff = !hasVideo || isVideoOff;
 
     return (
         <Dialog open={isCallActive} onOpenChange={onDialogChange}>
@@ -63,8 +68,14 @@ const CallManager = ({ localStream, remoteStream, isCallActive, endCall, toggleM
                     <Button variant="destructive" size="icon" className="w-16 h-10 rounded-full" onClick={endCall}>
                         <Phone />
                     </Button>
-                    <Button variant={isVideoOff ? 'destructive' : 'outline'} size="icon" onClick={handleToggleVideo} className="rounded-full">
-                        {isVideoOff ? <VideoOff /> : <Video />}
+                    <Button 
+                        variant={videoIsActuallyOff ? 'destructive' : 'outline'} 
+                        size="icon" 
+                        onClick={handleToggleVideo} 
+                        className="rounded-full"
+                        disabled={!hasVideo}
+                    >
+                        {videoIsActuallyOff ? <VideoOff /> : <Video />}
                     </Button>
                 </DialogFooter>
             </DialogContent>
