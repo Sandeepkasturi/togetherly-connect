@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, PhoneCall } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
 
@@ -14,7 +14,7 @@ interface PeerConnectionProps {
   myNickname: string;
   remoteNickname: string;
   sendData: (data: DataType) => void;
-  startCall: () => void;
+  startCall: (type: 'audio' | 'video') => void;
   isCallActive: boolean;
 }
 
@@ -98,11 +98,15 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
         </div>
       )}
       {isConnected && !isCallActive && (
-        <div className="mt-4">
-          <Button onClick={startCall} className="w-full bg-green-500 hover:bg-green-600">
-            <PhoneCall className="h-4 w-4 mr-2" />
-            Call {remoteNickname}
-          </Button>
+        <div className="mt-4 flex flex-col sm:flex-row gap-2">
+            <Button onClick={() => startCall('audio')} className="w-full bg-green-500 hover:bg-green-600">
+                <Phone className="h-4 w-4 mr-2" />
+                Audio Call
+            </Button>
+            <Button onClick={() => startCall('video')} className="w-full">
+                <Video className="h-4 w-4 mr-2" />
+                Video Call
+            </Button>
         </div>
       )}
       <div className="mt-2 text-sm flex items-center gap-2">
