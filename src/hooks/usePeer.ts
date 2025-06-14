@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
@@ -15,11 +16,28 @@ export interface Message {
   timestamp: string;
   nickname?: string;
   reactions?: Reaction[];
+  // New props for file sharing
+  messageType?: 'text' | 'file';
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  fileData?: string; // base64 encoded
 }
 
 export type DataType = {
   type: 'chat';
   payload: Omit<Message, 'sender'>;
+} | {
+  type: 'file';
+  payload: {
+    id: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    fileData: string;
+    timestamp: string;
+    nickname?: string;
+  };
 } | {
   type: 'video';
   payload: string;

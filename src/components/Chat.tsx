@@ -3,20 +3,23 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Message } from '@/hooks/usePeer';
-import { Send } from 'lucide-react';
+import { Send, File as FileIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import FileDisplay from './FileDisplay';
 
 interface ChatProps {
   messages: Message[];
   sendMessage: (content: string) => void;
+  handleSendFile: (file: File) => void;
   isConnected: boolean;
   handleSendReaction: (messageId: string, emoji: string) => void;
 }
 
-const Chat = ({ messages, sendMessage, isConnected, handleSendReaction }: ChatProps) => {
+const Chat = ({ messages, sendMessage, handleSendFile, isConnected, handleSendReaction }: ChatProps) => {
   const [message, setMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,6 +37,17 @@ const Chat = ({ messages, sendMessage, isConnected, handleSendReaction }: ChatPr
   const handleDoubleClick = (messageId: string) => {
     if (!isConnected) return;
     handleSendReaction(messageId, '❤️');
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      handleSendFile(file);
+    }
+    // Reset file input to allow selecting the same file again
+    if(event.target) {
+        event.target.value = '';
+    }
   };
 
   return (
@@ -65,11 +79,20 @@ const Chat = ({ messages, sendMessage, isConnected, handleSendReaction }: ChatPr
                     : msg.sender === 'them'
                     ? 'bg-muted'
                     : 'bg-transparent text-muted-foreground italic',
-                  msg.sender !== 'system' && 'cursor-pointer'
+                  msg.sender !== 'system' && msg.messageType !== 'file' && 'cursor-pointer'
                 )}
-                onDoubleClick={() => msg.sender !== 'system' && handleDoubleClick(msg.id)}
+                onDoubleClick={() => msg.sender !== 'system' && msg.messageType !== 'file' && handleDoubleClick(msg.id)}
               >
-                <p className="break-words">{msg.content}</p>
+                {msg.messageType === 'file' ? (
+                  <FileDisplay 
+                    fileName={msg.fileName}
+                    fileSize={msg.fileSize}
+                    fileData={msg.fileData}
+                    isMe={msg.sender === 'me'}
+                  />
+                ) : (
+                  <p className="break-words">{msg.content}</p>
+                )}
                  {msg.sender !== 'system' && <p className="text-xs text-muted-foreground/70 mt-1">{msg.timestamp}</p>}
                 
                 {msg.reactions && msg.reactions.length > 0 && (
@@ -97,6 +120,16 @@ const Chat = ({ messages, sendMessage, isConnected, handleSendReaction }: ChatPr
         <div ref={messagesEndRef} />
       </div>
       <div className="mt-4 flex items-center gap-2">
+        <Input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileSelect}
+          className="hidden"
+          disabled={!isConnected}
+        />
+        <Button size="icon" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={!isConnected}>
+          <FileIcon className="h-4 w-4" />
+        </Button>
         <Input
           placeholder="Type a message..."
           value={message}
