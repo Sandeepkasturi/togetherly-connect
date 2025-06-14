@@ -73,6 +73,8 @@ export const usePeer = () => {
   const [isCallActive, setIsCallActive] = useState(false);
   const mediaCallInstance = useRef<MediaConnection | null>(null);
 
+  const [incomingConn, setIncomingConn] = useState<DataConnection | null>(null);
+
   const endCall = useCallback(() => {
     if (mediaCallInstance.current) {
       mediaCallInstance.current.close();
@@ -89,6 +91,21 @@ export const usePeer = () => {
     setData({ type: 'system', payload: 'Call ended.' });
   }, []);
 
+  const acceptConnection = useCallback(() => {
+    if (incomingConn) {
+      setConn(incomingConn);
+      setIncomingConn(null);
+    }
+  }, [incomingConn]);
+
+  const rejectConnection = useCallback(() => {
+    if (incomingConn) {
+      incomingConn.close();
+      setIncomingConn(null);
+      setData({ type: 'system', payload: 'Connection request rejected.' });
+    }
+  }, [incomingConn]);
+
   useEffect(() => {
     const initializePeer = async () => {
       // Dynamically import PeerJS to solve module resolution issues with Vite
@@ -103,7 +120,13 @@ export const usePeer = () => {
       });
 
       newPeer.on('connection', (newConn: DataConnection) => {
-        setConn(newConn);
+        if (conn?.open || isCallActive || incomingConn) {
+          // If busy, reject new connection.
+          newConn.close();
+          return;
+        }
+        setData({type: 'system', payload: `Incoming connection from ${newConn.metadata.nickname || newConn.peer}`});
+        setIncomingConn(newConn);
       });
 
       const setupCallListeners = (call: MediaConnection) => {
@@ -191,9 +214,9 @@ export const usePeer = () => {
     };
   }, [conn]);
 
-  const connectToPeer = useCallback((remoteId: string) => {
+  const connectToPeer = useCallback((remoteId: string, metadata: { nickname: string }) => {
     if (!peer) return;
-    const newConn = peer.connect(remoteId);
+    const newConn = peer.connect(remoteId, { metadata });
     setConn(newConn);
   }, [peer]);
   
@@ -247,5 +270,5 @@ export const usePeer = () => {
     }
   }, [localStream]);
 
-  return { peerId, connectToPeer, sendData, data, isConnected, conn, localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia };
+  return { peerId, connectToPeer, sendData, data, isConnected, conn, localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia, incomingConn, acceptConnection, rejectConnection };
 };
