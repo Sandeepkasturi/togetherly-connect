@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, PhoneCall } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
 
@@ -14,9 +14,11 @@ interface PeerConnectionProps {
   myNickname: string;
   remoteNickname: string;
   sendData: (data: DataType) => void;
+  startCall: () => void;
+  isCallActive: boolean;
 }
 
-const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname, sendData }: PeerConnectionProps) => {
+const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname, sendData, startCall, isCallActive }: PeerConnectionProps) => {
   const [remoteId, setRemoteId] = useState('');
   const { toast } = useToast();
   const { setNickname } = useUser();
@@ -92,6 +94,14 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
           />
           <Button onClick={() => connectToPeer(remoteId)} disabled={!remoteId}>
             <LinkIcon className="h-4 w-4 mr-2" /> Connect
+          </Button>
+        </div>
+      )}
+      {isConnected && !isCallActive && (
+        <div className="mt-4">
+          <Button onClick={startCall} className="w-full bg-green-500 hover:bg-green-600">
+            <PhoneCall className="h-4 w-4 mr-2" />
+            Call {remoteNickname}
           </Button>
         </div>
       )}

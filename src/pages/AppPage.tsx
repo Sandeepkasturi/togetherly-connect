@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
@@ -6,6 +7,7 @@ import PeerConnection from '@/components/PeerConnection';
 import Chat from '@/components/Chat';
 import YouTubePlayer from '@/components/YouTubePlayer';
 import YouTubeSearch from '@/components/YouTubeSearch';
+import CallManager from '@/components/CallManager';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
@@ -13,7 +15,10 @@ import { useToast } from '@/hooks/use-toast';
 const AppPage = () => {
   const { nickname } = useUser();
   const navigate = useNavigate();
-  const { peerId, connectToPeer, sendData, data, isConnected, conn } = usePeer();
+  const { 
+    peerId, connectToPeer, sendData, data, isConnected, conn,
+    localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia
+  } = usePeer();
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
   const [remoteNickname, setRemoteNickname] = useState('Friend');
@@ -222,6 +227,8 @@ const AppPage = () => {
             myNickname={nickname} 
             remoteNickname={remoteNickname}
             sendData={sendData}
+            startCall={startCall}
+            isCallActive={isCallActive}
           />
           <Chat 
             messages={messages} 
@@ -232,6 +239,14 @@ const AppPage = () => {
           />
         </motion.div>
       </main>
+      <CallManager
+        localStream={localStream}
+        remoteStream={remoteStream}
+        isCallActive={isCallActive}
+        endCall={endCall}
+        toggleMedia={toggleMedia}
+        remoteNickname={remoteNickname}
+      />
     </div>
   );
 };
