@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
-import Peer, { DataConnection } from 'peerjs';
+import Peer from 'peerjs';
+import type { DataConnection } from 'peerjs';
 
 export interface Message {
   id: string;
