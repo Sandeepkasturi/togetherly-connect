@@ -66,8 +66,6 @@ export const usePeer = () => {
 
       newPeer.on('connection', (newConn: DataConnection) => {
         setConn(newConn);
-        setIsConnected(true);
-        setData({ type: 'system', payload: `Connected to ${newConn.peer}` });
       });
     };
 
@@ -82,33 +80,56 @@ export const usePeer = () => {
 
   useEffect(() => {
     if (!conn) return;
-    conn.on('data', (data: unknown) => {
-      setData(data as DataType);
-    });
-    conn.on('close', () => {
+
+    const onOpen = () => {
+      setIsConnected(true);
+      setData({ type: 'system', payload: `Connected to ${conn.peer}` });
+    };
+
+    const onData = (receivedData: unknown) => {
+      setData(receivedData as DataType);
+    };
+
+    const onClose = () => {
       setIsConnected(false);
       setConn(null);
       setData({ type: 'system', payload: 'Peer has disconnected.' });
-    });
-    conn.on('error', (err: Error) => {
+    };
+
+    const onError = (err: Error) => {
       console.error(err);
       setData({ type: 'system', payload: `Connection error: ${err.message}` });
-    });
+    };
+
+    conn.on('open', onOpen);
+    conn.on('data', onData);
+    conn.on('close', onClose);
+    conn.on('error', onError);
+    
+    // This handles the case where the connection is already open
+    if (conn.open) {
+      onOpen();
+    }
+
+    return () => {
+      conn.off('open', onOpen);
+      conn.off('data', onData);
+      conn.off('close', onClose);
+      conn.off('error', onError);
+    };
   }, [conn]);
 
   const connectToPeer = useCallback((remoteId: string) => {
     if (!peer) return;
     const newConn = peer.connect(remoteId);
     setConn(newConn);
-    newConn.on('open', () => {
-      setIsConnected(true);
-      setData({ type: 'system', payload: `Connected to ${remoteId}` });
-    });
   }, [peer]);
   
   const sendData = useCallback((data: DataType) => {
-    if (conn) {
+    if (conn && conn.open) {
       conn.send(data);
+    } else {
+      console.error("Connection is not open. You should listen for the `open` event before sending messages.");
     }
   }, [conn]);
 
