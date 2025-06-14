@@ -9,7 +9,7 @@ import { DataType } from '@/hooks/usePeer';
 
 interface PeerConnectionProps {
   peerId: string;
-  connectToPeer: (id: string) => void;
+  connectToPeer: (id: string, metadata: { nickname: string }) => void;
   isConnected: boolean;
   myNickname: string;
   remoteNickname: string;
@@ -92,7 +92,7 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
             value={remoteId}
             onChange={(e) => setRemoteId(e.target.value)}
           />
-          <Button onClick={() => connectToPeer(remoteId)} disabled={!remoteId}>
+          <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
             <LinkIcon className="h-4 w-4 mr-2" /> Connect
           </Button>
         </div>

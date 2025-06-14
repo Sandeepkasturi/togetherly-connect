@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
@@ -11,17 +10,29 @@ import CallManager from '@/components/CallManager';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const AppPage = () => {
   const { nickname } = useUser();
   const navigate = useNavigate();
   const { 
     peerId, connectToPeer, sendData, data, isConnected, conn,
-    localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia
+    localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia,
+    incomingConn, acceptConnection, rejectConnection
   } = usePeer();
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
   const [remoteNickname, setRemoteNickname] = useState('Friend');
+  const [incomingPeerInfo, setIncomingPeerInfo] = useState<{nickname: string, peerId: string} | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -29,6 +40,15 @@ const AppPage = () => {
       navigate('/');
     }
   }, [nickname, navigate]);
+
+  useEffect(() => {
+    if (incomingConn) {
+      const nickname = incomingConn.metadata?.nickname || 'A friend';
+      setIncomingPeerInfo({ nickname, peerId: incomingConn.peer });
+    } else {
+      setIncomingPeerInfo(null);
+    }
+  }, [incomingConn]);
 
   useEffect(() => {
     if (isConnected && conn && nickname) {
@@ -247,6 +267,20 @@ const AppPage = () => {
         toggleMedia={toggleMedia}
         remoteNickname={remoteNickname}
       />
+       <AlertDialog open={!!incomingConn}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Incoming Connection Request</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{incomingPeerInfo?.nickname}</strong> wants to connect. Do you want to accept?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={rejectConnection}>Reject</AlertDialogCancel>
+            <AlertDialogAction onClick={acceptConnection}>Accept</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
