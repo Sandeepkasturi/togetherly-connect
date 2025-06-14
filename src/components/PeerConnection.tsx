@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2 } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
 
@@ -28,6 +28,13 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(peerId);
     toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
+  };
+
+  const handleShareLink = () => {
+    if (!peerId) return;
+    const link = `https://togetherly-share.vercel.app/join?peerId=${peerId}`;
+    navigator.clipboard.writeText(link);
+    toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
   };
 
   const handleNicknameChange = () => {
@@ -83,6 +90,9 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
         <Input value={peerId} readOnly className="bg-background/50" />
         <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
           <Copy className="h-4 w-4" />
+        </Button>
+        <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
+          <Share2 className="h-4 w-4" />
         </Button>
       </div>
       {!isConnected && (
