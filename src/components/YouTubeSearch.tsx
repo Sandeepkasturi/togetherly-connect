@@ -25,7 +25,9 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
   const { toast } = useToast();
 
   const handleSearch = async () => {
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
+    // Note: The API key is hardcoded here as a temporary solution.
+    // In a production app, it's best to manage keys using environment variables for better security.
+    const apiKey = "AIzaSyCOXa8bs3l-4vYV68EmzLaxpz0p40PCUjc";
     if (!apiKey) {
       toast({
         title: 'Error',

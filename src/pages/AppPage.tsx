@@ -52,12 +52,12 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header />
-      <main className="flex-grow p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <main className="flex-grow p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
         <motion.div 
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="lg:col-span-2 flex flex-col gap-8"
+          className="flex flex-col gap-8"
         >
           <YouTubePlayer videoId={selectedVideoId} />
           <YouTubeSearch onVideoSelect={handleVideoSelect} isConnected={isConnected} />
