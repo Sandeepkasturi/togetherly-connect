@@ -1,4 +1,3 @@
-
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { DataType } from '@/hooks/usePeer';
@@ -96,25 +95,29 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
     
     const { event, currentTime } = playerData.payload;
     const player = playerRef.current;
-    const clientTime = player.getCurrentTime();
-    const timeDiff = Math.abs(clientTime - currentTime);
     
-    switch (event) {
-      case 'play':
-        if (player.getPlayerState() !== 1 || timeDiff > 1.5) {
-          if (timeDiff > 1.5) player.seekTo(currentTime, true);
-          player.playVideo();
-        }
-        break;
-      case 'pause':
-        if (player.getPlayerState() !== 2 || timeDiff > 1.5) {
-          player.pauseVideo();
-          if (timeDiff > 1.5) player.seekTo(currentTime, true);
-        }
-        break;
+    if (event === 'play') {
+      const clientTime = player.getCurrentTime();
+      if (Math.abs(clientTime - currentTime) > 1.5) {
+        player.seekTo(currentTime, true);
+      }
+      // seekTo might start playback, but playVideo() ensures it.
+      if (player.getPlayerState() !== 1) { 
+        player.playVideo();
+      }
+    } else if (event === 'pause') {
+      // It's safer to pause first, then seek.
+      if (player.getPlayerState() !== 2) {
+        player.pauseVideo();
+      }
+      const clientTime = player.getCurrentTime();
+      if (Math.abs(clientTime - currentTime) > 1.5) {
+        player.seekTo(currentTime, true);
+      }
     }
 
-    setTimeout(() => { isUpdatingFromPeer.current = false; }, 200);
+    // Increased timeout to allow player state to settle
+    setTimeout(() => { isUpdatingFromPeer.current = false; }, 300);
 
   }, [playerData, isConnected]);
 
