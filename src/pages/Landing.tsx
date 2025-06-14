@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -159,6 +160,11 @@ const Landing = () => {
                 <div className="sm:col-span-2 lg:col-span-1 lg:text-right">
                     <p className="text-muted-foreground">&copy; {new Date().getFullYear()} Togetherly. All Rights Reserved.</p>
                 </div>
+            </div>
+            <div className="mt-6 text-center border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground">
+                    Inspiration and love goes to "S" ❤️
+                </p>
             </div>
         </div>
       </footer>
