@@ -17,12 +17,12 @@ const AppPage = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+    <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 xl:gap-8">
       <motion.div 
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-4 lg:gap-6"
       >
         <YouTubePlayer 
           videoId={context.selectedVideoId} 
@@ -36,7 +36,7 @@ const AppPage = () => {
         initial={{ opacity: 0, x: 50 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, delay: 0.4 }}
-        className="flex flex-col gap-6"
+        className="flex flex-col gap-4 lg:gap-6"
       >
         <PeerConnection 
           peerId={context.peerId} 
