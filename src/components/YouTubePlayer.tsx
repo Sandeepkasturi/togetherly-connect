@@ -2,6 +2,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { DataType } from '@/hooks/usePeer';
+import { Play } from 'lucide-react';
 
 declare global {
   interface Window {
@@ -141,20 +142,46 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
 
   if (!videoId) {
     return (
-        <div className="aspect-video w-full bg-secondary/30 rounded-lg border border-border flex items-center justify-center">
-            <p className="text-muted-foreground">Search for a video to watch together</p>
+      <div className="aspect-video w-full bg-gradient-to-br from-secondary/30 via-secondary/20 to-secondary/30 rounded-xl border border-border/50 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5"></div>
+        <div className="text-center space-y-4 z-10">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center">
+            <Play className="w-8 h-8 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Ready to Watch Together?</h3>
+            <p className="text-muted-foreground max-w-md">
+              Search for a video below to start sharing your viewing experience with friends
+            </p>
+          </div>
         </div>
+        <div className="absolute top-4 right-4 w-24 h-24 bg-gradient-to-br from-pink-500/10 to-purple-500/10 rounded-full blur-xl"></div>
+        <div className="absolute bottom-4 left-4 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-full blur-xl"></div>
+      </div>
     );
   }
 
   return (
     <motion.div
-      key={videoId} // This is crucial for re-initialization on new video
+      key={videoId}
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="aspect-video w-full"
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="aspect-video w-full relative overflow-hidden rounded-xl"
     >
-      <div id="youtube-player" className="w-full h-full rounded-lg" />
+      <div id="youtube-player" className="w-full h-full rounded-xl" />
+      
+      {/* Connection status indicator */}
+      {isConnected && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.5 }}
+          className="absolute top-4 right-4 bg-green-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg"
+        >
+          🟢 Synced
+        </motion.div>
+      )}
     </motion.div>
   );
 };
