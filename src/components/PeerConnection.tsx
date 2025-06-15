@@ -1,11 +1,20 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2 } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import QRCode from 'qrcode';
 
 interface PeerConnectionProps {
   peerId: string;
@@ -24,44 +33,40 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
   const { setNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
   const [newNickname, setNewNickname] = useState(myNickname);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const shareUrl = `https://togetherly-share.vercel.app/join?peerId=${peerId}`;
+
+  useEffect(() => {
+    if (peerId && isShareModalOpen) {
+      QRCode.toDataURL(shareUrl, { width: 256, margin: 2 })
+        .then(url => {
+          setQrCodeDataUrl(url);
+        })
+        .catch(err => {
+          console.error('Failed to generate QR code', err);
+          toast({
+            title: 'Error',
+            description: 'Could not generate QR code.',
+            variant: 'destructive'
+          });
+        });
+    }
+  }, [peerId, shareUrl, isShareModalOpen, toast]);
 
   const handleCopyToClipboard = () => {
     navigator.clipboard.writeText(peerId);
     toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
   };
 
-  const handleShareLink = async () => {
-    if (!peerId) return;
-    const link = `https://togetherly-share.vercel.app/join?peerId=${peerId}`;
-    const shareData = {
-      title: 'Join me on Togetherly!',
-      text: "Let's watch videos together. Click the link to join my room.",
-      url: link,
-    };
+  const handleCopyShareLinkToClipboard = () => {
+    navigator.clipboard.writeText(shareUrl);
+    toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
+  };
 
-    // Use Web Share API if available
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        // This can happen if the user cancels the share
-        if ((err as Error).name !== 'AbortError') {
-          console.error('Share failed:', err);
-          toast({
-            title: 'Sharing failed',
-            description: 'Could not share the invitation link.',
-            variant: 'destructive',
-          });
-        }
-      }
-    } else {
-      // Fallback to copying to clipboard
-      navigator.clipboard.writeText(link);
-      toast({
-        title: 'Link Copied',
-        description: 'Web sharing is not supported on your browser. The link has been copied to your clipboard.',
-      });
-    }
+  const handleShareLink = () => {
+    if (!peerId) return;
+    setIsShareModalOpen(true);
   };
 
   const handleNicknameChange = () => {
@@ -87,86 +92,134 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
     setIsEditingNickname(false);
   }
 
+  const shareText = "Let's watch videos together on Togetherly! Click the link to join my room.";
+
   return (
-    <div className="p-4 bg-secondary/30 rounded-lg border border-border">
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Connection</h2>
-        
-        <div className="flex items-center gap-2">
-          <User className="text-muted-foreground" />
-          {!isEditingNickname ? (
-            <div className="flex items-center gap-1">
-              <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNickname(true)}>
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 w-full">
-              <Input 
-                value={newNickname} 
-                onChange={(e) => setNewNickname(e.target.value)} 
-                onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
-                className="h-8"
-                placeholder="New nickname"
-              />
-              <Button size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleNicknameChange}><Check className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Input value={peerId} readOnly className="bg-background/50" />
-          <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
-            <Copy className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
-            <Share2 className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        {!isConnected && (
+    <>
+      <div className="p-4 bg-secondary/30 rounded-lg border border-border">
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Connection</h2>
+          
           <div className="flex items-center gap-2">
-            <Input
-              placeholder="Friend's Peer ID"
-              value={remoteId}
-              onChange={(e) => setRemoteId(e.target.value)}
-            />
-            <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
-              <LinkIcon className="h-4 w-4 mr-2" /> Connect
+            <User className="text-muted-foreground" />
+            {!isEditingNickname ? (
+              <div className="flex items-center gap-1">
+                <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNickname(true)}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 w-full">
+                <Input 
+                  value={newNickname} 
+                  onChange={(e) => setNewNickname(e.target.value)} 
+                  onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
+                  className="h-8"
+                  placeholder="New nickname"
+                />
+                <Button size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleNicknameChange}><Check className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Input value={peerId} readOnly className="bg-background/50" />
+            <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
+              <Share2 className="h-4 w-4" />
             </Button>
           </div>
-        )}
-        
-        {isConnected && !isCallActive && (
-          <div className="flex flex-col sm:flex-row gap-2">
-              <Button onClick={() => startCall('audio')} className="w-full bg-green-500 hover:bg-green-600">
-                  <Phone className="h-4 w-4 mr-2" />
-                  Audio Call
+          
+          {!isConnected && (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Friend's Peer ID"
+                value={remoteId}
+                onChange={(e) => setRemoteId(e.target.value)}
+              />
+              <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
+                <LinkIcon className="h-4 w-4 mr-2" /> Connect
               </Button>
-              <Button onClick={() => startCall('video')} className="w-full">
-                  <Video className="h-4 w-4 mr-2" />
-                  Video Call
-              </Button>
-          </div>
-        )}
-        
-        <div>
-          <div className="text-sm flex items-center gap-2">
-            <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
-            <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
-              Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
-            </p>
-          </div>
-          {isConnected && (
-            <p className="mt-1 text-xs text-muted-foreground pl-8">
-              Your connection is secure and peer-to-peer.
-            </p>
+            </div>
           )}
+          
+          {isConnected && !isCallActive && (
+            <div className="flex flex-col sm:flex-row gap-2">
+                <Button onClick={() => startCall('audio')} className="w-full bg-green-500 hover:bg-green-600">
+                    <Phone className="h-4 w-4 mr-2" />
+                    Audio Call
+                </Button>
+                <Button onClick={() => startCall('video')} className="w-full">
+                    <Video className="h-4 w-4 mr-2" />
+                    Video Call
+                </Button>
+            </div>
+          )}
+          
+          <div>
+            <div className="text-sm flex items-center gap-2">
+              <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
+              <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
+                Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
+              </p>
+            </div>
+            {isConnected && (
+              <p className="mt-1 text-xs text-muted-foreground pl-8">
+                Your connection is secure and peer-to-peer.
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+      <Dialog open={isShareModalOpen} onOpenChange={setIsShareModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5" />
+              Share Invitation
+            </DialogTitle>
+            <DialogDescription>
+              Share this link with your friend to connect. They can scan the QR code or use the link.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center p-4">
+            {qrCodeDataUrl ? (
+              <img src={qrCodeDataUrl} alt="QR Code for invitation link" className="rounded-lg border bg-white p-2" />
+            ) : (
+              <div className="h-[256px] w-[256px] animate-pulse rounded-lg bg-muted"></div>
+            )}
+            <p className="mt-2 text-xs text-muted-foreground">Scan with your phone</p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Input id="link" value={shareUrl} readOnly />
+            <Button type="button" size="icon" onClick={handleCopyShareLinkToClipboard}>
+              <Copy className="h-4 w-4" />
+              <span className="sr-only">Copy</span>
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-start pt-4">
+            <div className="flex w-full flex-col gap-2 sm:flex-row">
+               <Button asChild variant="outline" className="w-full">
+                <a href={`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle className="mr-2 h-4 w-4" />
+                  WhatsApp
+                </a>
+              </Button>
+               <Button asChild variant="outline" className="w-full">
+                <a href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer">
+                  <Send className="mr-2 h-4 w-4" />
+                  Telegram
+                </a>
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
