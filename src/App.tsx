@@ -8,6 +8,7 @@ import Landing from "./pages/Landing";
 import AppPage from "./pages/AppPage";
 import JoinPage from "./pages/JoinPage";
 import NotFound from "./pages/NotFound";
+import Documentation from "./pages/Documentation";
 import { UserProvider } from "./contexts/UserContext";
 import AppLayout from "./layouts/AppLayout";
 import WatchPage from "./pages/WatchPage";
@@ -24,6 +25,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/documentation" element={<Documentation />} />
             <Route element={<AppLayout />}>
               <Route path="/app" element={<AppPage />} />
               <Route path="/watch" element={<WatchPage />} />

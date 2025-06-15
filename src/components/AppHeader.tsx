@@ -2,7 +2,7 @@
 import { useUser } from '@/contexts/UserContext';
 import { NavLink } from 'react-router-dom';
 import { Button } from './ui/button';
-import { LogOut, Tv, LayoutDashboard } from 'lucide-react';
+import { LogOut, Tv, LayoutDashboard, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const AppHeader = () => {
@@ -38,6 +38,10 @@ const AppHeader = () => {
             <NavLink to="/watch" className={navLinkClass}>
                <Tv className="h-4 w-4" />
               Watch
+            </NavLink>
+            <NavLink to="/documentation" className={navLinkClass}>
+              <FileText className="h-4 w-4" />
+              Documentation
             </NavLink>
           </nav>
         </div>
