@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,7 +8,7 @@ import AppPage from "./pages/AppPage";
 import JoinPage from "./pages/JoinPage";
 import NotFound from "./pages/NotFound";
 import Documentation from "./pages/Documentation";
-import { UserProvider } from "./contexts/UserContext";
+import { UserProvider } from "@/contexts/UserContext";
 import AppLayout from "./layouts/AppLayout";
 import WatchPage from "./pages/WatchPage";
 import { Analytics } from "@vercel/analytics/react";
