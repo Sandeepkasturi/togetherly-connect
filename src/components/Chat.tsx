@@ -51,7 +51,7 @@ const Chat = ({ messages, sendMessage, handleSendFile, isConnected, handleSendRe
   };
 
   return (
-    <div className="p-4 bg-secondary/30 rounded-lg border border-border flex flex-col h-[400px]">
+    <div className="p-4 bg-secondary/30 rounded-lg border border-border flex flex-col h-full">
       <h2 className="text-lg font-semibold mb-4">Chat</h2>
       <div className="flex-grow overflow-y-auto pr-2 space-y-4">
         <AnimatePresence>
