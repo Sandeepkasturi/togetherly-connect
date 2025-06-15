@@ -3,18 +3,20 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { FileText, Download, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import docHtml from '../../docs/SRS-Togetherly.html?raw';
 
 const Documentation = () => {
   const navigate = useNavigate();
 
   const handleDownloadHTML = () => {
-    // Create a link to download the HTML file
+    const blob = new Blob([docHtml], { type: 'text/html' });
     const link = document.createElement('a');
-    link.href = '/docs/SRS-Togetherly.html';
+    link.href = URL.createObjectURL(blob);
     link.download = 'SRS-Togetherly.html';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
   };
 
   return (
@@ -62,7 +64,7 @@ const Documentation = () => {
           {/* Embedded SRS Document - Mobile Responsive */}
           <div className="border rounded-lg overflow-hidden bg-card">
             <iframe
-              src="/docs/SRS-Togetherly.html"
+              srcDoc={docHtml}
               className="w-full h-[60vh] sm:h-[70vh] lg:h-[800px] border-0"
               title="SRS Documentation"
             />
