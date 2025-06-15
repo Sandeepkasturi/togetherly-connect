@@ -30,11 +30,38 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
     toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
   };
 
-  const handleShareLink = () => {
+  const handleShareLink = async () => {
     if (!peerId) return;
     const link = `https://togetherly-share.vercel.app/join?peerId=${peerId}`;
-    navigator.clipboard.writeText(link);
-    toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
+    const shareData = {
+      title: 'Join me on Togetherly!',
+      text: "Let's watch videos together. Click the link to join my room.",
+      url: link,
+    };
+
+    // Use Web Share API if available
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // This can happen if the user cancels the share
+        if ((err as Error).name !== 'AbortError') {
+          console.error('Share failed:', err);
+          toast({
+            title: 'Sharing failed',
+            description: 'Could not share the invitation link.',
+            variant: 'destructive',
+          });
+        }
+      }
+    } else {
+      // Fallback to copying to clipboard
+      navigator.clipboard.writeText(link);
+      toast({
+        title: 'Link Copied',
+        description: 'Web sharing is not supported on your browser. The link has been copied to your clipboard.',
+      });
+    }
   };
 
   const handleNicknameChange = () => {
