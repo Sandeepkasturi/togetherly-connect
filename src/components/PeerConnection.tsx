@@ -14,7 +14,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import QRCode from 'qrcode';
+import * as QRCode from 'qrcode';
 
 interface PeerConnectionProps {
   peerId: string;
