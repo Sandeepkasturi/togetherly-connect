@@ -1,0 +1,706 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Togetherly - Software Requirements Specification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+            background: #fff;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #1d4ed8;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .header h2 {
+            color: #64748b;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        .document-info {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .document-info table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .document-info td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .document-info td:first-child {
+            font-weight: 600;
+            width: 150px;
+            color: #475569;
+        }
+        
+        h1 {
+            color: #1e40af;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+        
+        h2 {
+            color: #1d4ed8;
+            margin-top: 30px;
+        }
+        
+        h3 {
+            color: #2563eb;
+            margin-top: 25px;
+        }
+        
+        h4 {
+            color: #3b82f6;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        th, td {
+            border: 1px solid #d1d5db;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        .priority-high {
+            background-color: #fef2f2;
+            color: #dc2626;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .priority-medium {
+            background-color: #fffbeb;
+            color: #d97706;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .status-implemented {
+            background-color: #f0fdf4;
+            color: #166534;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        code {
+            background-color: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #1e40af;
+        }
+        
+        pre {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+        
+        pre code {
+            background: none;
+            padding: 0;
+            color: #334155;
+        }
+        
+        .toc {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        
+        .toc h3 {
+            margin-top: 0;
+            color: #1e40af;
+        }
+        
+        .toc ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        .note {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .warning {
+            background: #fefce8;
+            border-left: 4px solid #eab308;
+            padding: 16px;
+            margin: 20px 0;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 15px;
+                font-size: 12pt;
+            }
+            
+            .header h1 {
+                font-size: 24pt;
+            }
+            
+            h1 {
+                page-break-before: always;
+                margin-top: 0;
+            }
+            
+            h1:first-of-type {
+                page-break-before: auto;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+            
+            .note, .warning {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Software Requirements Specification</h1>
+        <h2>Togetherly - Synchronized Video Watching Platform</h2>
+    </div>
+
+    <div class="document-info">
+        <table>
+            <tr>
+                <td>Project Name:</td>
+                <td>Togetherly</td>
+            </tr>
+            <tr>
+                <td>Version:</td>
+                <td>1.0</td>
+            </tr>
+            <tr>
+                <td>Date:</td>
+                <td>December 2024</td>
+            </tr>
+            <tr>
+                <td>Document Type:</td>
+                <td>Software Requirements Specification</td>
+            </tr>
+            <tr>
+                <td>Status:</td>
+                <td>Final</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="toc">
+        <h3>Table of Contents</h3>
+        <ol>
+            <li><a href="#introduction">Introduction</a></li>
+            <li><a href="#overall-description">Overall Description</a></li>
+            <li><a href="#system-features">System Features</a></li>
+            <li><a href="#external-interfaces">External Interface Requirements</a></li>
+            <li><a href="#system-requirements">System Requirements</a></li>
+            <li><a href="#non-functional">Non-Functional Requirements</a></li>
+            <li><a href="#technical-architecture">Technical Architecture</a></li>
+            <li><a href="#database-design">Database Design</a></li>
+            <li><a href="#security">Security Requirements</a></li>
+            <li><a href="#quality-assurance">Quality Assurance</a></li>
+            <li><a href="#deployment">Deployment Requirements</a></li>
+            <li><a href="#appendices">Appendices</a></li>
+        </ol>
+    </div>
+
+    <h1 id="introduction">1. Introduction</h1>
+
+    <h2>1.1 Purpose</h2>
+    <p>This Software Requirements Specification (SRS) document describes the functional and non-functional requirements for Togetherly, a web-based synchronized video watching platform that enables users to watch YouTube videos together in real-time with integrated communication features.</p>
+
+    <h2>1.2 Document Scope</h2>
+    <p>This document covers all aspects of the Togetherly application including:</p>
+    <ul>
+        <li>User interface requirements</li>
+        <li>Functional capabilities</li>
+        <li>System architecture</li>
+        <li>Performance requirements</li>
+        <li>Security specifications</li>
+        <li>Technical constraints</li>
+    </ul>
+
+    <h2>1.3 Product Overview</h2>
+    <p>Togetherly is a peer-to-peer web application that allows users to:</p>
+    <ul>
+        <li>Watch YouTube videos synchronously with friends</li>
+        <li>Communicate via real-time chat and voice/video calls</li>
+        <li>Share files during viewing sessions</li>
+        <li>Connect seamlessly without account registration</li>
+    </ul>
+
+    <h1 id="overall-description">2. Overall Description</h1>
+
+    <h2>2.1 Product Perspective</h2>
+    <p>Togetherly is a standalone web application built using modern web technologies:</p>
+    <ul>
+        <li><strong>Frontend:</strong> React 18 with TypeScript</li>
+        <li><strong>Styling:</strong> Tailwind CSS with Shadcn/UI components</li>
+        <li><strong>Peer-to-Peer Communication:</strong> PeerJS library</li>
+        <li><strong>Video Integration:</strong> YouTube IFrame API</li>
+        <li><strong>Build Tool:</strong> Vite</li>
+        <li><strong>Deployment:</strong> Vercel platform</li>
+    </ul>
+
+    <h2>2.2 User Classes and Characteristics</h2>
+    <ul>
+        <li><strong>Primary Users:</strong> Individuals who want to watch videos together with friends/family</li>
+        <li><strong>Technical Expertise:</strong> Basic to intermediate web users</li>
+        <li><strong>Usage Patterns:</strong> Casual entertainment, social viewing, remote collaboration</li>
+    </ul>
+
+    <h1 id="system-features">3. System Features</h1>
+
+    <h2>3.1 Video Synchronization</h2>
+    <p>Real-time synchronization of video playback between connected users.</p>
+    
+    <table>
+        <tr>
+            <th>Requirement ID</th>
+            <th>Description</th>
+            <th>Priority</th>
+        </tr>
+        <tr>
+            <td>FR-VS-001</td>
+            <td>System shall synchronize play/pause actions across connected peers</td>
+            <td><span class="priority-high">High</span></td>
+        </tr>
+        <tr>
+            <td>FR-VS-002</td>
+            <td>System shall synchronize seek operations with timestamp accuracy</td>
+            <td><span class="priority-high">High</span></td>
+        </tr>
+        <tr>
+            <td>FR-VS-003</td>
+            <td>System shall maintain time synchronization within 1.5 seconds tolerance</td>
+            <td><span class="priority-high">High</span></td>
+        </tr>
+    </table>
+
+    <h2>3.2 Peer Connection Management</h2>
+    <p>Establishment and management of peer-to-peer connections between users.</p>
+    
+    <table>
+        <tr>
+            <th>Requirement ID</th>
+            <th>Description</th>
+            <th>Priority</th>
+        </tr>
+        <tr>
+            <td>FR-PC-001</td>
+            <td>System shall generate unique peer IDs for each user session</td>
+            <td><span class="priority-high">High</span></td>
+        </tr>
+        <tr>
+            <td>FR-PC-002</td>
+            <td>System shall allow users to connect using peer IDs</td>
+            <td><span class="priority-high">High</span></td>
+        </tr>
+        <tr>
+            <td>FR-PC-003</td>
+            <td>System shall display connection status (connected/disconnected)</td>
+            <td><span class="priority-high">High</span></td>
+        </tr>
+    </table>
+
+    <h2>3.3 Chat System</h2>
+    <p>Real-time messaging system for communication during video sessions.</p>
+    
+    <table>
+        <tr>
+            <th>Requirement ID</th>
+            <th>Description</th>
+            <th>Priority</th>
+        </tr>
+        <tr>
+            <td>FR-CH-001</td>
+            <td>System shall support real-time text messaging</td>
+            <td><span class="priority-medium">Medium</span></td>
+        </tr>
+        <tr>
+            <td>FR-CH-002</td>
+            <td>System shall display message timestamps</td>
+            <td><span class="priority-medium">Medium</span></td>
+        </tr>
+        <tr>
+            <td>FR-CH-003</td>
+            <td>System shall support file sharing with validation</td>
+            <td><span class="priority-medium">Medium</span></td>
+        </tr>
+    </table>
+
+    <h1 id="technical-architecture">4. Technical Architecture</h1>
+
+    <h2>4.1 System Architecture</h2>
+    <p><strong>Architecture Pattern:</strong> Client-side Single Page Application (SPA)<br>
+    <strong>Communication:</strong> Peer-to-Peer (P2P) architecture<br>
+    <strong>State Management:</strong> React Context + useState/useEffect hooks</p>
+
+    <h2>4.2 Technology Stack</h2>
+    
+    <table>
+        <tr>
+            <th>Category</th>
+            <th>Technology</th>
+            <th>Version</th>
+            <th>Purpose</th>
+        </tr>
+        <tr>
+            <td>Frontend Framework</td>
+            <td>React</td>
+            <td>18.3.1</td>
+            <td>Component-based UI library</td>
+        </tr>
+        <tr>
+            <td>Language</td>
+            <td>TypeScript</td>
+            <td>Latest</td>
+            <td>Type-safe JavaScript development</td>
+        </tr>
+        <tr>
+            <td>Build Tool</td>
+            <td>Vite</td>
+            <td>Latest</td>
+            <td>Fast build tool and development server</td>
+        </tr>
+        <tr>
+            <td>Styling</td>
+            <td>Tailwind CSS</td>
+            <td>Latest</td>
+            <td>Utility-first CSS framework</td>
+        </tr>
+        <tr>
+            <td>UI Components</td>
+            <td>Shadcn/UI</td>
+            <td>Latest</td>
+            <td>Pre-built accessible components</td>
+        </tr>
+        <tr>
+            <td>P2P Communication</td>
+            <td>PeerJS</td>
+            <td>1.5.5</td>
+            <td>WebRTC wrapper for peer connections</td>
+        </tr>
+        <tr>
+            <td>Video Integration</td>
+            <td>YouTube IFrame API</td>
+            <td>v3</td>
+            <td>Video player integration</td>
+        </tr>
+    </table>
+
+    <h2>4.3 Component Architecture</h2>
+    <pre><code>src/
+├── components/          # Reusable UI components
+│   ├── ui/             # Shadcn/UI base components
+│   ├── Chat.tsx        # Chat interface
+│   ├── YouTubePlayer.tsx # Video player wrapper
+│   ├── YouTubeSearch.tsx # Search functionality
+│   ├── VideoCarousel.tsx # Content browsing
+│   └── PeerConnection.tsx # Connection management
+├── pages/              # Route components
+│   ├── Landing.tsx     # Marketing page
+│   ├── AppPage.tsx     # Main application
+│   ├── WatchPage.tsx   # OTT-style interface
+│   └── JoinPage.tsx    # Direct connection
+├── hooks/              # Custom React hooks
+│   └── usePeer.ts      # Peer connection logic
+├── contexts/           # React contexts
+│   └── UserContext.tsx # User state management
+└── layouts/            # Page layouts
+    └── AppLayout.tsx   # Shared layout wrapper</code></pre>
+
+    <h1 id="non-functional">5. Non-Functional Requirements</h1>
+
+    <h2>5.1 Performance Requirements</h2>
+    
+    <table>
+        <tr>
+            <th>Metric</th>
+            <th>Target</th>
+            <th>Description</th>
+        </tr>
+        <tr>
+            <td>Video synchronization latency</td>
+            <td>&lt; 500ms</td>
+            <td>Time for sync events to propagate between peers</td>
+        </tr>
+        <tr>
+            <td>Chat message delivery</td>
+            <td>&lt; 200ms</td>
+            <td>Real-time message transmission delay</td>
+        </tr>
+        <tr>
+            <td>UI interactions</td>
+            <td>&lt; 100ms</td>
+            <td>Response time for user interface actions</td>
+        </tr>
+        <tr>
+            <td>Video search results</td>
+            <td>&lt; 3 seconds</td>
+            <td>YouTube API response time</td>
+        </tr>
+    </table>
+
+    <h2>5.2 Reliability Requirements</h2>
+    <ul>
+        <li><strong>Availability:</strong> 99.5% uptime for client-side functionality</li>
+        <li><strong>Error Recovery:</strong> Automatic reconnection on network issues</li>
+        <li><strong>Data Integrity:</strong> Ensure message delivery and video sync accuracy</li>
+        <li><strong>Fault Tolerance:</strong> Graceful handling of peer disconnections</li>
+    </ul>
+
+    <h2>5.3 Browser Compatibility</h2>
+    
+    <table>
+        <tr>
+            <th>Browser</th>
+            <th>Minimum Version</th>
+            <th>WebRTC Support</th>
+            <th>Status</th>
+        </tr>
+        <tr>
+            <td>Chrome</td>
+            <td>90+</td>
+            <td>Full</td>
+            <td>Recommended</td>
+        </tr>
+        <tr>
+            <td>Firefox</td>
+            <td>88+</td>
+            <td>Full</td>
+            <td>Supported</td>
+        </tr>
+        <tr>
+            <td>Safari</td>
+            <td>14+</td>
+            <td>Full</td>
+            <td>Supported (iOS 14.3+)</td>
+        </tr>
+        <tr>
+            <td>Edge</td>
+            <td>90+</td>
+            <td>Full</td>
+            <td>Supported</td>
+        </tr>
+    </table>
+
+    <h1 id="security">6. Security Requirements</h1>
+
+    <h2>6.1 Data Security</h2>
+    <ul>
+        <li><strong>WebRTC Encryption:</strong> All peer-to-peer communication encrypted using DTLS/SRTP</li>
+        <li><strong>API Communication:</strong> HTTPS for YouTube API calls</li>
+        <li><strong>No Central Server:</strong> Eliminates central data collection point</li>
+        <li><strong>Session-based:</strong> No persistent user data storage</li>
+    </ul>
+
+    <h2>6.2 Access Control</h2>
+    <ul>
+        <li><strong>Peer ID Sharing:</strong> Manual peer ID exchange required</li>
+        <li><strong>Connection Consent:</strong> Users must explicitly accept connections</li>
+        <li><strong>Single Connection:</strong> Limit one active peer connection</li>
+        <li><strong>Connection Rejection:</strong> Ability to reject incoming connections</li>
+    </ul>
+
+    <h1 id="deployment">7. Deployment Requirements</h1>
+
+    <h2>7.1 Hosting Environment</h2>
+    <ul>
+        <li><strong>Platform:</strong> Vercel (vercel.com)</li>
+        <li><strong>Type:</strong> Static site hosting with CDN</li>
+        <li><strong>Build:</strong> Automatic deployment from Git repository</li>
+        <li><strong>SSL:</strong> Automatic HTTPS configuration</li>
+    </ul>
+
+    <h2>7.2 Environment Variables</h2>
+    <pre><code>VITE_YOUTUBE_API_KEY=your_youtube_api_key_here</code></pre>
+
+    <h2>7.3 Build Configuration</h2>
+    <pre><code>{
+  "build": {
+    "command": "npm run build",
+    "output": "dist"
+  },
+  "framework": "vite",
+  "installCommand": "npm install"
+}</code></pre>
+
+    <div class="note">
+        <p><strong>Note:</strong> The application is designed as a client-side only solution with no backend infrastructure required. All communication happens directly between peers using WebRTC technology.</p>
+    </div>
+
+    <div class="warning">
+        <p><strong>Important:</strong> YouTube API key should be configured with appropriate domain restrictions and quota monitoring to prevent unauthorized usage.</p>
+    </div>
+
+    <h1 id="appendices">8. Appendices</h1>
+
+    <h2>Appendix A: Glossary</h2>
+    
+    <table>
+        <tr>
+            <th>Term</th>
+            <th>Definition</th>
+        </tr>
+        <tr>
+            <td>WebRTC</td>
+            <td>Web Real-Time Communication - Browser API for peer-to-peer communication</td>
+        </tr>
+        <tr>
+            <td>PeerJS</td>
+            <td>JavaScript library that simplifies WebRTC implementation</td>
+        </tr>
+        <tr>
+            <td>SPA</td>
+            <td>Single Page Application - Web app that loads a single HTML page</td>
+        </tr>
+        <tr>
+            <td>P2P</td>
+            <td>Peer-to-Peer - Direct communication between clients without central server</td>
+        </tr>
+        <tr>
+            <td>API</td>
+            <td>Application Programming Interface</td>
+        </tr>
+        <tr>
+            <td>CDN</td>
+            <td>Content Delivery Network</td>
+        </tr>
+    </table>
+
+    <h2>Appendix B: System Requirements Summary</h2>
+    
+    <table>
+        <tr>
+            <th>Requirement ID</th>
+            <th>Description</th>
+            <th>Priority</th>
+            <th>Status</th>
+        </tr>
+        <tr>
+            <td>FR-VP-001</td>
+            <td>YouTube video embedding</td>
+            <td><span class="priority-high">High</span></td>
+            <td><span class="status-implemented">Implemented</span></td>
+        </tr>
+        <tr>
+            <td>FR-VS-001</td>
+            <td>Video synchronization</td>
+            <td><span class="priority-high">High</span></td>
+            <td><span class="status-implemented">Implemented</span></td>
+        </tr>
+        <tr>
+            <td>FR-PC-001</td>
+            <td>Peer connection management</td>
+            <td><span class="priority-high">High</span></td>
+            <td><span class="status-implemented">Implemented</span></td>
+        </tr>
+        <tr>
+            <td>FR-CH-001</td>
+            <td>Real-time chat</td>
+            <td><span class="priority-medium">Medium</span></td>
+            <td><span class="status-implemented">Implemented</span></td>
+        </tr>
+        <tr>
+            <td>FR-VC-001</td>
+            <td>Voice/video calling</td>
+            <td><span class="priority-medium">Medium</span></td>
+            <td><span class="status-implemented">Implemented</span></td>
+        </tr>
+        <tr>
+            <td>FR-CD-001</td>
+            <td>Content discovery</td>
+            <td><span class="priority-medium">Medium</span></td>
+            <td><span class="status-implemented">Implemented</span></td>
+        </tr>
+    </table>
+
+    <div class="footer">
+        <p><strong>Togetherly - Software Requirements Specification v1.0</strong></p>
+        <p>Document prepared for comprehensive project documentation and development guidance.</p>
+        <p><em>This document serves as the authoritative specification for the Togetherly project development, maintenance, and future enhancements.</em></p>
+    </div>
+</body>
+</html>
