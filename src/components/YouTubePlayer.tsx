@@ -1,3 +1,4 @@
+
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { DataType } from '@/hooks/usePeer';
@@ -20,6 +21,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
   const playerRef = useRef<any>(null);
   const isUpdatingFromPeer = useRef(false);
   const [isApiReady, setIsApiReady] = useState(!!(window.YT && window.YT.Player));
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
 
   // Load YouTube IFrame API script
   useEffect(() => {
@@ -40,12 +42,19 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
     };
   }, [isApiReady]);
 
+  const onPlayerReady = () => {
+    setIsPlayerReady(true);
+  };
+
   const onPlayerStateChange = (event: any) => {
     if (isUpdatingFromPeer.current || !isConnected) {
       return;
     }
 
     const player = event.target;
+    if (typeof player.getCurrentTime !== 'function') {
+      return;
+    }
     const time = player.getCurrentTime();
 
     // States: 1 (playing), 2 (paused)
@@ -64,6 +73,8 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
   useEffect(() => {
     if (!isApiReady || !videoId) return;
 
+    setIsPlayerReady(false);
+
     const player = new window.YT.Player('youtube-player', {
       videoId,
       playerVars: {
@@ -72,6 +83,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
         'controls': 1,
       },
       events: {
+        'onReady': onPlayerReady,
         'onStateChange': onPlayerStateChange,
       },
     });
@@ -87,7 +99,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
 
   // Handle incoming peer data to sync players
   useEffect(() => {
-    if (!playerRef.current || !playerData || playerData.type !== 'player_state' || !isConnected) {
+    if (!playerRef.current || !isPlayerReady || !playerData || playerData.type !== 'player_state' || !isConnected) {
       return;
     }
 
@@ -95,6 +107,12 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
     
     const { event, currentTime } = playerData.payload;
     const player = playerRef.current;
+    
+    // Defensive check for player methods
+    if (typeof player.getCurrentTime !== 'function' || typeof player.getPlayerState !== 'function') {
+      isUpdatingFromPeer.current = false;
+      return;
+    }
     
     if (event === 'play') {
       const clientTime = player.getCurrentTime();
@@ -119,7 +137,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
     // Increased timeout to allow player state to settle
     setTimeout(() => { isUpdatingFromPeer.current = false; }, 300);
 
-  }, [playerData, isConnected]);
+  }, [playerData, isConnected, isPlayerReady]);
 
   if (!videoId) {
     return (
