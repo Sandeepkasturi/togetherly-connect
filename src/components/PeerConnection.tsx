@@ -14,7 +14,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import * as QRCode from 'qrcode';
 
 interface PeerConnectionProps {
   peerId: string;
@@ -39,18 +38,23 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
 
   useEffect(() => {
     if (peerId && isShareModalOpen) {
-      QRCode.toDataURL(shareUrl, { width: 256, margin: 2 })
-        .then(url => {
-          setQrCodeDataUrl(url);
-        })
-        .catch(err => {
-          console.error('Failed to generate QR code', err);
-          toast({
-            title: 'Error',
-            description: 'Could not generate QR code.',
-            variant: 'destructive'
+      // Dynamically import qrcode to avoid build issues
+      import('qrcode').then((QRCode) => {
+        QRCode.toDataURL(shareUrl, { width: 256, margin: 2 })
+          .then(url => {
+            setQrCodeDataUrl(url);
+          })
+          .catch(err => {
+            console.error('Failed to generate QR code', err);
+            toast({
+              title: 'Error',
+              description: 'Could not generate QR code.',
+              variant: 'destructive'
+            });
           });
-        });
+      }).catch(() => {
+        console.log('QR code generation not available');
+      });
     }
   }, [peerId, shareUrl, isShareModalOpen, toast]);
 
@@ -190,7 +194,9 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
             {qrCodeDataUrl ? (
               <img src={qrCodeDataUrl} alt="QR Code for invitation link" className="rounded-lg border bg-white p-2" />
             ) : (
-              <div className="h-[256px] w-[256px] animate-pulse rounded-lg bg-muted"></div>
+              <div className="h-[256px] w-[256px] animate-pulse rounded-lg bg-muted flex items-center justify-center">
+                <p className="text-sm text-muted-foreground">Generating QR code...</p>
+              </div>
             )}
             <p className="mt-2 text-xs text-muted-foreground">Scan with your phone</p>
           </div>
