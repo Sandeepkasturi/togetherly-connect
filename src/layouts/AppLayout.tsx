@@ -87,10 +87,28 @@ const AppLayout = () => {
       if (data.type === 'chat') {
         const newMessage: Message = { ...data.payload, sender: 'them', messageType: 'text' };
         setMessages((prev) => [...prev, newMessage]);
+        
+        // Enhanced notification system
         if (location.pathname.startsWith('/watch') && newMessage.nickname) {
-            sonnerToast.message(`New message from ${newMessage.nickname}`, {
-                description: newMessage.content,
+          // Check if user is in fullscreen or video is playing
+          const isWatchingIntently = document.fullscreenElement || document.hidden === false;
+          
+          if (isWatchingIntently) {
+            sonnerToast.message(`💬 ${newMessage.nickname}`, {
+              description: newMessage.content,
+              duration: 4000,
+              action: {
+                label: "Reply",
+                onClick: () => {
+                  // Focus on chat input
+                  const chatInput = document.querySelector('input[placeholder*="message"]') as HTMLInputElement;
+                  if (chatInput) {
+                    chatInput.focus();
+                  }
+                }
+              }
             });
+          }
         }
       } else if (data.type === 'file') {
         const fileMessage: Message = {
@@ -106,8 +124,22 @@ const AppLayout = () => {
           fileData: data.payload.fileData,
         };
         setMessages(prev => [...prev, fileMessage]);
+        
+        // File sharing notification
+        if (data.payload.nickname) {
+          sonnerToast.success(`📎 File from ${data.payload.nickname}`, {
+            description: `Shared: ${data.payload.fileName}`,
+            duration: 5000
+          });
+        }
       } else if (data.type === 'video') {
         setSelectedVideoId(data.payload);
+        
+        // Video change notification
+        sonnerToast.info("🎬 Video Changed", {
+          description: "Your friend selected a new video to watch together",
+          duration: 3000
+        });
       } else if (data.type === 'system') {
         const systemMessage: Message = { 
           id: Date.now().toString(), 
@@ -134,6 +166,14 @@ const AppLayout = () => {
             messageType: 'system'
           };
           setMessages((prev) => [...prev, systemMessage]);
+          
+          // Connection notification
+          if (isFirstTime) {
+            sonnerToast.success(`🎉 ${data.payload} joined!`, {
+              description: "You can now watch videos together",
+              duration: 4000
+            });
+          }
         }
       } else if (data.type === 'reaction') {
         setMessages(prevMessages =>

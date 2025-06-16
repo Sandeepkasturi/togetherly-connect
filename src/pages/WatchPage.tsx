@@ -1,6 +1,5 @@
 
 import { useOutletContext } from 'react-router-dom';
-import YouTubePlayer from '@/components/YouTubePlayer';
 import YouTubeSearch from '@/components/YouTubeSearch';
 import { AppContextType } from '@/layouts/AppLayout';
 import { motion } from 'framer-motion';
@@ -11,13 +10,40 @@ import { Play, Info, Users, Tv, ListMusic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState } from 'react';
+import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
+import ChatNotification from '@/components/ChatNotification';
 
 const WatchPage = () => {
   const context = useOutletContext<AppContextType>();
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState<any>(null);
+
+  // Show notification for new messages when chat is closed
+  const handleNewMessage = (message: any) => {
+    if (!isChatOpen && message.sender === 'them') {
+      setNotificationMessage(message);
+    }
+  };
+
+  const handleOpenChat = () => {
+    setIsChatOpen(true);
+    setNotificationMessage(null);
+  };
+
+  const handleDismissNotification = () => {
+    setNotificationMessage(null);
+  };
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
+      {/* Chat Notification */}
+      <ChatNotification
+        message={notificationMessage}
+        onDismiss={handleDismissNotification}
+        onOpenChat={handleOpenChat}
+      />
+
       {/* Hero Section - Mobile Optimized */}
       <div className="relative min-h-screen lg:h-[70vh] overflow-hidden">
         {/* Background gradient overlay */}
@@ -78,7 +104,7 @@ const WatchPage = () => {
                 </div>
               </motion.div>
 
-              {/* Featured Player - Mobile Optimized */}
+              {/* Enhanced Player - Mobile Optimized */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -86,7 +112,7 @@ const WatchPage = () => {
                 className="relative"
               >
                 <div className="relative rounded-lg lg:rounded-xl overflow-hidden border border-white/20 shadow-2xl">
-                  <YouTubePlayer 
+                  <EnhancedVideoPlayer
                     videoId={context.selectedVideoId} 
                     sendData={context.sendData}
                     playerData={context.playerSyncData}
@@ -131,7 +157,7 @@ const WatchPage = () => {
                   handleSendFile={context.handleSendFile}
                 />
               </Card>
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>
