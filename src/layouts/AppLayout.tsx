@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
@@ -17,6 +16,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast as sonnerToast } from "sonner";
 import { useToast } from '@/hooks/use-toast';
+import { nanoid } from 'nanoid';
+import { usePlaylist } from '@/hooks/usePlaylist';
 
 export interface AppContextType {
   peerId: string;
@@ -50,6 +51,7 @@ const AppLayout = () => {
   const [remoteNickname, setRemoteNickname] = useState('Friend');
   const [incomingPeerInfo, setIncomingPeerInfo] = useState<{nickname: string, peerId: string} | null>(null);
   const { toast } = useToast();
+  const { setSendDataRef, handleReceivedPlaylist } = usePlaylist();
 
   useEffect(() => {
     if (!nickname) {
@@ -150,6 +152,26 @@ const AppLayout = () => {
       }
     }
   }, [data, remoteNickname, location.pathname]);
+
+  useEffect(() => {
+    setSendDataRef(sendData);
+  }, [sendData, setSendDataRef]);
+
+  useEffect(() => {
+    if (data?.type === 'playlist_share') {
+      const { playlist, sharedBy } = data.payload;
+      handleReceivedPlaylist(playlist, sharedBy);
+      
+      const systemMessage: Message = {
+        id: nanoid(),
+        sender: 'system',
+        content: `${sharedBy} shared a playlist: "${playlist.name}"`,
+        timestamp: new Date().toLocaleTimeString(),
+        messageType: 'system'
+      };
+      setMessages(prev => [...prev, systemMessage]);
+    }
+  }, [data, handleReceivedPlaylist]);
 
   const handleSendMessage = (content: string) => {
     const message: Omit<Message, 'sender'> = {

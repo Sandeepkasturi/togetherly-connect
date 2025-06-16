@@ -31,4 +31,6 @@ export interface PlaylistContextType {
   setCurrentPlaylist: (playlist: Playlist | null) => void;
   sharePlaylist: (playlistId: string) => void;
   updatePlaylistSettings: (playlistId: string, settings: Partial<Pick<Playlist, 'isPrivate' | 'isEditable' | 'name'>>) => void;
+  handleReceivedPlaylist: (playlist: Playlist, sharedBy: string) => void;
+  setSendDataRef: (sendData: ((data: any) => void) | null) => void;
 }

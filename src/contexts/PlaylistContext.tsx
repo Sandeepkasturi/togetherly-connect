@@ -21,6 +21,7 @@ export const PlaylistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { nickname } = useUser();
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [currentPlaylist, setCurrentPlaylistState] = useState<Playlist | null>(null);
+  const [sendDataRef, setSendDataRef] = useState<((data: any) => void) | null>(null);
 
   // Load playlists from localStorage on mount
   useEffect(() => {
@@ -147,8 +148,37 @@ export const PlaylistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const sharePlaylist = (playlistId: string) => {
-    // This will be implemented when integrating with peer connection
-    console.log('Sharing playlist:', playlistId);
+    const playlistToShare = playlists.find(p => p.id === playlistId);
+    if (!playlistToShare || !sendDataRef) {
+      console.log('Cannot share playlist: playlist not found or no connection');
+      return;
+    }
+
+    // Send playlist data through peer connection
+    sendDataRef({
+      type: 'playlist_share',
+      payload: {
+        playlist: playlistToShare,
+        sharedBy: nickname,
+        timestamp: new Date().toISOString()
+      }
+    });
+  };
+
+  const handleReceivedPlaylist = (playlistData: Playlist, sharedBy: string) => {
+    // Create a new playlist with a new ID to avoid conflicts
+    const receivedPlaylist: Playlist = {
+      ...playlistData,
+      id: nanoid(),
+      name: `${playlistData.name} (from ${sharedBy})`,
+      createdBy: sharedBy,
+      createdAt: new Date().toISOString(),
+      lastModified: new Date().toISOString(),
+      isPrivate: false,
+      isEditable: false // Received playlists are read-only by default
+    };
+
+    setPlaylists(prev => [...prev, receivedPlaylist]);
   };
 
   const updatePlaylistSettings = (playlistId: string, settings: Partial<Pick<Playlist, 'isPrivate' | 'isEditable' | 'name'>>) => {
@@ -177,6 +207,8 @@ export const PlaylistProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setCurrentPlaylist,
     sharePlaylist,
     updatePlaylistSettings,
+    handleReceivedPlaylist,
+    setSendDataRef
   };
 
   return (
