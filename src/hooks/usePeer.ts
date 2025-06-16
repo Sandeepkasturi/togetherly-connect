@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
@@ -82,6 +83,45 @@ export const usePeer = () => {
 
   const [incomingConn, setIncomingConn] = useState<DataConnection | null>(null);
 
+  const setupConnectionHandlers = useCallback((connection: DataConnection) => {
+    const onOpen = () => {
+      setIsConnected(true);
+      setData({ type: 'system', payload: `Connected to ${connection.peer}` });
+    };
+
+    const onData = (receivedData: unknown) => {
+      setData(receivedData as DataType);
+    };
+
+    const onClose = () => {
+      setIsConnected(false);
+      setConn(null);
+      setData({ type: 'system', payload: 'Peer has disconnected.' });
+    };
+
+    const onError = (err: Error) => {
+      console.error(err);
+      setData({ type: 'system', payload: `Connection error: ${err.message}` });
+    };
+
+    connection.on('open', onOpen);
+    connection.on('data', onData);
+    connection.on('close', onClose);
+    connection.on('error', onError);
+    
+    // This handles the case where the connection is already open
+    if (connection.open) {
+      onOpen();
+    }
+
+    return () => {
+      connection.off('open', onOpen);
+      connection.off('data', onData);
+      connection.off('close', onClose);
+      connection.off('error', onError);
+    };
+  }, []);
+
   const endCall = useCallback(() => {
     if (mediaCallInstance.current) {
       mediaCallInstance.current.close();
@@ -100,6 +140,7 @@ export const usePeer = () => {
 
   const acceptConnection = useCallback(() => {
     if (incomingConn) {
+      console.log('Accepting connection from:', incomingConn.peer);
       setConn(incomingConn);
       setIncomingConn(null);
     }
@@ -107,6 +148,7 @@ export const usePeer = () => {
 
   const rejectConnection = useCallback(() => {
     if (incomingConn) {
+      console.log('Rejecting connection from:', incomingConn.peer);
       incomingConn.close();
       setIncomingConn(null);
       setData({ type: 'system', payload: 'Connection request rejected.' });
@@ -123,16 +165,19 @@ export const usePeer = () => {
       setPeer(newPeer);
 
       newPeer.on('open', (id: string) => {
+        console.log('Peer opened with ID:', id);
         setPeerId(id);
       });
 
       newPeer.on('connection', (newConn: DataConnection) => {
+        console.log('Incoming connection from:', newConn.peer);
         if (conn?.open || isCallActive || incomingConn) {
           // If busy, reject new connection.
+          console.log('Rejecting connection - already busy');
           newConn.close();
           return;
         }
-        setData({type: 'system', payload: `Incoming connection from ${newConn.metadata.nickname || newConn.peer}`});
+        setData({type: 'system', payload: `Incoming connection from ${newConn.metadata?.nickname || newConn.peer}`});
         setIncomingConn(newConn);
       });
 
@@ -183,46 +228,18 @@ export const usePeer = () => {
   useEffect(() => {
     if (!conn) return;
 
-    const onOpen = () => {
-      setIsConnected(true);
-      setData({ type: 'system', payload: `Connected to ${conn.peer}` });
-    };
+    console.log('Setting up handlers for connection:', conn.peer);
+    const cleanup = setupConnectionHandlers(conn);
 
-    const onData = (receivedData: unknown) => {
-      setData(receivedData as DataType);
-    };
-
-    const onClose = () => {
-      setIsConnected(false);
-      setConn(null);
-      setData({ type: 'system', payload: 'Peer has disconnected.' });
-    };
-
-    const onError = (err: Error) => {
-      console.error(err);
-      setData({ type: 'system', payload: `Connection error: ${err.message}` });
-    };
-
-    conn.on('open', onOpen);
-    conn.on('data', onData);
-    conn.on('close', onClose);
-    conn.on('error', onError);
-    
-    // This handles the case where the connection is already open
-    if (conn.open) {
-      onOpen();
-    }
-
-    return () => {
-      conn.off('open', onOpen);
-      conn.off('data', onData);
-      conn.off('close', onClose);
-      conn.off('error', onError);
-    };
-  }, [conn]);
+    return cleanup;
+  }, [conn, setupConnectionHandlers]);
 
   const connectToPeer = useCallback((remoteId: string, metadata: { nickname: string }) => {
-    if (!peer) return;
+    if (!peer) {
+      console.error('Peer not initialized');
+      return;
+    }
+    console.log('Connecting to peer:', remoteId);
     const newConn = peer.connect(remoteId, { metadata });
     setConn(newConn);
   }, [peer]);
