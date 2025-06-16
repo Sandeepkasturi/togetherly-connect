@@ -17,7 +17,7 @@ import {
 import { toast as sonnerToast } from "sonner";
 import { useToast } from '@/hooks/use-toast';
 import { nanoid } from 'nanoid';
-import { usePlaylist } from '@/hooks/usePlaylist';
+import { usePlaylist } from '@/contexts/PlaylistContext';
 
 export interface AppContextType {
   peerId: string;
