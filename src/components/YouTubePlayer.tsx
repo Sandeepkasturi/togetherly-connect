@@ -1,8 +1,10 @@
-
 import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { DataType } from '@/hooks/usePeer';
-import { Play } from 'lucide-react';
+import { Play, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { usePlaylist } from '@/contexts/PlaylistContext';
+import { useToast } from '@/hooks/use-toast';
 
 declare global {
   interface Window {
@@ -23,6 +25,10 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
   const isUpdatingFromPeer = useRef(false);
   const [isApiReady, setIsApiReady] = useState(!!(window.YT && window.YT.Player));
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [videoTitle, setVideoTitle] = useState<string>('');
+
+  const { currentPlaylist, addVideoToPlaylist } = usePlaylist();
+  const { toast } = useToast();
 
   // Load YouTube IFrame API script
   useEffect(() => {
@@ -45,6 +51,11 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
 
   const onPlayerReady = () => {
     setIsPlayerReady(true);
+    // Get video title when player is ready
+    if (playerRef.current && typeof playerRef.current.getVideoData === 'function') {
+      const videoData = playerRef.current.getVideoData();
+      setVideoTitle(videoData.title || `Video ${videoId}`);
+    }
   };
 
   const onPlayerStateChange = (event: any) => {
@@ -140,6 +151,50 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
 
   }, [playerData, isConnected, isPlayerReady]);
 
+  const handleAddToPlaylist = () => {
+    if (!currentPlaylist) {
+      toast({
+        title: 'No playlist selected',
+        description: 'Please select a playlist first',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!videoId) {
+      toast({
+        title: 'No video playing',
+        description: 'No video is currently selected',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Check if video is already in playlist
+    const isAlreadyAdded = currentPlaylist.videos.some(v => v.youtubeId === videoId);
+    if (isAlreadyAdded) {
+      toast({
+        title: 'Already in playlist',
+        description: 'This video is already in your playlist',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const video = {
+      youtubeId: videoId,
+      title: videoTitle || `Video ${videoId}`,
+      thumbnail: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+      duration: '0:00' // Will be updated when we have duration info
+    };
+
+    addVideoToPlaylist(currentPlaylist.id, video);
+    toast({
+      title: 'Added to playlist',
+      description: `"${video.title}" was added to "${currentPlaylist.name}"`
+    });
+  };
+
   if (!videoId) {
     return (
       <div className="aspect-video w-full bg-gradient-to-br from-secondary/30 via-secondary/20 to-secondary/30 rounded-xl border border-border/50 flex items-center justify-center relative overflow-hidden">
@@ -180,6 +235,25 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
           className="absolute top-4 right-4 bg-green-500/90 backdrop-blur-sm text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-lg"
         >
           🟢 Synced
+        </motion.div>
+      )}
+
+      {/* Add to Playlist Button */}
+      {currentPlaylist && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.7 }}
+          className="absolute bottom-4 right-4"
+        >
+          <Button
+            onClick={handleAddToPlaylist}
+            className="bg-white/90 hover:bg-white text-black backdrop-blur-sm shadow-lg"
+            size="sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add to Playlist
+          </Button>
         </motion.div>
       )}
     </motion.div>
