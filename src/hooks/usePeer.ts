@@ -58,6 +58,13 @@ export type DataType = {
     event: 'play' | 'pause';
     currentTime: number;
   };
+} | {
+  type: 'playlist_share';
+  payload: {
+    playlist: any;
+    sharedBy: string;
+    timestamp: string;
+  };
 };
 
 export const usePeer = () => {

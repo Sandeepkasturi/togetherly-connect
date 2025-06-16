@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePlaylist } from '@/contexts/PlaylistContext';
@@ -69,7 +68,8 @@ export const PlaylistSidebar: React.FC<PlaylistSidebarProps> = ({
     removeVideoFromPlaylist,
     reorderPlaylistVideos,
     setCurrentPlaylist,
-    updatePlaylistSettings
+    updatePlaylistSettings,
+    sharePlaylist
   } = usePlaylist();
   const { toast } = useToast();
 
@@ -141,6 +141,16 @@ export const PlaylistSidebar: React.FC<PlaylistSidebarProps> = ({
     }
   };
 
+  const handleSharePlaylist = () => {
+    if (!currentPlaylist) return;
+    
+    sharePlaylist(currentPlaylist.id);
+    toast({
+      title: 'Playlist shared',
+      description: `"${currentPlaylist.name}" has been shared with your connected peer`,
+    });
+  };
+
   const filteredVideos = currentPlaylist?.videos.filter(video =>
     video.title.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
@@ -200,9 +210,9 @@ export const PlaylistSidebar: React.FC<PlaylistSidebarProps> = ({
                           <Settings className="h-4 w-4 mr-2" />
                           Settings
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleSharePlaylist}>
                           <Share2 className="h-4 w-4 mr-2" />
-                          Share
+                          Share with peer
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem 
