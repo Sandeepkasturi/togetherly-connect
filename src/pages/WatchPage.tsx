@@ -6,12 +6,15 @@ import { AppContextType } from '@/layouts/AppLayout';
 import { motion } from 'framer-motion';
 import PeerConnection from '@/components/PeerConnection';
 import Chat from '@/components/Chat';
-import { Play, Info, Users, Tv } from 'lucide-react';
+import { PlaylistSidebar } from '@/components/PlaylistSidebar';
+import { Play, Info, Users, Tv, ListMusic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useState } from 'react';
 
 const WatchPage = () => {
   const context = useOutletContext<AppContextType>();
+  const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-black text-white overflow-hidden">
@@ -67,9 +70,10 @@ const WatchPage = () => {
                     variant="outline" 
                     size="lg"
                     className="border-white text-white hover:bg-white/10 px-6 lg:px-8 py-2.5 lg:py-3 text-base lg:text-lg w-full sm:w-auto"
+                    onClick={() => setIsPlaylistOpen(true)}
                   >
-                    <Info className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
-                    Learn More
+                    <ListMusic className="h-4 w-4 lg:h-5 lg:w-5 mr-2" />
+                    My Playlists
                   </Button>
                 </div>
               </motion.div>
@@ -147,6 +151,14 @@ const WatchPage = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Playlist Sidebar */}
+      <PlaylistSidebar
+        isOpen={isPlaylistOpen}
+        onOpenChange={setIsPlaylistOpen}
+        onVideoSelect={context.handleVideoSelect}
+        currentVideoId={context.selectedVideoId}
+      />
 
       {/* Ambient lighting effects */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
