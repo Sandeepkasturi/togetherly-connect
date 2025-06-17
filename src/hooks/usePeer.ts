@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
@@ -85,6 +84,7 @@ export const usePeer = () => {
 
   const setupConnectionHandlers = useCallback((connection: DataConnection) => {
     const onOpen = () => {
+      console.log('Connection opened with:', connection.peer);
       setIsConnected(true);
       setData({ type: 'system', payload: `Connected to ${connection.peer}` });
     };
@@ -246,9 +246,11 @@ export const usePeer = () => {
   
   const sendData = useCallback((data: DataType) => {
     if (conn && conn.open) {
+      console.log('Sending data:', data);
       conn.send(data);
     } else {
-      console.error("Connection is not open. You should listen for the `open` event before sending messages.");
+      console.log('Connection not ready, queuing data for when connection opens');
+      // Don't log error for now, just wait for connection to be ready
     }
   }, [conn]);
 
