@@ -172,44 +172,29 @@ export const usePeer = () => {
         // Dynamically import PeerJS to solve module resolution issues with Vite
         const { default: Peer } = await import('peerjs');
 
-        // Enhanced peer configuration for maximum cross-device compatibility
+        // Optimized peer configuration for fast ID generation
         const newPeer = new Peer({
-          config: {
-            iceServers: [
-              // Google STUN servers
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-              { urls: 'stun:stun2.l.google.com:19302' },
-              { urls: 'stun:stun3.l.google.com:19302' },
-              { urls: 'stun:stun4.l.google.com:19302' },
-              // Additional STUN servers for better compatibility
-              { urls: 'stun:stun.cloudflare.com:3478' },
-              { urls: 'stun:stun.mozilla.org:3478' },
-              // Public TURN servers (fallback for restricted networks)
-              {
-                urls: 'turn:turn.bistri.com:80',
-                credential: 'homeo',
-                username: 'homeo'
-              },
-              {
-                urls: 'turn:numb.viagenie.ca',
-                credential: 'muazkh',
-                username: 'webrtc@live.com'
-              }
-            ],
-            sdpSemantics: 'unified-plan',
-            iceCandidatePoolSize: 10,
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require'
-          },
-          debug: 0,
-          // Extended timeout for peer server connection
-          pingInterval: 5000,
-          // Allow more time for initial connection
+          // Use default PeerJS cloud servers for fastest initial connection
           host: 'peerjs-server-8gvhk6w8o-peerjs.vercel.app',
           port: 443,
           path: '/',
-          secure: true
+          secure: true,
+          // Minimal config for fastest ID generation
+          config: {
+            iceServers: [
+              // Only essential STUN servers for fast initial setup
+              { urls: 'stun:stun.l.google.com:19302' },
+              { urls: 'stun:stun.cloudflare.com:3478' }
+            ],
+            sdpSemantics: 'unified-plan',
+            iceCandidatePoolSize: 5, // Reduced for faster setup
+            bundlePolicy: 'max-bundle'
+          },
+          debug: 0,
+          // Optimized timeouts for quick connection
+          pingInterval: 3000,
+          // Generate ID immediately without waiting for full connection
+          token: undefined
         });
 
         peerInstance.current = newPeer;
@@ -224,14 +209,14 @@ export const usePeer = () => {
           console.error('Peer error:', error);
           setData({ type: 'system', payload: `Peer error: ${error.message || 'Connection failed'}` });
           
-          // Enhanced error recovery
+          // Quick retry for network errors
           if (error.type === 'network' || error.type === 'disconnected' || error.type === 'server-error') {
             setTimeout(() => {
               if (!newPeer.destroyed) {
-                console.log('Attempting to reconnect after error...');
+                console.log('Quick reconnect attempt...');
                 newPeer.reconnect();
               }
-            }, 3000);
+            }, 1000); // Faster retry
           }
         });
 
@@ -239,20 +224,13 @@ export const usePeer = () => {
           console.log('Peer disconnected, attempting to reconnect...');
           setData({ type: 'system', payload: 'Connection lost, reconnecting...' });
           
-          // Attempt to reconnect with exponential backoff
-          let attempts = 0;
-          const maxAttempts = 5;
-          const reconnectWithBackoff = () => {
-            if (attempts < maxAttempts && !newPeer.destroyed) {
-              attempts++;
-              const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
-              setTimeout(() => {
-                console.log(`Reconnection attempt ${attempts}/${maxAttempts}`);
-                newPeer.reconnect();
-              }, delay);
+          // Quick reconnection attempt
+          setTimeout(() => {
+            if (!newPeer.destroyed) {
+              console.log('Reconnecting...');
+              newPeer.reconnect();
             }
-          };
-          reconnectWithBackoff();
+          }, 1000);
         });
 
         newPeer.on('connection', (newConn: DataConnection) => {
@@ -372,7 +350,31 @@ export const usePeer = () => {
         metadata,
         reliable: true,
         // Enhanced connection options for cross-device compatibility
-        serialization: 'json'
+        serialization: 'json',
+        // Add connection configuration for better reliability
+        config: {
+          iceServers: [
+            // Google STUN servers
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun.cloudflare.com:3478' },
+            // Public TURN servers for NAT traversal
+            {
+              urls: 'turn:turn.bistri.com:80',
+              credential: 'homeo',
+              username: 'homeo'
+            },
+            {
+              urls: 'turn:numb.viagenie.ca',
+              credential: 'muazkh',
+              username: 'webrtc@live.com'
+            }
+          ],
+          sdpSemantics: 'unified-plan',
+          iceCandidatePoolSize: 10,
+          bundlePolicy: 'max-bundle',
+          rtcpMuxPolicy: 'require'
+        }
       });
 
       // Extended connection timeout - 5 minutes
