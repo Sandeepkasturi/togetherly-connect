@@ -157,7 +157,7 @@ const WatchPage = () => {
                   handleSendFile={context.handleSendFile}
                 />
               </Card>
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
