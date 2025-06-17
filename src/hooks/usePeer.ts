@@ -172,19 +172,44 @@ export const usePeer = () => {
         // Dynamically import PeerJS to solve module resolution issues with Vite
         const { default: Peer } = await import('peerjs');
 
-        // Enhanced peer configuration for better cross-platform compatibility
+        // Enhanced peer configuration for maximum cross-device compatibility
         const newPeer = new Peer({
           config: {
             iceServers: [
+              // Google STUN servers
               { urls: 'stun:stun.l.google.com:19302' },
               { urls: 'stun:stun1.l.google.com:19302' },
               { urls: 'stun:stun2.l.google.com:19302' },
               { urls: 'stun:stun3.l.google.com:19302' },
               { urls: 'stun:stun4.l.google.com:19302' },
+              // Additional STUN servers for better compatibility
+              { urls: 'stun:stun.cloudflare.com:3478' },
+              { urls: 'stun:stun.mozilla.org:3478' },
+              // Public TURN servers (fallback for restricted networks)
+              {
+                urls: 'turn:turn.bistri.com:80',
+                credential: 'homeo',
+                username: 'homeo'
+              },
+              {
+                urls: 'turn:numb.viagenie.ca',
+                credential: 'muazkh',
+                username: 'webrtc@live.com'
+              }
             ],
-            sdpSemantics: 'unified-plan'
+            sdpSemantics: 'unified-plan',
+            iceCandidatePoolSize: 10,
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require'
           },
-          debug: 0, // Reduce debug logs in production
+          debug: 0,
+          // Extended timeout for peer server connection
+          pingInterval: 5000,
+          // Allow more time for initial connection
+          host: 'peerjs-server-8gvhk6w8o-peerjs.vercel.app',
+          port: 443,
+          path: '/',
+          secure: true
         });
 
         peerInstance.current = newPeer;
@@ -199,13 +224,14 @@ export const usePeer = () => {
           console.error('Peer error:', error);
           setData({ type: 'system', payload: `Peer error: ${error.message || 'Connection failed'}` });
           
-          // Attempt to reconnect after a delay if it's a network error
-          if (error.type === 'network' || error.type === 'disconnected') {
+          // Enhanced error recovery
+          if (error.type === 'network' || error.type === 'disconnected' || error.type === 'server-error') {
             setTimeout(() => {
               if (!newPeer.destroyed) {
+                console.log('Attempting to reconnect after error...');
                 newPeer.reconnect();
               }
-            }, 2000);
+            }, 3000);
           }
         });
 
@@ -213,12 +239,20 @@ export const usePeer = () => {
           console.log('Peer disconnected, attempting to reconnect...');
           setData({ type: 'system', payload: 'Connection lost, reconnecting...' });
           
-          // Attempt to reconnect
-          setTimeout(() => {
-            if (!newPeer.destroyed) {
-              newPeer.reconnect();
+          // Attempt to reconnect with exponential backoff
+          let attempts = 0;
+          const maxAttempts = 5;
+          const reconnectWithBackoff = () => {
+            if (attempts < maxAttempts && !newPeer.destroyed) {
+              attempts++;
+              const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
+              setTimeout(() => {
+                console.log(`Reconnection attempt ${attempts}/${maxAttempts}`);
+                newPeer.reconnect();
+              }, delay);
             }
-          }, 1000);
+          };
+          reconnectWithBackoff();
         });
 
         newPeer.on('connection', (newConn: DataConnection) => {
@@ -231,23 +265,26 @@ export const usePeer = () => {
             return;
           }
           
-          // Add connection timeout
+          // Extended connection timeout - 5 minutes
           const connectionTimeout = setTimeout(() => {
             if (!newConn.open) {
-              console.log('Connection request timed out');
+              console.log('Connection request timed out after 5 minutes');
               newConn.close();
               setIncomingConn(null);
+              setData({ type: 'system', payload: 'Connection request timed out after 5 minutes.' });
             }
-          }, 30000); // 30 seconds timeout
+          }, 300000); // 5 minutes = 300,000ms
 
           newConn.on('open', () => {
             clearTimeout(connectionTimeout);
+            console.log('Incoming connection established');
           });
 
           newConn.on('error', (err) => {
             console.error('Incoming connection error:', err);
             clearTimeout(connectionTimeout);
             setIncomingConn(null);
+            setData({ type: 'system', payload: `Connection error: ${err.message}` });
           });
 
           setData({
@@ -333,21 +370,24 @@ export const usePeer = () => {
     try {
       const newConn = peer.connect(remoteId, { 
         metadata,
-        reliable: true, // Use reliable data channel
+        reliable: true,
+        // Enhanced connection options for cross-device compatibility
+        serialization: 'json'
       });
 
-      // Add connection timeout
+      // Extended connection timeout - 5 minutes
       const connectionTimeout = setTimeout(() => {
         if (!newConn.open) {
-          console.log('Connection attempt timed out');
+          console.log('Connection attempt timed out after 5 minutes');
           newConn.close();
-          setData({ type: 'system', payload: 'Connection timed out. Please check the Peer ID and try again.' });
+          setData({ type: 'system', payload: 'Connection timed out after 5 minutes. Please check the Peer ID and try again.' });
         }
-      }, 15000); // 15 seconds timeout
+      }, 300000); // 5 minutes = 300,000ms
 
       newConn.on('open', () => {
         clearTimeout(connectionTimeout);
         console.log('Successfully connected to:', remoteId);
+        setData({ type: 'system', payload: `Successfully connected to ${remoteId}` });
       });
 
       newConn.on('error', (err) => {
@@ -376,13 +416,15 @@ export const usePeer = () => {
       console.log('Connection not ready, data will be queued');
       // Queue the data to be sent when connection is ready
       if (conn) {
-        conn.on('open', () => {
+        const openHandler = () => {
           try {
             conn.send(data);
+            conn.off('open', openHandler);
           } catch (error) {
             console.error('Failed to send queued data:', error);
           }
-        });
+        };
+        conn.on('open', openHandler);
       }
     }
   }, [conn]);
