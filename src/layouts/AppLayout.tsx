@@ -54,8 +54,9 @@ const AppLayout = () => {
   const { toast } = useToast();
   const { setSendDataRef, handleReceivedPlaylist } = usePlaylist();
   
-  // Splash screen state
+  // Splash screen states
   const [showSplashScreen, setShowSplashScreen] = useState(true);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     if (!nickname) {
@@ -63,11 +64,26 @@ const AppLayout = () => {
     }
   }, [nickname, navigate]);
 
+  // Show splash screen for 5 seconds on app load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplashScreen(false);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   useEffect(() => {
     const peerIdToConnect = localStorage.getItem('peerIdToConnect');
     if (peerIdToConnect && peerId && nickname && !isConnected && !conn) {
+      setIsConnecting(true);
       connectToPeer(peerIdToConnect, { nickname });
       localStorage.removeItem('peerIdToConnect');
+      
+      // Show splash for 5 seconds while connecting
+      setTimeout(() => {
+        setIsConnecting(false);
+      }, 5000);
     }
   }, [peerId, nickname, isConnected, conn, connectToPeer]);
 
@@ -81,10 +97,11 @@ const AppLayout = () => {
   }, [incomingConn]);
 
   useEffect(() => {
-    if (isConnected && conn && nickname) {
+    // Only send nickname after connection is fully established
+    if (isConnected && conn && conn.open && nickname) {
       sendData({ type: 'nickname', payload: nickname });
     }
-  }, [isConnected, conn, nickname, sendData]);
+  }, [isConnected, conn?.open, nickname, sendData]);
 
   useEffect(() => {
     if (data) {
@@ -217,6 +234,17 @@ const AppLayout = () => {
     }
   }, [data, handleReceivedPlaylist]);
 
+  // Custom connectToPeer wrapper that shows splash screen
+  const handleConnectToPeer = useCallback((id: string, metadata: { nickname: string }) => {
+    setIsConnecting(true);
+    connectToPeer(id, metadata);
+    
+    // Show splash for 5 seconds while connecting
+    setTimeout(() => {
+      setIsConnecting(false);
+    }, 5000);
+  }, [connectToPeer]);
+
   const handleSendMessage = (content: string) => {
     const message: Omit<Message, 'sender'> = {
       id: Date.now().toString(),
@@ -313,7 +341,7 @@ const AppLayout = () => {
 
   const context: AppContextType = {
     peerId,
-    connectToPeer,
+    connectToPeer: handleConnectToPeer,
     isConnected,
     myNickname: nickname,
     remoteNickname,
@@ -331,7 +359,7 @@ const AppLayout = () => {
 
   return (
     <>
-      <SplashScreen isVisible={showSplashScreen} />
+      <SplashScreen isVisible={showSplashScreen || isConnecting} />
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <AppHeader />
         <main className="flex-grow">
