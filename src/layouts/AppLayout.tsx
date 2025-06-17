@@ -4,6 +4,7 @@ import { useUser } from '@/contexts/UserContext';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import CallManager from '@/components/CallManager';
 import AppHeader from '@/components/AppHeader';
+import SplashScreen from '@/components/SplashScreen';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,6 +53,9 @@ const AppLayout = () => {
   const [incomingPeerInfo, setIncomingPeerInfo] = useState<{nickname: string, peerId: string} | null>(null);
   const { toast } = useToast();
   const { setSendDataRef, handleReceivedPlaylist } = usePlaylist();
+  
+  // Splash screen state
+  const [showSplashScreen, setShowSplashScreen] = useState(true);
 
   useEffect(() => {
     if (!nickname) {
@@ -326,34 +330,37 @@ const AppLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <AppHeader />
-      <main className="flex-grow">
-        <Outlet context={context} />
-      </main>
-      <CallManager
-        localStream={localStream}
-        remoteStream={remoteStream}
-        isCallActive={isCallActive}
-        endCall={endCall}
-        toggleMedia={toggleMedia}
-        remoteNickname={remoteNickname}
-      />
-       <AlertDialog open={!!incomingConn}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Incoming Connection Request</AlertDialogTitle>
-            <AlertDialogDescription>
-              <strong>{incomingPeerInfo?.nickname}</strong> wants to connect. Do you want to accept?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={rejectConnection}>Reject</AlertDialogCancel>
-            <AlertDialogAction onClick={acceptConnection}>Accept</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+    <>
+      <SplashScreen isVisible={showSplashScreen} />
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <AppHeader />
+        <main className="flex-grow">
+          <Outlet context={context} />
+        </main>
+        <CallManager
+          localStream={localStream}
+          remoteStream={remoteStream}
+          isCallActive={isCallActive}
+          endCall={endCall}
+          toggleMedia={toggleMedia}
+          remoteNickname={remoteNickname}
+        />
+         <AlertDialog open={!!incomingConn}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Incoming Connection Request</AlertDialogTitle>
+              <AlertDialogDescription>
+                <strong>{incomingPeerInfo?.nickname}</strong> wants to connect. Do you want to accept?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={rejectConnection}>Reject</AlertDialogCancel>
+              <AlertDialogAction onClick={acceptConnection}>Accept</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </>
   );
 };
 
