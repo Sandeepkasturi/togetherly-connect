@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
@@ -182,13 +181,26 @@ export const usePeer = () => {
           // Minimal config for fastest ID generation
           config: {
             iceServers: [
-              // Only essential STUN servers for fast initial setup
+              // Google STUN servers
               { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun.cloudflare.com:3478' }
+              { urls: 'stun:stun1.l.google.com:19302' },
+              { urls: 'stun:stun.cloudflare.com:3478' },
+              // Public TURN servers for NAT traversal
+              {
+                urls: 'turn:turn.bistri.com:80',
+                credential: 'homeo',
+                username: 'homeo'
+              },
+              {
+                urls: 'turn:numb.viagenie.ca',
+                credential: 'muazkh',
+                username: 'webrtc@live.com'
+              }
             ],
             sdpSemantics: 'unified-plan',
-            iceCandidatePoolSize: 5, // Reduced for faster setup
-            bundlePolicy: 'max-bundle'
+            iceCandidatePoolSize: 10,
+            bundlePolicy: 'max-bundle',
+            rtcpMuxPolicy: 'require'
           },
           debug: 0,
           // Optimized timeouts for quick connection
@@ -350,31 +362,7 @@ export const usePeer = () => {
         metadata,
         reliable: true,
         // Enhanced connection options for cross-device compatibility
-        serialization: 'json',
-        // Add connection configuration for better reliability
-        config: {
-          iceServers: [
-            // Google STUN servers
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun.cloudflare.com:3478' },
-            // Public TURN servers for NAT traversal
-            {
-              urls: 'turn:turn.bistri.com:80',
-              credential: 'homeo',
-              username: 'homeo'
-            },
-            {
-              urls: 'turn:numb.viagenie.ca',
-              credential: 'muazkh',
-              username: 'webrtc@live.com'
-            }
-          ],
-          sdpSemantics: 'unified-plan',
-          iceCandidatePoolSize: 10,
-          bundlePolicy: 'max-bundle',
-          rtcpMuxPolicy: 'require'
-        }
+        serialization: 'json'
       });
 
       // Extended connection timeout - 5 minutes
