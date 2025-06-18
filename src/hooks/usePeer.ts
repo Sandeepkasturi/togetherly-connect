@@ -42,7 +42,7 @@ export interface PlayerSyncData {
 }
 
 export interface DataType {
-  type: 'message' | 'reaction' | 'file' | 'player' | 'nickname' | 'chat' | 'video' | 'player_state' | 'system';
+  type: 'message' | 'reaction' | 'file' | 'player' | 'nickname' | 'chat' | 'video' | 'player_state' | 'system' | 'playlist_share';
   payload: any;
 }
 
