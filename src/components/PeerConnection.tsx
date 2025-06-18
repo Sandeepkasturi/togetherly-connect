@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +5,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
+import { ConnectionStatus } from '@/components/ConnectionStatus';
+import { ConnectionState } from '@/utils/connectionManager';
 import {
   Dialog,
   DialogContent,
@@ -24,9 +25,22 @@ interface PeerConnectionProps {
   sendData: (data: DataType) => void;
   startCall: (type: 'audio' | 'video') => void;
   isCallActive: boolean;
+  connectionState: ConnectionState;
+  onManualReconnect: () => void;
 }
 
-const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname, sendData, startCall, isCallActive }: PeerConnectionProps) => {
+const PeerConnection = ({ 
+  peerId, 
+  connectToPeer, 
+  isConnected, 
+  myNickname, 
+  remoteNickname, 
+  sendData, 
+  startCall, 
+  isCallActive,
+  connectionState,
+  onManualReconnect
+}: PeerConnectionProps) => {
   const [remoteId, setRemoteId] = useState('');
   const { toast } = useToast();
   const { setNickname } = useUser();
@@ -171,6 +185,12 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Connection</h2>
           
+          {/* Connection Status */}
+          <ConnectionStatus 
+            connectionState={connectionState}
+            onManualReconnect={onManualReconnect}
+          />
+          
           <div className="flex items-center gap-2">
             <User className="text-muted-foreground" />
             {!isEditingNickname ? (
@@ -195,17 +215,20 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
             )}
           </div>
           
-          <div className="flex items-center gap-2">
-            <Input value={peerId} readOnly className="bg-background/50" />
-            <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
+          {/* Only show peer ID input if connected */}
+          {connectionState.status === 'connected' && (
+            <div className="flex items-center gap-2">
+              <Input value={peerId} readOnly className="bg-background/50" />
+              <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           
-          {!isConnected && (
+          {!isConnected && connectionState.status === 'connected' && (
             <div className="flex items-center gap-2">
               <Input
                 placeholder="Friend's Peer ID"

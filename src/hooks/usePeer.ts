@@ -1,485 +1,578 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-// We use type-only imports for type safety, and dynamic import for the implementation.
-import type Peer from 'peerjs';
-import type { DataConnection, MediaConnection } from 'peerjs';
-import { generatePeerId, generateFallbackPeerId, validatePeerId } from '@/utils/peerIdGenerator';
+import Peer, { DataConnection, MediaConnection, CallOption } from 'peerjs';
+import { useToast } from '@/hooks/use-toast';
+import { generatePeerId, generateFallbackPeerId, validatePeerId, getStoredPeerId, storePeerId } from '@/utils/peerIdGenerator';
+import { ConnectionManager } from '@/utils/connectionManager';
 
-export interface Reaction {
-  emoji: string;
-  by: string;
-}
-
-export interface Message {
+export interface ChatMessage {
   id: string;
-  sender: 'me' | 'them' | 'system';
-  content: string;
-  timestamp: string;
-  nickname?: string;
-  reactions?: Reaction[];
-  // New props for file sharing
-  messageType?: 'text' | 'file' | 'system';
+  text: string;
+  sender: 'me' | 'peer';
+  timestamp: Date;
+  type: 'text' | 'reaction' | 'file';
   fileName?: string;
-  fileType?: string;
+  fileUrl?: string;
   fileSize?: number;
-  fileData?: string; // base64 encoded
 }
 
-export type DataType = {
-  type: 'chat';
-  payload: Omit<Message, 'sender'>;
-} | {
-  type: 'file';
-  payload: {
-    id: string;
-    fileName: string;
-    fileType: string;
-    fileSize: number;
-    fileData: string;
-    timestamp: string;
-    nickname?: string;
-  };
-} | {
-  type: 'video';
-  payload: string;
-} | {
-  type: 'system';
-  payload: string;
-} | {
-  type: 'nickname';
-  payload: string;
-} | {
-  type: 'reaction';
-  payload: {
-    messageId: string;
-    reaction: Reaction;
-  };
-} | {
-  type: 'player_state';
-  payload: {
-    event: 'play' | 'pause';
-    currentTime: number;
-  };
-} | {
-  type: 'playlist_share';
-  payload: {
-    playlist: any;
-    sharedBy: string;
-    timestamp: string;
-  };
+export interface PlayerSyncData {
+  action: 'play' | 'pause' | 'seekTo' | 'changeVideo';
+  timestamp?: number;
+  videoId?: string;
+}
+
+export interface DataType {
+  type: 'message' | 'reaction' | 'file' | 'player' | 'nickname';
+  payload: any;
+}
+
+// WebRTC configuration with STUN/TURN servers
+const peerConfig = {
+  host: 'peerjs-server.railway.app',
+  port: 443,
+  path: '/',
+  secure: true,
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' }
+    ],
+    iceCandidatePoolSize: 10
+  },
+  debug: 1
 };
 
 export const usePeer = () => {
   const [peer, setPeer] = useState<Peer | null>(null);
-  const [peerId, setPeerId] = useState('');
-  const [conn, setConn] = useState<DataConnection | null>(null);
-  const [data, setData] = useState<DataType | null>(null);
-  const peerInstance = useRef<Peer | null>(null);
+  const [peerId, setPeerId] = useState<string>('');
+  const [connection, setConnection] = useState<DataConnection | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionRetries, setConnectionRetries] = useState(0);
-  const maxRetries = 3;
-  
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [myNickname, setMyNickname] = useState('User');
+  const [remoteNickname, setRemoteNickname] = useState('');
+  const [selectedVideoId, setSelectedVideoId] = useState<string>('');
+  const [playerSyncData, setPlayerSyncData] = useState<PlayerSyncData | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
-  const mediaCallInstance = useRef<MediaConnection | null>(null);
+  const [call, setCall] = useState<MediaConnection | null>(null);
 
-  const [incomingConn, setIncomingConn] = useState<DataConnection | null>(null);
+  const { toast } = useToast();
+  const connectionManager = ConnectionManager.getInstance();
+  const [connectionState, setConnectionState] = useState(connectionManager.getState());
+  
+  const initializationRef = useRef(false);
+  const reconnectAttemptsRef = useRef(0);
 
-  const setupConnectionHandlers = useCallback((connection: DataConnection) => {
-    const onOpen = () => {
-      console.log('Connection opened with:', connection.peer);
-      setIsConnected(true);
-      setData({ type: 'system', payload: `Connected to ${connection.peer}` });
-    };
-
-    const onData = (receivedData: unknown) => {
-      setData(receivedData as DataType);
-    };
-
-    const onClose = () => {
-      console.log('Connection closed with:', connection.peer);
-      setIsConnected(false);
-      setConn(null);
-      setData({ type: 'system', payload: 'Peer has disconnected.' });
-    };
-
-    const onError = (err: Error) => {
-      console.error('Connection error:', err);
-      setData({ type: 'system', payload: `Connection error: ${err.message}` });
-      // Don't immediately close on error, let the connection try to recover
-    };
-
-    connection.on('open', onOpen);
-    connection.on('data', onData);
-    connection.on('close', onClose);
-    connection.on('error', onError);
-    
-    // This handles the case where the connection is already open
-    if (connection.open) {
-      onOpen();
+  // Check WebRTC support
+  const checkWebRTCSupport = useCallback(() => {
+    const hasWebRTC = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.RTCPeerConnection);
+    if (!hasWebRTC) {
+      toast({
+        title: 'WebRTC Not Supported',
+        description: 'Your browser does not support WebRTC. Please use a modern browser like Chrome, Firefox, or Safari.',
+        variant: 'destructive'
+      });
+      return false;
     }
+    return true;
+  }, [toast]);
 
-    return () => {
-      connection.off('open', onOpen);
-      connection.off('data', onData);
-      connection.off('close', onClose);
-      connection.off('error', onError);
-    };
+  // Subscribe to connection state changes
+  useEffect(() => {
+    const unsubscribe = connectionManager.subscribe(setConnectionState);
+    return unsubscribe;
   }, []);
 
-  const endCall = useCallback(() => {
-    if (mediaCallInstance.current) {
-      mediaCallInstance.current.close();
-    }
-    setLocalStream(prevStream => {
-      if (prevStream) {
-        prevStream.getTracks().forEach(track => track.stop());
-      }
-      return null;
-    });
-    setRemoteStream(null);
-    setIsCallActive(false);
-    mediaCallInstance.current = null;
-    setData({ type: 'system', payload: 'Call ended.' });
-  }, []);
+  const createPeer = useCallback(async (providedId?: string) => {
+    if (!checkWebRTCSupport()) return null;
 
-  const acceptConnection = useCallback(() => {
-    if (incomingConn) {
-      console.log('Accepting connection from:', incomingConn.peer);
-      setConn(incomingConn);
-      setIncomingConn(null);
-      
-      // Set up handlers immediately after accepting
-      setTimeout(() => {
-        if (incomingConn.open) {
-          setIsConnected(true);
-          setData({ type: 'system', payload: `Connected to ${incomingConn.peer}` });
-        }
-      }, 100);
+    // Don't create multiple peers
+    if (peer && !peer.destroyed) {
+      console.log('Peer already exists and is not destroyed');
+      return peer;
     }
-  }, [incomingConn]);
 
-  const rejectConnection = useCallback(() => {
-    if (incomingConn) {
-      console.log('Rejecting connection from:', incomingConn.peer);
-      incomingConn.close();
-      setIncomingConn(null);
-      setData({ type: 'system', payload: 'Connection request rejected.' });
-    }
-  }, [incomingConn]);
-
-  const initializePeerWithRetry = useCallback(async (customId?: string) => {
     try {
-      const { default: Peer } = await import('peerjs');
+      let newPeerId = providedId;
       
-      // Generate reliable peer ID
-      const targetId = customId || generatePeerId();
+      if (!newPeerId) {
+        // Try to get stored peer ID first
+        const storedId = getStoredPeerId();
+        if (storedId) {
+          newPeerId = storedId;
+          console.log('Using stored peer ID:', newPeerId);
+        } else {
+          newPeerId = generatePeerId();
+          console.log('Generated new peer ID:', newPeerId);
+        }
+      }
+
+      if (!validatePeerId(newPeerId)) {
+        console.warn('Invalid peer ID, generating fallback:', newPeerId);
+        newPeerId = generateFallbackPeerId();
+      }
+
+      console.log('Initializing peer with ID:', newPeerId);
+      connectionManager.setConnecting(newPeerId);
+
+      const newPeer = new Peer(newPeerId, peerConfig);
       
-      console.log('Initializing peer with ID:', targetId);
-
-      const newPeer = new Peer(targetId, {
-        // Use multiple server options for better reliability
-        host: 'peerjs-server-8gvhk6w8o-peerjs.vercel.app',
-        port: 443,
-        path: '/',
-        secure: true,
-        config: {
-          iceServers: [
-            // Multiple STUN servers for better connectivity
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' },
-            { urls: 'stun:stun2.l.google.com:19302' },
-            { urls: 'stun:stun.cloudflare.com:3478' },
-            // TURN servers for NAT traversal (mobile compatibility)
-            {
-              urls: 'turn:turn.bistri.com:80',
-              credential: 'homeo',
-              username: 'homeo'
-            },
-            {
-              urls: 'turn:numb.viagenie.ca',
-              credential: 'muazkh',
-              username: 'webrtc@live.com'
-            }
-          ],
-          sdpSemantics: 'unified-plan',
-          iceCandidatePoolSize: 10,
-          bundlePolicy: 'max-bundle',
-          rtcpMuxPolicy: 'require',
-          // Mobile browser compatibility
-          offerToReceiveAudio: true,
-          offerToReceiveVideo: true
-        },
-        debug: 0,
-        pingInterval: 5000,
-        token: undefined
-      });
-
-      peerInstance.current = newPeer;
-      setPeer(newPeer);
-
-      newPeer.on('open', (id: string) => {
-        console.log('Peer opened successfully with ID:', id);
+      newPeer.on('open', (id) => {
+        console.log('Peer opened with ID:', id);
         setPeerId(id);
-        setConnectionRetries(0); // Reset retry counter on success
-        setData({ type: 'system', payload: `Ready to connect! Your ID: ${id}` });
+        storePeerId(id);
+        connectionManager.setConnected(id);
+        reconnectAttemptsRef.current = 0;
+        
+        toast({
+          title: 'Connected',
+          description: `Your peer ID: ${id}`,
+        });
       });
 
-      newPeer.on('error', (error: any) => {
+      newPeer.on('connection', (conn) => {
+        console.log('Incoming connection from:', conn.peer);
+        handleIncomingConnection(conn);
+      });
+
+      newPeer.on('call', (incomingCall) => {
+        console.log('Incoming call from:', incomingCall.peer);
+        handleIncomingCall(incomingCall);
+      });
+
+      newPeer.on('error', (error) => {
         console.error('Peer error:', error);
+        connectionManager.setDisconnected(error.message);
         
-        if (error.type === 'unavailable-id' && connectionRetries < maxRetries) {
-          // ID conflict - generate new one
-          console.log('ID conflict, generating new ID...');
-          setConnectionRetries(prev => prev + 1);
-          const fallbackId = generateFallbackPeerId();
-          setTimeout(() => initializePeerWithRetry(fallbackId), 1000);
-          return;
+        // Handle specific error types
+        if (error.type === 'invalid-id') {
+          console.log('Invalid ID error, generating new peer ID');
+          // Generate new ID and retry
+          setTimeout(() => {
+            if (connectionManager.shouldRetry()) {
+              const fallbackId = generateFallbackPeerId();
+              connectionManager.scheduleRetry(() => createPeer(fallbackId));
+            }
+          }, 1000);
+        } else if (error.type === 'network' || error.type === 'server-error') {
+          // Network/server errors - retry with exponential backoff
+          if (connectionManager.shouldRetry()) {
+            connectionManager.scheduleRetry(() => createPeer());
+          }
+        } else {
+          connectionManager.setFailed(error.message);
         }
-        
-        if ((error.type === 'network' || error.type === 'server-error') && connectionRetries < maxRetries) {
-          console.log(`Network error, retrying... (${connectionRetries + 1}/${maxRetries})`);
-          setConnectionRetries(prev => prev + 1);
-          setTimeout(() => initializePeerWithRetry(), 2000);
-          return;
-        }
-        
-        setData({ type: 'system', payload: `Connection error: ${error.message || 'Please refresh and try again'}` });
       });
 
       newPeer.on('disconnected', () => {
         console.log('Peer disconnected, attempting to reconnect...');
-        setData({ type: 'system', payload: 'Connection lost, reconnecting...' });
+        connectionManager.setDisconnected('Peer disconnected');
         
-        if (connectionRetries < maxRetries) {
-          setTimeout(() => {
-            if (!newPeer.destroyed) {
-              newPeer.reconnect();
-            }
-          }, 1000);
-        }
-      });
-
-      newPeer.on('connection', (newConn: DataConnection) => {
-        console.log('Incoming connection from:', newConn.peer);
-        
-        // If already connected or busy, reject gracefully
-        if (conn?.open || isCallActive || incomingConn) {
-          console.log('Rejecting connection - already busy');
-          newConn.close();
-          return;
-        }
-        
-        // Extended connection timeout - 5 minutes
-        const connectionTimeout = setTimeout(() => {
-          if (!newConn.open) {
-            console.log('Connection request timed out after 5 minutes');
-            newConn.close();
-            setIncomingConn(null);
-            setData({ type: 'system', payload: 'Connection request timed out after 5 minutes.' });
-          }
-        }, 300000); // 5 minutes = 300,000ms
-
-        newConn.on('open', () => {
-          clearTimeout(connectionTimeout);
-          console.log('Incoming connection established');
-        });
-
-        newConn.on('error', (err) => {
-          console.error('Incoming connection error:', err);
-          clearTimeout(connectionTimeout);
-          setIncomingConn(null);
-          setData({ type: 'system', payload: `Connection error: ${err.message}` });
-        });
-
-        setData({
-          type: 'system', 
-          payload: `Incoming connection from ${newConn.metadata?.nickname || newConn.peer}`
-        });
-        setIncomingConn(newConn);
-      });
-
-      const setupCallListeners = (call: MediaConnection) => {
-        call.on('stream', (stream) => {
-          setRemoteStream(stream);
-        });
-        call.on('close', () => {
-          endCall();
-        });
-        call.on('error', (err) => {
-          console.error('Call error:', err);
-          setData({ type: 'system', payload: `Call error: ${err.message}` });
-          endCall();
-        });
-        mediaCallInstance.current = call;
-        setIsCallActive(true);
-      };
-
-      newPeer.on('call', (incomingCall: MediaConnection) => {
-        const callType = incomingCall.metadata?.callType === 'audio' ? 'audio' : 'video';
-        setData({ type: 'system', payload: `Incoming ${callType} call from ${incomingCall.peer}...` });
-        
-        const constraints = { video: callType === 'video', audio: true };
-
-        navigator.mediaDevices.getUserMedia(constraints)
-          .then(stream => {
-            setLocalStream(stream);
-            incomingCall.answer(stream);
-            setupCallListeners(incomingCall);
-          })
-          .catch(err => {
-            console.error(`Failed to get local stream for incoming ${callType} call`, err);
-            setData({ type: 'system', payload: 'Could not start camera/mic.' });
+        if (!newPeer.destroyed && connectionManager.shouldRetry()) {
+          connectionManager.scheduleRetry(() => {
+            newPeer.reconnect();
           });
+        }
       });
 
-    } catch (error) {
-      console.error('Failed to initialize peer:', error);
-      if (connectionRetries < maxRetries) {
-        setConnectionRetries(prev => prev + 1);
-        setTimeout(() => initializePeerWithRetry(), 2000);
-      } else {
-        setData({ type: 'system', payload: 'Failed to initialize. Please refresh the page.' });
-      }
-    }
-  }, [connectionRetries, maxRetries]);
+      newPeer.on('close', () => {
+        console.log('Peer connection closed');
+        connectionManager.setDisconnected('Peer connection closed');
+        setPeer(null);
+        setConnection(null);
+        setIsConnected(false);
+      });
 
+      setPeer(newPeer);
+      return newPeer;
+    } catch (error) {
+      console.error('Failed to create peer:', error);
+      connectionManager.setFailed(`Failed to create peer: ${error}`);
+      return null;
+    }
+  }, [peer, toast, checkWebRTCSupport]);
+
+  // Initialize peer on mount
   useEffect(() => {
-    initializePeerWithRetry();
+    if (!initializationRef.current) {
+      initializationRef.current = true;
+      createPeer();
+    }
 
     return () => {
-      if (peerInstance.current) {
-        peerInstance.current.destroy();
+      if (peer && !peer.destroyed) {
+        peer.destroy();
       }
+      connectionManager.reset();
     };
-  }, [initializePeerWithRetry]);
+  }, []);
 
-  useEffect(() => {
-    if (!conn) return;
+  const handleIncomingConnection = useCallback((conn: DataConnection) => {
+    setConnection(conn);
+    setIsConnected(true);
+    setRemoteNickname(conn.metadata?.nickname || 'Unknown');
 
-    console.log('Setting up handlers for connection:', conn.peer);
-    const cleanup = setupConnectionHandlers(conn);
+    conn.on('data', (data: DataType) => {
+      if (data.type === 'message') {
+        const newMessage: ChatMessage = {
+          id: Math.random().toString(36).substring(2, 9),
+          text: data.payload,
+          sender: 'peer',
+          timestamp: new Date(),
+          type: 'text',
+        };
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      } else if (data.type === 'reaction') {
+        const newMessage: ChatMessage = {
+          id: Math.random().toString(36).substring(2, 9),
+          text: data.payload,
+          sender: 'peer',
+          timestamp: new Date(),
+          type: 'reaction',
+        };
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      } else if (data.type === 'file') {
+        const fileData = data.payload;
+        const newMessage: ChatMessage = {
+          id: Math.random().toString(36).substring(2, 9),
+          text: 'File received',
+          sender: 'peer',
+          timestamp: new Date(),
+          type: 'file',
+          fileName: fileData.name,
+          fileUrl: fileData.url,
+          fileSize: fileData.size,
+        };
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      } else if (data.type === 'player') {
+        setPlayerSyncData(data.payload);
+      } else if (data.type === 'nickname') {
+        setRemoteNickname(data.payload);
+      }
+    });
 
-    return cleanup;
-  }, [conn, setupConnectionHandlers]);
+    conn.on('close', () => {
+      console.log('Connection closed');
+      setIsConnected(false);
+      setConnection(null);
+      setRemoteNickname('');
+    });
 
-  const connectToPeer = useCallback((remoteId: string, metadata: { nickname: string }) => {
-    if (!peer) {
-      console.error('Peer not initialized');
-      setData({ type: 'system', payload: 'Peer not ready. Please wait and try again.' });
+    conn.on('error', (error) => {
+      console.error('Connection error:', error);
+      setIsConnected(false);
+    });
+  }, []);
+
+  const handleIncomingCall = useCallback((incomingCall: MediaConnection) => {
+    console.log('Answering incoming call from:', incomingCall.peer);
+    
+    incomingCall.answer(localStream);
+    setCall(incomingCall);
+    setIsCallActive(true);
+
+    incomingCall.on('stream', (stream) => {
+      console.log('Received remote stream');
+      setRemoteStream(stream);
+    });
+
+    incomingCall.on('close', () => {
+      console.log('Call ended');
+      setIsCallActive(false);
+      setRemoteStream(null);
+    });
+
+    incomingCall.on('error', (error) => {
+      console.error('Call error:', error);
+      setIsCallActive(false);
+      setRemoteStream(null);
+      toast({
+        title: 'Call Error',
+        description: 'An error occurred during the call.',
+        variant: 'destructive'
+      });
+    });
+  }, [localStream, toast]);
+
+  const connectToPeer = useCallback(async (remotePeerId: string, metadata: { nickname: string }) => {
+    if (!peer || peer.destroyed) {
+      toast({
+        title: 'Error',
+        description: 'Peer not initialized. Please wait.',
+        variant: 'destructive'
+      });
       return;
     }
-    
-    if (!validatePeerId(remoteId)) {
-      setData({ type: 'system', payload: 'Please enter a valid Peer ID' });
+
+    if (!validatePeerId(remotePeerId)) {
+      toast({
+        title: 'Invalid Peer ID',
+        description: 'Please enter a valid peer ID.',
+        variant: 'destructive'
+      });
       return;
     }
 
-    console.log('Connecting to peer:', remoteId);
-    setData({ type: 'system', payload: `Connecting to ${remoteId}...` });
-    
     try {
-      const newConn = peer.connect(remoteId, { 
-        metadata,
-        reliable: true,
-        serialization: 'json'
+      console.log('Connecting to peer:', remotePeerId);
+      const conn = peer.connect(remotePeerId, { metadata });
+      
+      conn.on('open', () => {
+        console.log('Connected to peer:', remotePeerId);
+        setConnection(conn);
+        setIsConnected(true);
+        setRemoteNickname(metadata.nickname);
+        
+        toast({
+          title: 'Connected',
+          description: `Connected to ${metadata.nickname}`,
+        });
       });
 
-      // Extended connection timeout - 5 minutes
-      const connectionTimeout = setTimeout(() => {
-        if (!newConn.open) {
-          console.log('Connection attempt timed out after 5 minutes');
-          newConn.close();
-          setData({ type: 'system', payload: 'Connection timed out after 5 minutes. Please check the Peer ID and try again.' });
+      conn.on('data', (data: DataType) => {
+        if (data.type === 'message') {
+          const newMessage: ChatMessage = {
+            id: Math.random().toString(36).substring(2, 9),
+            text: data.payload,
+            sender: 'peer',
+            timestamp: new Date(),
+            type: 'text',
+          };
+          setMessages((prevMessages) => [...prevMessages, newMessage]);
+        } else if (data.type === 'reaction') {
+          const newMessage: ChatMessage = {
+            id: Math.random().toString(36).substring(2, 9),
+            text: data.payload,
+            sender: 'peer',
+            timestamp: new Date(),
+            type: 'reaction',
+          };
+          setMessages((prevMessages) => [...prevMessages, newMessage]);
+        } else if (data.type === 'file') {
+          const fileData = data.payload;
+          const newMessage: ChatMessage = {
+            id: Math.random().toString(36).substring(2, 9),
+            text: 'File received',
+            sender: 'peer',
+            timestamp: new Date(),
+            type: 'file',
+            fileName: fileData.name,
+            fileUrl: fileData.url,
+            fileSize: fileData.size,
+          };
+          setMessages((prevMessages) => [...prevMessages, newMessage]);
+        } else if (data.type === 'player') {
+          setPlayerSyncData(data.payload);
+        } else if (data.type === 'nickname') {
+          setRemoteNickname(data.payload);
         }
-      }, 300000);
-
-      newConn.on('open', () => {
-        clearTimeout(connectionTimeout);
-        console.log('Successfully connected to:', remoteId);
-        setData({ type: 'system', payload: `Successfully connected to ${remoteId}` });
       });
 
-      newConn.on('error', (err) => {
-        clearTimeout(connectionTimeout);
-        console.error('Connection failed:', err);
-        setData({ type: 'system', payload: `Failed to connect: ${err.message || 'Please check the Peer ID and try again.'}` });
+      conn.on('close', () => {
+        console.log('Connection to peer closed');
+        setIsConnected(false);
+        setConnection(null);
+        setRemoteNickname('');
       });
 
-      setConn(newConn);
+      conn.on('error', (error) => {
+        console.error('Connection error:', error);
+        toast({
+          title: 'Connection Failed',
+          description: 'Failed to connect to peer. Please check the peer ID.',
+          variant: 'destructive'
+        });
+      });
     } catch (error) {
-      console.error('Error creating connection:', error);
-      setData({ type: 'system', payload: 'Failed to create connection. Please try again.' });
+      console.error('Failed to connect:', error);
+      toast({
+        title: 'Connection Failed',
+        description: 'Failed to connect to peer.',
+        variant: 'destructive'
+      });
     }
-  }, [peer]);
+  }, [peer, toast]);
+
+  const manualReconnect = useCallback(() => {
+    console.log('Manual reconnect triggered');
+    connectionManager.manualRetry(() => {
+      if (peer && !peer.destroyed) {
+        peer.destroy();
+      }
+      setPeer(null);
+      setTimeout(() => createPeer(), 500);
+    });
+  }, [peer, createPeer]);
 
   const sendData = useCallback((data: DataType) => {
-    if (conn && conn.open) {
-      console.log('Sending data:', data);
-      try {
-        conn.send(data);
-      } catch (error) {
-        console.error('Failed to send data:', error);
-        setData({ type: 'system', payload: 'Failed to send message. Connection may be unstable.' });
-      }
+    if (connection && connection.open) {
+      connection.send(data);
+    }
+  }, [connection]);
+
+  const sendMessage = useCallback((message: string) => {
+    if (connection && connection.open) {
+      const newMessage: ChatMessage = {
+        id: Math.random().toString(36).substring(2, 9),
+        text: message,
+        sender: 'me',
+        timestamp: new Date(),
+        type: 'text',
+      };
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      sendData({ type: 'message', payload: message });
     } else {
-      console.log('Connection not ready, data will be queued');
-      // Queue the data to be sent when connection is ready
-      if (conn) {
-        const openHandler = () => {
-          try {
-            conn.send(data);
-            conn.off('open', openHandler);
-          } catch (error) {
-            console.error('Failed to send queued data:', error);
-          }
+      toast({
+        title: 'Not Connected',
+        description: 'Please connect to a peer to send messages.',
+        variant: 'destructive',
+      });
+    }
+  }, [connection, sendData, toast]);
+
+  const handleVideoSelect = useCallback((videoId: string) => {
+    setSelectedVideoId(videoId);
+    if (connection && connection.open) {
+      sendData({
+        type: 'player',
+        payload: { action: 'changeVideo', videoId }
+      });
+    }
+  }, [connection, sendData]);
+
+  const startCall = useCallback(async (type: 'audio' | 'video') => {
+    if (!peer) {
+      toast({
+        title: 'Error',
+        description: 'Peer not initialized.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    if (!connection) {
+      toast({
+        title: 'Error',
+        description: 'Not connected to a peer.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: type === 'video',
+        audio: true,
+      });
+      setLocalStream(stream);
+
+      const callOptions: CallOption = {
+        metadata: {
+          nickname: myNickname
+        }
+      };
+
+      const userCall = peer.call(connection.peer, stream, callOptions);
+      setCall(userCall);
+      setIsCallActive(true);
+
+      userCall.on('stream', (remoteStream) => {
+        console.log('Received remote stream');
+        setRemoteStream(remoteStream);
+      });
+
+      userCall.on('close', () => {
+        console.log('Call ended');
+        setIsCallActive(false);
+        setRemoteStream(null);
+      });
+
+      userCall.on('error', (error) => {
+        console.error('Call error:', error);
+        setIsCallActive(false);
+        setRemoteStream(null);
+        toast({
+          title: 'Call Error',
+          description: 'An error occurred during the call.',
+          variant: 'destructive'
+        });
+      });
+    } catch (error: any) {
+      console.error('Failed to get local stream:', error);
+      toast({
+        title: 'Camera/Microphone Error',
+        description: error.message || 'Failed to access camera/microphone.',
+        variant: 'destructive'
+      });
+    }
+  }, [peer, connection, myNickname, toast]);
+
+  const handleSendReaction = useCallback((reaction: string) => {
+    if (connection && connection.open) {
+      const newMessage: ChatMessage = {
+        id: Math.random().toString(36).substring(2, 9),
+        text: reaction,
+        sender: 'me',
+        timestamp: new Date(),
+        type: 'reaction',
+      };
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      sendData({ type: 'reaction', payload: reaction });
+    }
+  }, [connection, sendData]);
+
+  const handleSendFile = useCallback((file: File) => {
+    if (connection && connection.open) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const fileData = {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: reader.result,
         };
-        conn.on('open', openHandler);
-      }
+        sendData({ type: 'file', payload: fileData });
+
+        const newMessage: ChatMessage = {
+          id: Math.random().toString(36).substring(2, 9),
+          text: 'File sent',
+          sender: 'me',
+          timestamp: new Date(),
+          type: 'file',
+          fileName: file.name,
+          fileSize: file.size,
+        };
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+      };
+      reader.readAsDataURL(file);
     }
-  }, [conn]);
+  }, [connection, sendData]);
 
-  const startCall = useCallback((type: 'audio' | 'video') => {
-    if (!peer || !conn) return;
-
-    const setupCallListeners = (call: MediaConnection) => {
-        call.on('stream', (stream) => {
-          setRemoteStream(stream);
-        });
-        call.on('close', () => {
-          endCall();
-        });
-        call.on('error', (err) => {
-          console.error('Call error:', err);
-          setData({ type: 'system', payload: `Call error: ${err.message}` });
-          endCall();
-        });
-        mediaCallInstance.current = call;
-        setIsCallActive(true);
-    };
-    
-    const constraints = { video: type === 'video', audio: true };
-
-    navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-            setLocalStream(stream);
-            const outgoingCall = peer.call(conn.peer, stream, { metadata: { callType: type } });
-            setupCallListeners(outgoingCall);
-        })
-        .catch(err => {
-            console.error('Failed to get local stream', err);
-            setData({ type: 'system', payload: 'Could not start camera/mic. Please check permissions.' });
-        });
-  }, [peer, conn, endCall]);
-
-  const toggleMedia = useCallback((type: 'audio' | 'video') => {
-    if (localStream) {
-      const tracks = type === 'audio' ? localStream.getAudioTracks() : localStream.getVideoTracks();
-      if (tracks[0]) {
-          tracks[0].enabled = !tracks[0].enabled;
-      }
-    }
-  }, [localStream]);
-
-  return { peerId, connectToPeer, sendData, data, isConnected, conn, localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia, incomingConn, acceptConnection, rejectConnection };
+  return {
+    peer,
+    peerId,
+    connection,
+    isConnected,
+    messages,
+    myNickname,
+    remoteNickname,
+    selectedVideoId,
+    playerSyncData,
+    localStream,
+    remoteStream,
+    isCallActive,
+    connectionState,
+    connectToPeer,
+    sendData,
+    sendMessage,
+    handleVideoSelect,
+    startCall,
+    handleSendReaction,
+    handleSendFile,
+    manualReconnect,
+    setNickname: setMyNickname
+  };
 };
