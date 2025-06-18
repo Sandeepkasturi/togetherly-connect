@@ -58,14 +58,81 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
     }
   }, [peerId, shareUrl, isShareModalOpen, toast]);
 
-  const handleCopyToClipboard = () => {
-    navigator.clipboard.writeText(peerId);
-    toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
+  const handleCopyToClipboard = async () => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(peerId);
+        toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = peerId;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          document.execCommand('copy');
+          toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
+        } catch (err) {
+          console.error('Failed to copy:', err);
+          toast({ 
+            title: 'Copy Failed', 
+            description: 'Please manually copy the Peer ID.',
+            variant: 'destructive' 
+          });
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (err) {
+      console.error('Copy failed:', err);
+      toast({ 
+        title: 'Copy Failed', 
+        description: 'Please manually copy the Peer ID.',
+        variant: 'destructive' 
+      });
+    }
   };
 
-  const handleCopyShareLinkToClipboard = () => {
-    navigator.clipboard.writeText(shareUrl);
-    toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
+  const handleCopyShareLinkToClipboard = async () => {
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+        toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
+      } else {
+        // Fallback for mobile browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = shareUrl;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+          document.execCommand('copy');
+          toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
+        } catch (err) {
+          toast({ 
+            title: 'Copy Failed', 
+            description: 'Please manually copy the link.',
+            variant: 'destructive' 
+          });
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (err) {
+      toast({ 
+        title: 'Copy Failed', 
+        description: 'Please manually copy the link.',
+        variant: 'destructive' 
+      });
+    }
   };
 
   const handleShareLink = () => {
