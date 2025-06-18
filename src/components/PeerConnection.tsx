@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send } from 'lucide-react';
+import { Copy, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
 import { ConnectionStatus } from '@/components/ConnectionStatus';
@@ -15,6 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 
 interface PeerConnectionProps {
   peerId: string;
@@ -41,7 +42,6 @@ const PeerConnection = ({
   connectionState,
   onManualReconnect
 }: PeerConnectionProps) => {
-  const [remoteId, setRemoteId] = useState('');
   const { toast } = useToast();
   const { setNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
@@ -215,29 +215,21 @@ const PeerConnection = ({
             )}
           </div>
           
-          {/* Only show peer ID input if connected */}
+          {/* Show peer ID and share options when connected */}
           {connectionState.status === 'connected' && (
-            <div className="flex items-center gap-2">
-              <Input value={peerId} readOnly className="bg-background/50" />
-              <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
-                <Share2 className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-          
-          {!isConnected && connectionState.status === 'connected' && (
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Friend's Peer ID"
-                value={remoteId}
-                onChange={(e) => setRemoteId(e.target.value)}
-              />
-              <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
-                <LinkIcon className="h-4 w-4 mr-2" /> Connect
-              </Button>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Input value={peerId} readOnly className="bg-background/50" />
+                <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Share your Peer ID with friends to connect and watch together
+              </p>
             </div>
           )}
           
@@ -258,7 +250,7 @@ const PeerConnection = ({
             <div className="text-sm flex items-center gap-2">
               <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
               <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
-                Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
+                Status: {isConnected ? `Connected to ${remoteNickname}` : 'Ready to connect...'}
               </p>
             </div>
             {isConnected && (
