@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
@@ -36,6 +37,8 @@ export interface AppContextType {
   selectedVideoId: string;
   handleVideoSelect: (videoId: string) => void;
   playerSyncData: DataType | null;
+  connectionState: any;
+  onManualReconnect: () => void;
 }
 
 const AppLayout = () => {
@@ -45,7 +48,7 @@ const AppLayout = () => {
   const { 
     peerId, connectToPeer, sendData, data, isConnected, conn,
     localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia,
-    incomingConn, acceptConnection, rejectConnection
+    incomingConn, acceptConnection, rejectConnection, connectionState, manualReconnect
   } = usePeer();
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
@@ -307,7 +310,7 @@ const AppLayout = () => {
 
   const handleVideoSelect = (videoId: string) => {
     setSelectedVideoId(videoId);
-    const dataToSend: DataType = { type: 'video', payload: videoId };
+    const dataToSend: DataType = { type: 'video',  payload: videoId };
     sendData(dataToSend);
   };
   
@@ -354,7 +357,9 @@ const AppLayout = () => {
     handleSendFile,
     selectedVideoId,
     handleVideoSelect,
-    playerSyncData
+    playerSyncData,
+    connectionState,
+    onManualReconnect: manualReconnect
   };
 
   return (
