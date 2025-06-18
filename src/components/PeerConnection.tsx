@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send, RefreshCw } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
 import {
@@ -24,9 +24,22 @@ interface PeerConnectionProps {
   sendData: (data: DataType) => void;
   startCall: (type: 'audio' | 'video') => void;
   isCallActive: boolean;
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed';
+  onManualReconnect: () => void;
 }
 
-const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname, sendData, startCall, isCallActive }: PeerConnectionProps) => {
+const PeerConnection = ({ 
+  peerId, 
+  connectToPeer, 
+  isConnected, 
+  myNickname, 
+  remoteNickname, 
+  sendData, 
+  startCall, 
+  isCallActive,
+  connectionState,
+  onManualReconnect
+}: PeerConnectionProps) => {
   const [remoteId, setRemoteId] = useState('');
   const { toast } = useToast();
   const { setNickname } = useUser();
@@ -59,17 +72,40 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
   }, [peerId, shareUrl, isShareModalOpen, toast]);
 
   const handleCopyToClipboard = () => {
+    if (!peerId) {
+      toast({
+        title: 'No Peer ID',
+        description: 'Peer ID is still generating. Please wait.',
+        variant: 'destructive'
+      });
+      return;
+    }
     navigator.clipboard.writeText(peerId);
     toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
   };
 
   const handleCopyShareLinkToClipboard = () => {
+    if (!peerId) {
+      toast({
+        title: 'No Peer ID',
+        description: 'Peer ID is still generating. Please wait.',
+        variant: 'destructive'
+      });
+      return;
+    }
     navigator.clipboard.writeText(shareUrl);
     toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
   };
 
   const handleShareLink = () => {
-    if (!peerId) return;
+    if (!peerId) {
+      toast({
+        title: 'No Peer ID',
+        description: 'Peer ID is still generating. Please wait.',
+        variant: 'destructive'
+      });
+      return;
+    }
     setIsShareModalOpen(true);
   };
 
@@ -95,6 +131,24 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
     setNewNickname(myNickname);
     setIsEditingNickname(false);
   }
+
+  const getStatusColor = () => {
+    switch (connectionState) {
+      case 'connected': return 'text-green-400';
+      case 'connecting': return 'text-yellow-400';
+      case 'failed': return 'text-red-400';
+      default: return 'text-yellow-400';
+    }
+  };
+
+  const getStatusText = () => {
+    switch (connectionState) {
+      case 'connected': return `Connected to ${remoteNickname}`;
+      case 'connecting': return 'Connecting...';
+      case 'failed': return 'Connection failed - Click to retry';
+      default: return 'Waiting for connection...';
+    }
+  };
 
   const shareText = "Let's watch videos together on Togetherly! Click the link to join my room.";
 
@@ -128,14 +182,26 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
             )}
           </div>
           
-          <div className="flex items-center gap-2">
-            <Input value={peerId} readOnly className="bg-background/50" />
-            <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
-              <Share2 className="h-4 w-4" />
-            </Button>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Input 
+                value={peerId || 'Generating...'} 
+                readOnly 
+                className="bg-background/50" 
+                placeholder="Generating Peer ID..."
+              />
+              <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
+            {!peerId && (
+              <p className="text-xs text-muted-foreground">
+                Generating your unique Peer ID... This may take a moment.
+              </p>
+            )}
           </div>
           
           {!isConnected && (
@@ -145,7 +211,7 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
                 value={remoteId}
                 onChange={(e) => setRemoteId(e.target.value)}
               />
-              <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
+              <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId || !peerId}>
                 <LinkIcon className="h-4 w-4 mr-2" /> Connect
               </Button>
             </div>
@@ -166,10 +232,21 @@ const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remote
           
           <div>
             <div className="text-sm flex items-center gap-2">
-              <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
-              <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
-                Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
+              <Users className={getStatusColor()} />
+              <p className={getStatusColor()}>
+                Status: {getStatusText()}
               </p>
+              {connectionState === 'failed' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onManualReconnect}
+                  className="h-6 px-2"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Retry
+                </Button>
+              )}
             </div>
             {isConnected && (
               <p className="mt-1 text-xs text-muted-foreground pl-8">

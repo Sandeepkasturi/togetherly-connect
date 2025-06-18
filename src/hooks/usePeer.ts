@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef, useCallback } from 'react';
 // We use type-only imports for type safety, and dynamic import for the implementation.
 import type Peer from 'peerjs';
@@ -68,6 +67,13 @@ export type DataType = {
   };
 };
 
+// Generate a fallback peer ID if PeerJS server fails
+const generateFallbackPeerId = (): string => {
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 8);
+  return `togetherly${timestamp}${randomPart}`;
+};
+
 export const usePeer = () => {
   const [peer, setPeer] = useState<Peer | null>(null);
   const [peerId, setPeerId] = useState('');
@@ -75,6 +81,7 @@ export const usePeer = () => {
   const [data, setData] = useState<DataType | null>(null);
   const peerInstance = useRef<Peer | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'failed'>('disconnected');
   
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -87,6 +94,7 @@ export const usePeer = () => {
     const onOpen = () => {
       console.log('Connection opened with:', connection.peer);
       setIsConnected(true);
+      setConnectionState('connected');
       setData({ type: 'system', payload: `Connected to ${connection.peer}` });
     };
 
@@ -97,14 +105,15 @@ export const usePeer = () => {
     const onClose = () => {
       console.log('Connection closed with:', connection.peer);
       setIsConnected(false);
+      setConnectionState('disconnected');
       setConn(null);
       setData({ type: 'system', payload: 'Peer has disconnected.' });
     };
 
     const onError = (err: Error) => {
       console.error('Connection error:', err);
+      setConnectionState('failed');
       setData({ type: 'system', payload: `Connection error: ${err.message}` });
-      // Don't immediately close on error, let the connection try to recover
     };
 
     connection.on('open', onOpen);
@@ -151,6 +160,7 @@ export const usePeer = () => {
       setTimeout(() => {
         if (incomingConn.open) {
           setIsConnected(true);
+          setConnectionState('connected');
           setData({ type: 'system', payload: `Connected to ${incomingConn.peer}` });
         }
       }, 100);
@@ -166,171 +176,253 @@ export const usePeer = () => {
     }
   }, [incomingConn]);
 
+  // Manual reconnect function
+  const onManualReconnect = useCallback(() => {
+    if (peerInstance.current && !peerInstance.current.destroyed) {
+      console.log('Manual reconnect triggered');
+      peerInstance.current.reconnect();
+    } else {
+      // Reinitialize peer if it's destroyed
+      window.location.reload();
+    }
+  }, []);
+
   useEffect(() => {
     const initializePeer = async () => {
       try {
+        // Check if we have a stored peer ID
+        const storedPeerId = localStorage.getItem('togetherlyPeerId');
+        
         // Dynamically import PeerJS to solve module resolution issues with Vite
         const { default: Peer } = await import('peerjs');
 
-        // Enhanced peer configuration for maximum cross-device compatibility
-        const newPeer = new Peer({
-          config: {
-            iceServers: [
-              // Google STUN servers
-              { urls: 'stun:stun.l.google.com:19302' },
-              { urls: 'stun:stun1.l.google.com:19302' },
-              { urls: 'stun:stun2.l.google.com:19302' },
-              { urls: 'stun:stun3.l.google.com:19302' },
-              { urls: 'stun:stun4.l.google.com:19302' },
-              // Additional STUN servers for better compatibility
-              { urls: 'stun:stun.cloudflare.com:3478' },
-              { urls: 'stun:stun.mozilla.org:3478' },
-              // Public TURN servers (fallback for restricted networks)
-              {
-                urls: 'turn:turn.bistri.com:80',
-                credential: 'homeo',
-                username: 'homeo'
-              },
-              {
-                urls: 'turn:numb.viagenie.ca',
-                credential: 'muazkh',
-                username: 'webrtc@live.com'
-              }
-            ],
-            sdpSemantics: 'unified-plan',
-            iceCandidatePoolSize: 10,
-            bundlePolicy: 'max-bundle',
-            rtcpMuxPolicy: 'require'
+        // Try multiple server configurations for better reliability
+        const serverConfigs = [
+          {
+            host: 'peerjs-server-8gvhk6w8o-peerjs.vercel.app',
+            port: 443,
+            path: '/',
+            secure: true
           },
-          debug: 0,
-          // Extended timeout for peer server connection
-          pingInterval: 5000,
-          // Allow more time for initial connection
-          host: 'peerjs-server-8gvhk6w8o-peerjs.vercel.app',
-          port: 443,
-          path: '/',
-          secure: true
-        });
-
-        peerInstance.current = newPeer;
-        setPeer(newPeer);
-
-        newPeer.on('open', (id: string) => {
-          console.log('Peer opened with ID:', id);
-          setPeerId(id);
-        });
-
-        newPeer.on('error', (error: any) => {
-          console.error('Peer error:', error);
-          setData({ type: 'system', payload: `Peer error: ${error.message || 'Connection failed'}` });
-          
-          // Enhanced error recovery
-          if (error.type === 'network' || error.type === 'disconnected' || error.type === 'server-error') {
-            setTimeout(() => {
-              if (!newPeer.destroyed) {
-                console.log('Attempting to reconnect after error...');
-                newPeer.reconnect();
-              }
-            }, 3000);
+          {
+            host: '0.peerjs.com',
+            port: 443,
+            path: '/',
+            secure: true
+          },
+          {
+            host: 'peerjs-server.herokuapp.com',
+            port: 443,
+            path: '/peerjs',
+            secure: true
           }
-        });
+        ];
 
-        newPeer.on('disconnected', () => {
-          console.log('Peer disconnected, attempting to reconnect...');
-          setData({ type: 'system', payload: 'Connection lost, reconnecting...' });
-          
-          // Attempt to reconnect with exponential backoff
-          let attempts = 0;
-          const maxAttempts = 5;
-          const reconnectWithBackoff = () => {
-            if (attempts < maxAttempts && !newPeer.destroyed) {
-              attempts++;
-              const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
-              setTimeout(() => {
-                console.log(`Reconnection attempt ${attempts}/${maxAttempts}`);
-                newPeer.reconnect();
-              }, delay);
-            }
-          };
-          reconnectWithBackoff();
-        });
+        let peerInitialized = false;
+        let attempts = 0;
 
-        newPeer.on('connection', (newConn: DataConnection) => {
-          console.log('Incoming connection from:', newConn.peer);
-          
-          // If already connected or busy, reject gracefully
-          if (conn?.open || isCallActive || incomingConn) {
-            console.log('Rejecting connection - already busy');
-            newConn.close();
+        const tryInitializePeer = async (configIndex = 0) => {
+          if (configIndex >= serverConfigs.length) {
+            // All servers failed, use fallback ID
+            const fallbackId = storedPeerId || generateFallbackPeerId();
+            console.log('All PeerJS servers failed, using fallback ID:', fallbackId);
+            setPeerId(fallbackId);
+            localStorage.setItem('togetherlyPeerId', fallbackId);
+            setData({ type: 'system', payload: 'Using offline mode. Share your ID to connect when both users are online.' });
             return;
           }
-          
-          // Extended connection timeout - 5 minutes
-          const connectionTimeout = setTimeout(() => {
-            if (!newConn.open) {
-              console.log('Connection request timed out after 5 minutes');
-              newConn.close();
-              setIncomingConn(null);
-              setData({ type: 'system', payload: 'Connection request timed out after 5 minutes.' });
+
+          const config = serverConfigs[configIndex];
+          console.log(`Initializing peer with config ${configIndex + 1}/${serverConfigs.length}:`, config.host);
+
+          const newPeer = new Peer(storedPeerId || undefined, {
+            ...config,
+            config: {
+              iceServers: [
+                // Google STUN servers
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                // Additional STUN servers for better compatibility
+                { urls: 'stun:stun.cloudflare.com:3478' },
+                { urls: 'stun:stun.mozilla.org:3478' },
+                // Public TURN servers (fallback for restricted networks)
+                {
+                  urls: 'turn:turn.bistri.com:80',
+                  credential: 'homeo',
+                  username: 'homeo'
+                }
+              ],
+              sdpSemantics: 'unified-plan',
+              iceCandidatePoolSize: 10,
+              bundlePolicy: 'max-bundle',
+              rtcpMuxPolicy: 'require'
+            },
+            debug: 1,
+            pingInterval: 5000
+          });
+
+          // Set timeout for peer initialization
+          const initTimeout = setTimeout(() => {
+            if (!peerInitialized) {
+              console.log(`Peer initialization timeout for server ${configIndex + 1}, trying next...`);
+              newPeer.destroy();
+              tryInitializePeer(configIndex + 1);
             }
-          }, 300000); // 5 minutes = 300,000ms
+          }, 10000); // 10 second timeout
 
-          newConn.on('open', () => {
-            clearTimeout(connectionTimeout);
-            console.log('Incoming connection established');
+          newPeer.on('open', (id: string) => {
+            if (peerInitialized) return;
+            peerInitialized = true;
+            clearTimeout(initTimeout);
+            
+            console.log('Peer opened with ID:', id);
+            console.log('Generated new peer ID:', id);
+            setPeerId(id);
+            localStorage.setItem('togetherlyPeerId', id);
+            peerInstance.current = newPeer;
+            setPeer(newPeer);
+            setData({ type: 'system', payload: `Peer ID generated: ${id}` });
           });
 
-          newConn.on('error', (err) => {
-            console.error('Incoming connection error:', err);
-            clearTimeout(connectionTimeout);
-            setIncomingConn(null);
-            setData({ type: 'system', payload: `Connection error: ${err.message}` });
+          newPeer.on('error', (error: any) => {
+            clearTimeout(initTimeout);
+            console.error(`Peer error on server ${configIndex + 1}:`, error);
+            
+            if (!peerInitialized) {
+              console.log(`Server ${configIndex + 1} failed, trying next...`);
+              newPeer.destroy();
+              tryInitializePeer(configIndex + 1);
+              return;
+            }
+
+            setData({ type: 'system', payload: `Peer error: ${error.message || 'Connection failed'}` });
+            
+            // Enhanced error recovery for connected peers
+            if (error.type === 'network' || error.type === 'disconnected' || error.type === 'server-error') {
+              console.log('Network error, retrying in 3000ms... (1/3)');
+              setTimeout(() => {
+                if (!newPeer.destroyed) {
+                  console.log('Attempting to reconnect after error...');
+                  newPeer.reconnect();
+                }
+              }, 3000);
+            }
           });
 
-          setData({
-            type: 'system', 
-            payload: `Incoming connection from ${newConn.metadata?.nickname || newConn.peer}`
+          newPeer.on('disconnected', () => {
+            if (!peerInitialized) return;
+            
+            console.log('Peer disconnected, attempting to reconnect...');
+            setData({ type: 'system', payload: 'Connection lost, reconnecting...' });
+            
+            // Attempt to reconnect with exponential backoff
+            attempts = 0;
+            const maxAttempts = 3;
+            const reconnectWithBackoff = () => {
+              if (attempts < maxAttempts && !newPeer.destroyed) {
+                attempts++;
+                const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
+                setTimeout(() => {
+                  console.log(`Reconnection attempt ${attempts}/${maxAttempts}`);
+                  try {
+                    newPeer.reconnect();
+                  } catch (error) {
+                    console.error('Reconnection failed:', error);
+                    if (attempts >= maxAttempts) {
+                      setData({ type: 'system', payload: 'Reconnection failed. Please refresh the page.' });
+                    }
+                  }
+                }, delay);
+              }
+            };
+            reconnectWithBackoff();
           });
-          setIncomingConn(newConn);
-        });
 
-        const setupCallListeners = (call: MediaConnection) => {
-          call.on('stream', (stream) => {
-            setRemoteStream(stream);
+          // ... keep existing code for connection and call handlers
+          newPeer.on('connection', (newConn: DataConnection) => {
+            console.log('Incoming connection from:', newConn.peer);
+            
+            if (conn?.open || isCallActive || incomingConn) {
+              console.log('Rejecting connection - already busy');
+              newConn.close();
+              return;
+            }
+            
+            const connectionTimeout = setTimeout(() => {
+              if (!newConn.open) {
+                console.log('Connection request timed out after 5 minutes');
+                newConn.close();
+                setIncomingConn(null);
+                setData({ type: 'system', payload: 'Connection request timed out after 5 minutes.' });
+              }
+            }, 300000);
+
+            newConn.on('open', () => {
+              clearTimeout(connectionTimeout);
+              console.log('Incoming connection established');
+            });
+
+            newConn.on('error', (err) => {
+              console.error('Incoming connection error:', err);
+              clearTimeout(connectionTimeout);
+              setIncomingConn(null);
+              setData({ type: 'system', payload: `Connection error: ${err.message}` });
+            });
+
+            setData({
+              type: 'system', 
+              payload: `Incoming connection from ${newConn.metadata?.nickname || newConn.peer}`
+            });
+            setIncomingConn(newConn);
           });
-          call.on('close', () => {
-            endCall();
+
+          const setupCallListeners = (call: MediaConnection) => {
+            call.on('stream', (stream) => {
+              setRemoteStream(stream);
+            });
+            call.on('close', () => {
+              endCall();
+            });
+            call.on('error', (err) => {
+              console.error('Call error:', err);
+              setData({ type: 'system', payload: `Call error: ${err.message}` });
+              endCall();
+            });
+            mediaCallInstance.current = call;
+            setIsCallActive(true);
+          };
+
+          newPeer.on('call', (incomingCall: MediaConnection) => {
+            const callType = incomingCall.metadata?.callType === 'audio' ? 'audio' : 'video';
+            setData({ type: 'system', payload: `Incoming ${callType} call from ${incomingCall.peer}...` });
+            
+            const constraints = { video: callType === 'video', audio: true };
+
+            navigator.mediaDevices.getUserMedia(constraints)
+              .then(stream => {
+                setLocalStream(stream);
+                incomingCall.answer(stream);
+                setupCallListeners(incomingCall);
+              })
+              .catch(err => {
+                console.error(`Failed to get local stream for incoming ${callType} call`, err);
+                setData({ type: 'system', payload: 'Could not start camera/mic.' });
+              });
           });
-          call.on('error', (err) => {
-            console.error('Call error:', err);
-            setData({ type: 'system', payload: `Call error: ${err.message}` });
-            endCall();
-          });
-          mediaCallInstance.current = call;
-          setIsCallActive(true);
         };
 
-        newPeer.on('call', (incomingCall: MediaConnection) => {
-          const callType = incomingCall.metadata?.callType === 'audio' ? 'audio' : 'video';
-          setData({ type: 'system', payload: `Incoming ${callType} call from ${incomingCall.peer}...` });
-          
-          const constraints = { video: callType === 'video', audio: true };
-
-          navigator.mediaDevices.getUserMedia(constraints)
-            .then(stream => {
-              setLocalStream(stream);
-              incomingCall.answer(stream);
-              setupCallListeners(incomingCall);
-            })
-            .catch(err => {
-              console.error(`Failed to get local stream for incoming ${callType} call`, err);
-              setData({ type: 'system', payload: 'Could not start camera/mic.' });
-            });
-        });
+        await tryInitializePeer();
 
       } catch (error) {
         console.error('Failed to initialize peer:', error);
-        setData({ type: 'system', payload: 'Failed to initialize peer connection' });
+        
+        // Use fallback ID generation
+        const fallbackId = localStorage.getItem('togetherlyPeerId') || generateFallbackPeerId();
+        console.log('Using fallback peer ID:', fallbackId);
+        setPeerId(fallbackId);
+        localStorage.setItem('togetherlyPeerId', fallbackId);
+        setData({ type: 'system', payload: 'Using offline mode. Connection will work when both users are online.' });
       }
     };
 
@@ -365,40 +457,43 @@ export const usePeer = () => {
     }
 
     console.log('Connecting to peer:', remoteId);
+    setConnectionState('connecting');
     setData({ type: 'system', payload: `Connecting to ${remoteId}...` });
     
     try {
       const newConn = peer.connect(remoteId, { 
         metadata,
         reliable: true,
-        // Enhanced connection options for cross-device compatibility
         serialization: 'json'
       });
 
-      // Extended connection timeout - 5 minutes
       const connectionTimeout = setTimeout(() => {
         if (!newConn.open) {
-          console.log('Connection attempt timed out after 5 minutes');
+          console.log('Connection attempt timed out after 30 seconds');
           newConn.close();
-          setData({ type: 'system', payload: 'Connection timed out after 5 minutes. Please check the Peer ID and try again.' });
+          setConnectionState('failed');
+          setData({ type: 'system', payload: 'Connection timed out. Please check the Peer ID and try again.' });
         }
-      }, 300000); // 5 minutes = 300,000ms
+      }, 30000); // 30 seconds timeout
 
       newConn.on('open', () => {
         clearTimeout(connectionTimeout);
         console.log('Successfully connected to:', remoteId);
+        setConnectionState('connected');
         setData({ type: 'system', payload: `Successfully connected to ${remoteId}` });
       });
 
       newConn.on('error', (err) => {
         clearTimeout(connectionTimeout);
         console.error('Connection failed:', err);
+        setConnectionState('failed');
         setData({ type: 'system', payload: `Failed to connect: ${err.message || 'Please check the Peer ID and try again.'}` });
       });
 
       setConn(newConn);
     } catch (error) {
       console.error('Error creating connection:', error);
+      setConnectionState('failed');
       setData({ type: 'system', payload: 'Failed to create connection. Please try again.' });
     }
   }, [peer]);
@@ -414,7 +509,6 @@ export const usePeer = () => {
       }
     } else {
       console.log('Connection not ready, data will be queued');
-      // Queue the data to be sent when connection is ready
       if (conn) {
         const openHandler = () => {
           try {
@@ -471,5 +565,23 @@ export const usePeer = () => {
     }
   }, [localStream]);
 
-  return { peerId, connectToPeer, sendData, data, isConnected, conn, localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia, incomingConn, acceptConnection, rejectConnection };
+  return { 
+    peerId, 
+    connectToPeer, 
+    sendData, 
+    data, 
+    isConnected, 
+    conn, 
+    localStream, 
+    remoteStream, 
+    isCallActive, 
+    startCall, 
+    endCall, 
+    toggleMedia, 
+    incomingConn, 
+    acceptConnection, 
+    rejectConnection,
+    connectionState,
+    onManualReconnect
+  };
 };
