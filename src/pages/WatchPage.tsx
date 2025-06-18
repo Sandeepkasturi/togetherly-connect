@@ -9,36 +9,15 @@ import { PlaylistSidebar } from '@/components/PlaylistSidebar';
 import { Play, Info, Users, Tv, ListMusic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
 import ChatNotification from '@/components/ChatNotification';
-import VideoCarousel from '@/components/VideoCarousel';
-import { getAllCategories, CategoryContent } from '@/services/youtubeService';
 
 const WatchPage = () => {
   const context = useOutletContext<AppContextType>();
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<any>(null);
-  const [categories, setCategories] = useState<CategoryContent[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-
-  // Load YouTube categories
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        setIsLoadingCategories(true);
-        const categoryData = await getAllCategories();
-        setCategories(categoryData);
-      } catch (error) {
-        console.error('Failed to load categories:', error);
-      } finally {
-        setIsLoadingCategories(false);
-      }
-    };
-
-    loadCategories();
-  }, []);
 
   // Show notification for new messages when chat is closed
   const handleNewMessage = (message: any) => {
@@ -165,8 +144,6 @@ const WatchPage = () => {
                   sendData={context.sendData}
                   startCall={context.startCall}
                   isCallActive={context.isCallActive}
-                  connectionState={context.connectionState}
-                  onManualReconnect={context.onManualReconnect}
                 />
               </Card>
 
@@ -185,39 +162,19 @@ const WatchPage = () => {
         </div>
       </div>
 
-      {/* Netflix-style Content Rows Section */}
+      {/* Content Rows Section */}
       <div className="relative z-10 bg-black pt-4 lg:pt-8">
         <div className="container mx-auto px-4">
-          {/* Search Section */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="mb-8"
           >
             <YouTubeSearch 
               onVideoSelect={context.handleVideoSelect} 
               isConnected={context.isConnected} 
             />
           </motion.div>
-
-          {/* Category Carousels */}
-          {categories.map((category, index) => (
-            <motion.div
-              key={category.title}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.8 + index * 0.1 }}
-            >
-              <VideoCarousel
-                title={category.title}
-                videos={category.videos}
-                onVideoSelect={context.handleVideoSelect}
-                isLoading={isLoadingCategories}
-                isConnected={context.isConnected}
-              />
-            </motion.div>
-          ))}
         </div>
       </div>
 

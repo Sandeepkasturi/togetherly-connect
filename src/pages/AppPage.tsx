@@ -47,8 +47,6 @@ const AppPage = () => {
           sendData={context.sendData}
           startCall={context.startCall}
           isCallActive={context.isCallActive}
-          connectionState={context.connectionState}
-          onManualReconnect={context.onManualReconnect}
         />
         <Chat 
           messages={context.messages} 

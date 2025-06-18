@@ -1,12 +1,11 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
-import { ConnectionStatus } from '@/components/ConnectionStatus';
-import { ConnectionState } from '@/utils/connectionManager';
 import {
   Dialog,
   DialogContent,
@@ -15,7 +14,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 
 interface PeerConnectionProps {
   peerId: string;
@@ -26,22 +24,10 @@ interface PeerConnectionProps {
   sendData: (data: DataType) => void;
   startCall: (type: 'audio' | 'video') => void;
   isCallActive: boolean;
-  connectionState: ConnectionState;
-  onManualReconnect: () => void;
 }
 
-const PeerConnection = ({ 
-  peerId, 
-  connectToPeer, 
-  isConnected, 
-  myNickname, 
-  remoteNickname, 
-  sendData, 
-  startCall, 
-  isCallActive,
-  connectionState,
-  onManualReconnect
-}: PeerConnectionProps) => {
+const PeerConnection = ({ peerId, connectToPeer, isConnected, myNickname, remoteNickname, sendData, startCall, isCallActive }: PeerConnectionProps) => {
+  const [remoteId, setRemoteId] = useState('');
   const { toast } = useToast();
   const { setNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
@@ -72,81 +58,14 @@ const PeerConnection = ({
     }
   }, [peerId, shareUrl, isShareModalOpen, toast]);
 
-  const handleCopyToClipboard = async () => {
-    try {
-      // Try modern clipboard API first
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(peerId);
-        toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
-      } else {
-        // Fallback for older browsers or non-secure contexts
-        const textArea = document.createElement('textarea');
-        textArea.value = peerId;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-          document.execCommand('copy');
-          toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
-        } catch (err) {
-          console.error('Failed to copy:', err);
-          toast({ 
-            title: 'Copy Failed', 
-            description: 'Please manually copy the Peer ID.',
-            variant: 'destructive' 
-          });
-        } finally {
-          document.body.removeChild(textArea);
-        }
-      }
-    } catch (err) {
-      console.error('Copy failed:', err);
-      toast({ 
-        title: 'Copy Failed', 
-        description: 'Please manually copy the Peer ID.',
-        variant: 'destructive' 
-      });
-    }
+  const handleCopyToClipboard = () => {
+    navigator.clipboard.writeText(peerId);
+    toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
   };
 
-  const handleCopyShareLinkToClipboard = async () => {
-    try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(shareUrl);
-        toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
-      } else {
-        // Fallback for mobile browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = shareUrl;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        
-        try {
-          document.execCommand('copy');
-          toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
-        } catch (err) {
-          toast({ 
-            title: 'Copy Failed', 
-            description: 'Please manually copy the link.',
-            variant: 'destructive' 
-          });
-        } finally {
-          document.body.removeChild(textArea);
-        }
-      }
-    } catch (err) {
-      toast({ 
-        title: 'Copy Failed', 
-        description: 'Please manually copy the link.',
-        variant: 'destructive' 
-      });
-    }
+  const handleCopyShareLinkToClipboard = () => {
+    navigator.clipboard.writeText(shareUrl);
+    toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
   };
 
   const handleShareLink = () => {
@@ -185,12 +104,6 @@ const PeerConnection = ({
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Connection</h2>
           
-          {/* Connection Status */}
-          <ConnectionStatus 
-            connectionState={connectionState}
-            onManualReconnect={onManualReconnect}
-          />
-          
           <div className="flex items-center gap-2">
             <User className="text-muted-foreground" />
             {!isEditingNickname ? (
@@ -215,21 +128,26 @@ const PeerConnection = ({
             )}
           </div>
           
-          {/* Show peer ID and share options when connected */}
-          {connectionState.status === 'connected' && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Input value={peerId} readOnly className="bg-background/50" />
-                <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
-                  <Share2 className="h-4 w-4" />
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Share your Peer ID with friends to connect and watch together
-              </p>
+          <div className="flex items-center gap-2">
+            <Input value={peerId} readOnly className="bg-background/50" />
+            <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
+              <Share2 className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {!isConnected && (
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Friend's Peer ID"
+                value={remoteId}
+                onChange={(e) => setRemoteId(e.target.value)}
+              />
+              <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId}>
+                <LinkIcon className="h-4 w-4 mr-2" /> Connect
+              </Button>
             </div>
           )}
           
@@ -250,7 +168,7 @@ const PeerConnection = ({
             <div className="text-sm flex items-center gap-2">
               <Users className={isConnected ? 'text-green-400' : 'text-yellow-400'} />
               <p className={isConnected ? 'text-green-400' : 'text-yellow-400'}>
-                Status: {isConnected ? `Connected to ${remoteNickname}` : 'Ready to connect...'}
+                Status: {isConnected ? `Connected to ${remoteNickname}` : 'Waiting for connection...'}
               </p>
             </div>
             {isConnected && (
