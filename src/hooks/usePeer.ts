@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Peer, { DataConnection, MediaConnection, CallOption } from 'peerjs';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +16,25 @@ export interface ChatMessage {
   fileSize?: number;
 }
 
+export interface Message {
+  id: string;
+  content: string;
+  sender: 'me' | 'them' | 'system';
+  timestamp: string;
+  nickname?: string;
+  messageType: 'text' | 'file' | 'system';
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  fileData?: string;
+  reactions?: Reaction[];
+}
+
+export interface Reaction {
+  emoji: string;
+  by: string;
+}
+
 export interface PlayerSyncData {
   action: 'play' | 'pause' | 'seekTo' | 'changeVideo';
   timestamp?: number;
@@ -22,7 +42,7 @@ export interface PlayerSyncData {
 }
 
 export interface DataType {
-  type: 'message' | 'reaction' | 'file' | 'player' | 'nickname';
+  type: 'message' | 'reaction' | 'file' | 'player' | 'nickname' | 'chat' | 'video' | 'player_state' | 'system';
   payload: any;
 }
 
@@ -58,6 +78,8 @@ export const usePeer = () => {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
   const [call, setCall] = useState<MediaConnection | null>(null);
+  const [data, setData] = useState<DataType | null>(null);
+  const [incomingConn, setIncomingConn] = useState<DataConnection | null>(null);
 
   const { toast } = useToast();
   const connectionManager = ConnectionManager.getInstance();
@@ -135,7 +157,7 @@ export const usePeer = () => {
 
       newPeer.on('connection', (conn) => {
         console.log('Incoming connection from:', conn.peer);
-        handleIncomingConnection(conn);
+        setIncomingConn(conn);
       });
 
       newPeer.on('call', (incomingCall) => {
@@ -214,44 +236,10 @@ export const usePeer = () => {
     setConnection(conn);
     setIsConnected(true);
     setRemoteNickname(conn.metadata?.nickname || 'Unknown');
+    setIncomingConn(null);
 
-    conn.on('data', (data: DataType) => {
-      if (data.type === 'message') {
-        const newMessage: ChatMessage = {
-          id: Math.random().toString(36).substring(2, 9),
-          text: data.payload,
-          sender: 'peer',
-          timestamp: new Date(),
-          type: 'text',
-        };
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
-      } else if (data.type === 'reaction') {
-        const newMessage: ChatMessage = {
-          id: Math.random().toString(36).substring(2, 9),
-          text: data.payload,
-          sender: 'peer',
-          timestamp: new Date(),
-          type: 'reaction',
-        };
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
-      } else if (data.type === 'file') {
-        const fileData = data.payload;
-        const newMessage: ChatMessage = {
-          id: Math.random().toString(36).substring(2, 9),
-          text: 'File received',
-          sender: 'peer',
-          timestamp: new Date(),
-          type: 'file',
-          fileName: fileData.name,
-          fileUrl: fileData.url,
-          fileSize: fileData.size,
-        };
-        setMessages((prevMessages) => [...prevMessages, newMessage]);
-      } else if (data.type === 'player') {
-        setPlayerSyncData(data.payload);
-      } else if (data.type === 'nickname') {
-        setRemoteNickname(data.payload);
-      }
+    conn.on('data', (receivedData: DataType) => {
+      setData(receivedData);
     });
 
     conn.on('close', () => {
@@ -332,43 +320,8 @@ export const usePeer = () => {
         });
       });
 
-      conn.on('data', (data: DataType) => {
-        if (data.type === 'message') {
-          const newMessage: ChatMessage = {
-            id: Math.random().toString(36).substring(2, 9),
-            text: data.payload,
-            sender: 'peer',
-            timestamp: new Date(),
-            type: 'text',
-          };
-          setMessages((prevMessages) => [...prevMessages, newMessage]);
-        } else if (data.type === 'reaction') {
-          const newMessage: ChatMessage = {
-            id: Math.random().toString(36).substring(2, 9),
-            text: data.payload,
-            sender: 'peer',
-            timestamp: new Date(),
-            type: 'reaction',
-          };
-          setMessages((prevMessages) => [...prevMessages, newMessage]);
-        } else if (data.type === 'file') {
-          const fileData = data.payload;
-          const newMessage: ChatMessage = {
-            id: Math.random().toString(36).substring(2, 9),
-            text: 'File received',
-            sender: 'peer',
-            timestamp: new Date(),
-            type: 'file',
-            fileName: fileData.name,
-            fileUrl: fileData.url,
-            fileSize: fileData.size,
-          };
-          setMessages((prevMessages) => [...prevMessages, newMessage]);
-        } else if (data.type === 'player') {
-          setPlayerSyncData(data.payload);
-        } else if (data.type === 'nickname') {
-          setRemoteNickname(data.payload);
-        }
+      conn.on('data', (receivedData: DataType) => {
+        setData(receivedData);
       });
 
       conn.on('close', () => {
@@ -396,6 +349,19 @@ export const usePeer = () => {
     }
   }, [peer, toast]);
 
+  const acceptConnection = useCallback(() => {
+    if (incomingConn) {
+      handleIncomingConnection(incomingConn);
+    }
+  }, [incomingConn, handleIncomingConnection]);
+
+  const rejectConnection = useCallback(() => {
+    if (incomingConn) {
+      incomingConn.close();
+      setIncomingConn(null);
+    }
+  }, [incomingConn]);
+
   const manualReconnect = useCallback(() => {
     console.log('Manual reconnect triggered');
     connectionManager.manualRetry(() => {
@@ -407,9 +373,9 @@ export const usePeer = () => {
     });
   }, [peer, createPeer]);
 
-  const sendData = useCallback((data: DataType) => {
+  const sendData = useCallback((dataToSend: DataType) => {
     if (connection && connection.open) {
-      connection.send(data);
+      connection.send(dataToSend);
     }
   }, [connection]);
 
@@ -510,6 +476,26 @@ export const usePeer = () => {
     }
   }, [peer, connection, myNickname, toast]);
 
+  const endCall = useCallback(() => {
+    if (call) {
+      call.close();
+      setCall(null);
+    }
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    setIsCallActive(false);
+    setRemoteStream(null);
+  }, [call, localStream]);
+
+  const toggleMedia = useCallback((type: 'audio' | 'video') => {
+    if (localStream) {
+      const tracks = type === 'audio' ? localStream.getAudioTracks() : localStream.getVideoTracks();
+      tracks.forEach(track => track.enabled = !track.enabled);
+    }
+  }, [localStream]);
+
   const handleSendReaction = useCallback((reaction: string) => {
     if (connection && connection.open) {
       const newMessage: ChatMessage = {
@@ -555,6 +541,7 @@ export const usePeer = () => {
     peer,
     peerId,
     connection,
+    conn: connection, // Alias for compatibility
     isConnected,
     messages,
     myNickname,
@@ -565,11 +552,17 @@ export const usePeer = () => {
     remoteStream,
     isCallActive,
     connectionState,
+    data,
+    incomingConn,
     connectToPeer,
+    acceptConnection,
+    rejectConnection,
     sendData,
     sendMessage,
     handleVideoSelect,
     startCall,
+    endCall,
+    toggleMedia,
     handleSendReaction,
     handleSendFile,
     manualReconnect,
