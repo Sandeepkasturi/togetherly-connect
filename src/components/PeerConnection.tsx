@@ -154,105 +154,165 @@ const PeerConnection = ({
 
   return (
     <>
-      <div className="p-4 bg-secondary/30 rounded-lg border border-border">
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold">Connection</h2>
-          
-          <div className="flex items-center gap-2">
-            <User className="text-muted-foreground" />
-            {!isEditingNickname ? (
-              <div className="flex items-center gap-1">
-                <p className="text-sm">You: <span className="font-semibold text-primary">{myNickname}</span></p>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setIsEditingNickname(true)}>
-                  <Edit className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 w-full">
-                <Input 
-                  value={newNickname} 
-                  onChange={(e) => setNewNickname(e.target.value)} 
-                  onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
-                  className="h-8"
-                  placeholder="New nickname"
-                />
-                <Button size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleNicknameChange}><Check className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleCancelEdit}><X className="h-4 w-4" /></Button>
-              </div>
-            )}
+      <div className="p-6 bg-gradient-surface rounded-xl border border-border/50 backdrop-blur-xl">
+        <div className="space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              Connection Hub
+            </h2>
           </div>
           
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Input 
-                value={peerId || 'Generating...'} 
-                readOnly 
-                className="bg-background/50" 
-                placeholder="Generating Peer ID..."
-              />
-              <Button size="icon" onClick={handleCopyToClipboard} disabled={!peerId}>
-                <Copy className="h-4 w-4" />
-              </Button>
-              <Button size="icon" variant="outline" onClick={handleShareLink} disabled={!peerId}>
-                <Share2 className="h-4 w-4" />
-              </Button>
+          <div className="p-4 rounded-lg bg-background/30 border border-border/30">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
+                <User className="h-4 w-4 text-accent" />
+              </div>
+              {!isEditingNickname ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground">Your nickname</p>
+                    <p className="font-semibold text-foreground">{myNickname}</p>
+                  </div>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsEditingNickname(true)}>
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 w-full">
+                  <Input 
+                    value={newNickname} 
+                    onChange={(e) => setNewNickname(e.target.value)} 
+                    onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
+                    className="h-9 bg-background/50"
+                    placeholder="New nickname"
+                  />
+                  <Button variant="premium" size="icon" className="h-9 w-9 flex-shrink-0" onClick={handleNicknameChange}>
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0" onClick={handleCancelEdit}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
-            {!peerId && (
-              <p className="text-xs text-muted-foreground">
-                Generating your unique Peer ID... This may take a moment.
-              </p>
-            )}
+          </div>
+          
+          <div className="space-y-3">
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <p className="text-xs font-medium text-primary">Your Connection ID</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input 
+                  value={peerId || 'Generating...'} 
+                  readOnly 
+                  className="bg-background/30 border-primary/30 font-mono text-sm" 
+                  placeholder="Generating Peer ID..."
+                />
+                <Button variant="outline" size="icon" onClick={handleCopyToClipboard} disabled={!peerId} className="flex-shrink-0">
+                  <Copy className="h-4 w-4" />
+                </Button>
+                <Button variant="premium" size="icon" onClick={handleShareLink} disabled={!peerId} className="flex-shrink-0">
+                  <Share2 className="h-4 w-4" />
+                </Button>
+              </div>
+              {!peerId && (
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
+                  <div className="h-3 w-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  Generating your unique Peer ID...
+                </p>
+              )}
+            </div>
           </div>
           
           {!isConnected && (
-            <div className="flex items-center gap-2">
-              <Input
-                placeholder="Friend's Peer ID"
-                value={remoteId}
-                onChange={(e) => setRemoteId(e.target.value)}
-              />
-              <Button onClick={() => connectToPeer(remoteId, { nickname: myNickname })} disabled={!remoteId || !peerId}>
-                <LinkIcon className="h-4 w-4 mr-2" /> Connect
-              </Button>
+            <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
+              <div className="flex items-center gap-2 mb-3">
+                <LinkIcon className="h-4 w-4 text-accent" />
+                <p className="text-sm font-medium text-accent">Connect to Friend</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Enter your friend's Peer ID"
+                  value={remoteId}
+                  onChange={(e) => setRemoteId(e.target.value)}
+                  className="bg-background/30 border-accent/30 font-mono"
+                />
+                <Button 
+                  variant="premium" 
+                  onClick={() => connectToPeer(remoteId, { nickname: myNickname })} 
+                  disabled={!remoteId || !peerId}
+                  className="flex-shrink-0"
+                >
+                  <LinkIcon className="h-4 w-4 mr-2" /> 
+                  Connect
+                </Button>
+              </div>
             </div>
           )}
           
           {isConnected && !isCallActive && (
-            <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={() => startCall('audio')} className="w-full bg-green-500 hover:bg-green-600">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Audio Call
+            <div className="p-4 rounded-lg bg-green-500/5 border border-green-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                <p className="text-sm font-medium text-green-400">Connected - Start a Call</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => startCall('audio')} 
+                  variant="glass"
+                  className="w-full border-green-500/30 hover:bg-green-500/10"
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Audio Call
                 </Button>
-                <Button onClick={() => startCall('video')} className="w-full">
-                    <Video className="h-4 w-4 mr-2" />
-                    Video Call
+                <Button 
+                  onClick={() => startCall('video')} 
+                  variant="premium"
+                  className="w-full"
+                >
+                  <Video className="h-4 w-4 mr-2" />
+                  Video Call
                 </Button>
+              </div>
             </div>
           )}
           
-          <div>
-            <div className="text-sm flex items-center gap-2">
-              <Users className={getStatusColor()} />
-              <p className={getStatusColor()}>
-                Status: {getStatusText()}
-              </p>
+          <div className="p-4 rounded-lg bg-muted/20 border border-border/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`h-3 w-3 rounded-full ${
+                  connectionState === 'connected' ? 'bg-green-500 animate-pulse' :
+                  connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                  connectionState === 'failed' ? 'bg-red-500' : 'bg-gray-500'
+                }`} />
+                <div>
+                  <p className="text-sm font-medium text-foreground">
+                    {getStatusText()}
+                  </p>
+                  {isConnected && (
+                    <p className="text-xs text-muted-foreground">
+                      Secure peer-to-peer connection
+                    </p>
+                  )}
+                </div>
+              </div>
               {connectionState === 'failed' && (
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={onManualReconnect}
-                  className="h-6 px-2"
+                  className="h-8 px-3"
                 >
                   <RefreshCw className="h-3 w-3 mr-1" />
                   Retry
                 </Button>
               )}
             </div>
-            {isConnected && (
-              <p className="mt-1 text-xs text-muted-foreground pl-8">
-                Your connection is secure and peer-to-peer.
-              </p>
-            )}
           </div>
         </div>
       </div>

@@ -144,6 +144,8 @@ const WatchPage = () => {
                   sendData={context.sendData}
                   startCall={context.startCall}
                   isCallActive={context.isCallActive}
+                  connectionState={context.connectionState}
+                  onManualReconnect={context.onManualReconnect}
                 />
               </Card>
 
