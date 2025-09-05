@@ -36,6 +36,8 @@ export interface AppContextType {
   selectedVideoId: string;
   handleVideoSelect: (videoId: string) => void;
   playerSyncData: DataType | null;
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed';
+  onManualReconnect: () => void;
 }
 
 const AppLayout = () => {
@@ -354,7 +356,9 @@ const AppLayout = () => {
     handleSendFile,
     selectedVideoId,
     handleVideoSelect,
-    playerSyncData
+    playerSyncData,
+    connectionState: isConnected ? 'connected' : 'disconnected',
+    onManualReconnect: () => connectToPeer('', { nickname })
   };
 
   return (
