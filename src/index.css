@@ -1,21 +1,26 @@
 
+@import '@fontsource/space-grotesk/400.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/600.css';
+@import '@fontsource/space-grotesk/700.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 222 84% 5%;
+    --background: 228 38% 8%;
     --foreground: 210 40% 98%;
 
-    --card: 222 84% 4%;
+    --card: 228 38% 10%;
     --card-foreground: 210 40% 98%;
  
-    --popover: 222 84% 4%;
+    --popover: 228 38% 10%;
     --popover-foreground: 210 40% 98%;
  
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 84% 5%;
+    --primary: 217 91% 65%;
+    --primary-foreground: 228 38% 8%;
  
     --secondary: 217 32% 17%;
     --secondary-foreground: 210 40% 98%;
@@ -23,29 +28,33 @@
     --muted: 215 32% 17%;
     --muted-foreground: 217 10% 64%;
  
-    --accent: 262 83% 58%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 290 91% 73%;
+    --accent-foreground: 228 38% 8%;
  
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
 
     --border: 217 32% 17%;
     --input: 217 32% 17%;
-    --ring: 217 91% 60%;
+    --ring: 217 91% 65%;
  
-    --radius: 0.75rem;
+    --radius: 1rem;
     
-    /* Premium gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(262 100% 78%) 100%);
-    --gradient-surface: linear-gradient(135deg, hsl(222 84% 4%) 0%, hsl(222 84% 6%) 100%);
+    /* Beautiful gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 65%) 0%, hsl(290 91% 73%) 50%, hsl(217 91% 80%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(290 91% 73%) 0%, hsl(320 91% 73%) 50%, hsl(217 91% 73%) 100%);
+    --gradient-surface: linear-gradient(135deg, hsl(228 38% 8%) 0%, hsl(228 38% 12%) 50%, hsl(228 38% 8%) 100%);
+    --gradient-card: linear-gradient(135deg, hsl(228 38% 10%) 0%, hsl(228 38% 14%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(228 38% 6%) 0%, hsl(228 45% 8%) 25%, hsl(217 32% 12%) 50%, hsl(290 20% 10%) 75%, hsl(228 38% 6%) 100%);
     
-    /* Glow effects */
-    --glow-primary: 0 0 20px hsl(var(--primary) / 0.3);
-    --glow-accent: 0 0 20px hsl(var(--accent) / 0.3);
+    /* Enhanced glow effects */
+    --glow-primary: 0 4px 40px hsl(217 91% 65% / 0.4), 0 0 80px hsl(217 91% 65% / 0.15);
+    --glow-accent: 0 4px 40px hsl(290 91% 73% / 0.4), 0 0 80px hsl(290 91% 73% / 0.15);
+    --glow-card: 0 8px 32px hsl(228 38% 4% / 0.5);
     
     /* Smooth transitions */
-    --transition-all: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-all: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
  
   .dark {
@@ -85,6 +94,82 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Beautiful scrollbars */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted/20;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-lg;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer components {
+  /* Glassmorphism utilities */
+  .glass {
+    @apply backdrop-blur-xl bg-card/80 border border-border/50;
+  }
+  
+  .glass-strong {
+    @apply backdrop-blur-2xl bg-card/90 border border-border/70;
+  }
+  
+  /* Glow effects */
+  .glow-primary {
+    box-shadow: var(--glow-primary);
+  }
+  
+  .glow-accent {
+    box-shadow: var(--glow-accent);
+  }
+  
+  .glow-card {
+    box-shadow: var(--glow-card);
+  }
+  
+  /* Animated gradients */
+  .animated-gradient {
+    background: var(--gradient-primary);
+    background-size: 200% 200%;
+    animation: gradientMove 4s ease infinite;
+  }
+  
+  .animated-gradient-slow {
+    background: var(--gradient-accent);
+    background-size: 300% 300%;
+    animation: gradientMove 8s ease infinite;
+  }
+  
+  @keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  /* Text gradients */
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .text-gradient-accent {
+    background: var(--gradient-accent);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
 }

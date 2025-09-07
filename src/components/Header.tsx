@@ -12,7 +12,7 @@ const Header = () => {
     <motion.header 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-0 z-50 w-full border-b border-border/40 glass-strong"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
@@ -23,7 +23,7 @@ const Header = () => {
                 <Tv className="h-8 w-8 text-primary" />
                 <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-accent animate-pulse" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary via-accent to-primary bg-clip-text text-transparent">
+              <span className="text-xl font-bold text-gradient-primary font-display">
                 Togetherly
               </span>
             </div>
@@ -31,12 +31,12 @@ const Header = () => {
 
           {/* User Section */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-lg bg-secondary/50 border border-border/50">
-              <User className="h-4 w-4 text-muted-foreground" />
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl glass border border-border/50">
+              <User className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">{nickname || 'Guest'}</span>
             </div>
             
-            <Button variant="ghost" size="icon" className="relative">
+            <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 hover:text-primary transition-colors rounded-xl">
               <Settings className="h-5 w-5" />
             </Button>
           </div>

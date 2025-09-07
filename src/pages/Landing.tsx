@@ -29,9 +29,15 @@ const Landing = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-background to-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-gradient-hero text-foreground flex flex-col relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-24 h-24 bg-accent/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
+        <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-primary/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow relative z-10">
         {/* Hero Section */}
         <section className="text-center py-12 md:py-20">
           <motion.div
@@ -40,10 +46,10 @@ const Landing = () => {
             transition={{ duration: 0.5 }}
             className="container mx-auto px-4"
           >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-primary mb-4">
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-gradient-primary mb-6 font-display">
               Your Private Space for Real-Time Connection.
             </h1>
-            <p className="max-w-3xl mx-auto text-base md:text-lg text-muted-foreground mb-8">
+            <p className="max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground/90 mb-10 leading-relaxed">
               Togetherly offers a suite of private, real-time collaboration tools. All interactions are peer-to-peer, ensuring your data stays between you and your connections, with no servers in the middle.
             </p>
             <div className="max-w-sm mx-auto space-y-4">
@@ -59,46 +65,70 @@ const Landing = () => {
                   className="text-center text-base"
                 />
               </div>
-              <Button size="lg" onClick={handleLaunch} className="w-full">
-                Launch App
+              <Button 
+                size="lg" 
+                onClick={handleLaunch} 
+                className="w-full animated-gradient hover:glow-primary transition-all duration-300 hover:scale-105 font-semibold text-lg py-6 rounded-xl"
+              >
+                Launch App ✨
               </Button>
             </div>
           </motion.div>
         </section>
 
         {/* Features Section */}
-        <section id="features" className="py-12 md:py-20 bg-background/50">
+        <section id="features" className="py-12 md:py-20 bg-gradient-surface/50 backdrop-blur-sm">
             <div className="container mx-auto px-4">
-                <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Core Features</h2>
+                <h2 className="text-3xl md:text-5xl font-bold text-center mb-16 text-gradient-accent font-display">Core Features</h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                    <div className="text-center p-6 border border-border rounded-lg bg-background/20 hover:border-primary/50 hover:bg-background/40 transition-all">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mx-auto mb-4">
-                            <Youtube className="w-6 h-6" />
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                      className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
+                    >
+                        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary text-primary-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <Youtube className="w-8 h-8" />
                         </div>
-                        <h3 className="font-semibold text-lg mb-2">Synchronized YouTube</h3>
-                        <p className="text-muted-foreground text-sm">Watch videos together in perfect sync.</p>
-                    </div>
-                    <div className="text-center p-6 border border-border rounded-lg bg-background/20 hover:border-primary/50 hover:bg-background/40 transition-all">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mx-auto mb-4">
-                            <ShieldCheck className="w-6 h-6" />
+                        <h3 className="font-semibold text-xl mb-3 text-foreground">Synchronized YouTube</h3>
+                        <p className="text-muted-foreground">Watch videos together in perfect sync.</p>
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
+                    >
+                        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-accent text-accent-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <ShieldCheck className="w-8 h-8" />
                         </div>
-                        <h3 className="font-semibold text-lg mb-2">Secure Chat</h3>
-                        <p className="text-muted-foreground text-sm">Chat securely with end-to-end encryption.</p>
-                    </div>
-                    <div className="text-center p-6 border border-border rounded-lg bg-background/20 hover:border-primary/50 hover:bg-background/40 transition-all">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mx-auto mb-4">
-                            <FileUp className="w-6 h-6" />
+                        <h3 className="font-semibold text-xl mb-3 text-foreground">Secure Chat</h3>
+                        <p className="text-muted-foreground">Chat securely with end-to-end encryption.</p>
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
+                    >
+                        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary text-primary-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <FileUp className="w-8 h-8" />
                         </div>
-                        <h3 className="font-semibold text-lg mb-2">P2P File Sharing</h3>
-                        <p className="text-muted-foreground text-sm">Share files directly and privately with your peer.</p>
-                    </div>
-                    <div className="text-center p-6 border border-border rounded-lg bg-background/20 hover:border-primary/50 hover:bg-background/40 transition-all">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mx-auto mb-4">
-                            <Video className="w-6 h-6" />
+                        <h3 className="font-semibold text-xl mb-3 text-foreground">P2P File Sharing</h3>
+                        <p className="text-muted-foreground">Share files directly and privately with your peer.</p>
+                    </motion.div>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.4 }}
+                      className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
+                    >
+                        <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-accent text-accent-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                            <Video className="w-8 h-8" />
                         </div>
-                        <h3 className="font-semibold text-lg mb-2">Video Calls</h3>
-                        <p className="text-muted-foreground text-sm">Connect face-to-face with high-quality video calls.</p>
-                    </div>
+                        <h3 className="font-semibold text-xl mb-3 text-foreground">Video Calls</h3>
+                        <p className="text-muted-foreground">Connect face-to-face with high-quality video calls.</p>
+                    </motion.div>
                 </div>
             </div>
         </section>

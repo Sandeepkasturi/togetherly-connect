@@ -20,8 +20,9 @@ export default {
 		},
 		extend: {
             fontFamily: {
-                sans: ['Inter', 'system-ui', 'sans-serif'],
+                sans: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
                 mono: ['JetBrains Mono', 'monospace'],
+                display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
             },
 			colors: {
 				border: 'hsl(var(--border))',
@@ -67,13 +68,22 @@ export default {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-accent': 'var(--gradient-accent)',
 				'gradient-surface': 'var(--gradient-surface)',
+				'gradient-card': 'var(--gradient-card)',
+				'gradient-hero': 'var(--gradient-hero)',
 			},
 			boxShadow: {
 				'glow-primary': 'var(--glow-primary)',
 				'glow-accent': 'var(--glow-accent)',
+				'glow-card': 'var(--glow-card)',
+				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+				'glass-strong': '0 8px 32px 0 rgba(31, 38, 135, 0.5)',
+			},
+			backdropBlur: {
+				'xs': '2px',
 			},
 			backgroundSize: {
 				'size-200': '200% 200%',
+				'size-300': '300% 300%',
 			},
 			backgroundPosition: {
 				'pos-0': '0% 0%',
@@ -81,6 +91,7 @@ export default {
 			},
 			transitionProperty: {
 				'all': 'var(--transition-all)',
+				'bounce': 'var(--transition-bounce)',
 			},
 			keyframes: {
 				'accordion-down': {
