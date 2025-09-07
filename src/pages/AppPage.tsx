@@ -17,7 +17,9 @@ const AppPage = () => {
   }
 
   return (
-    <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 xl:gap-8">
+    <div className="min-h-screen bg-gradient-surface p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 xl:gap-12 items-start">
       <motion.div 
         initial={{ opacity: 0, x: -50 }}
         animate={{ opacity: 1, x: 0 }}
@@ -58,6 +60,8 @@ const AppPage = () => {
           handleSendFile={context.handleSendFile}
         />
       </motion.div>
+        </div>
+      </div>
     </div>
   );
 };
