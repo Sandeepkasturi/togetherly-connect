@@ -9,7 +9,7 @@ import { PlaylistSidebar } from '@/components/PlaylistSidebar';
 import { Play, Info, Users, Tv, ListMusic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
 import ChatNotification from '@/components/ChatNotification';
 
@@ -18,13 +18,15 @@ const WatchPage = () => {
   const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<any>(null);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-  // Show notification for new messages when chat is closed
-  const handleNewMessage = (message: any) => {
-    if (!isChatOpen && message.sender === 'them') {
-      setNotificationMessage(message);
+  // Show notification for new messages when video is playing or chat is closed
+  useEffect(() => {
+    const lastMessage = context.messages[context.messages.length - 1];
+    if (lastMessage && lastMessage.sender === 'them' && (isVideoPlaying || !isChatOpen)) {
+      setNotificationMessage(lastMessage);
     }
-  };
+  }, [context.messages, isVideoPlaying, isChatOpen]);
 
   const handleOpenChat = () => {
     setIsChatOpen(true);
@@ -35,6 +37,15 @@ const WatchPage = () => {
     setNotificationMessage(null);
   };
 
+  const handleQuickReply = (replyText: string) => {
+    context.sendMessage(replyText);
+    setNotificationMessage(null);
+  };
+
+  const handleVideoPlayingChange = (playing: boolean) => {
+    setIsVideoPlaying(playing);
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       {/* Chat Notification */}
@@ -42,6 +53,7 @@ const WatchPage = () => {
         message={notificationMessage}
         onDismiss={handleDismissNotification}
         onOpenChat={handleOpenChat}
+        onQuickReply={handleQuickReply}
       />
 
       {/* Mobile Simple Layout */}
@@ -74,6 +86,7 @@ const WatchPage = () => {
               sendData={context.sendData}
               playerData={context.playerSyncData}
               isConnected={context.isConnected}
+              onPlayingStateChange={handleVideoPlayingChange}
             />
           </div>
         </div>
@@ -188,6 +201,7 @@ const WatchPage = () => {
                       sendData={context.sendData}
                       playerData={context.playerSyncData}
                       isConnected={context.isConnected}
+                      onPlayingStateChange={handleVideoPlayingChange}
                     />
                   </div>
                 </motion.div>
