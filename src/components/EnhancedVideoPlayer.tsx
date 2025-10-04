@@ -10,9 +10,10 @@ interface EnhancedVideoPlayerProps {
   sendData: (data: DataType) => void;
   playerData: DataType | null;
   isConnected: boolean;
+  onPlayingStateChange?: (isPlaying: boolean) => void;
 }
 
-const EnhancedVideoPlayer = ({ videoId, sendData, playerData, isConnected }: EnhancedVideoPlayerProps) => {
+const EnhancedVideoPlayer = ({ videoId, sendData, playerData, isConnected, onPlayingStateChange }: EnhancedVideoPlayerProps) => {
   const [isControlsVisible, setIsControlsVisible] = useState(false);
   const [isRotated, setIsRotated] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -74,8 +75,15 @@ const EnhancedVideoPlayer = ({ videoId, sendData, playerData, isConnected }: Enh
 
   const handlePlayPause = () => {
     // This would integrate with YouTube player controls
-    setIsPlaying(!isPlaying);
+    const newPlayingState = !isPlaying;
+    setIsPlaying(newPlayingState);
+    onPlayingStateChange?.(newPlayingState);
   };
+
+  // Notify parent when playing state changes from YouTube player
+  useEffect(() => {
+    onPlayingStateChange?.(isPlaying);
+  }, [isPlaying, onPlayingStateChange]);
 
   const handleVolumeChange = (newVolume: number) => {
     setVolume(newVolume);
