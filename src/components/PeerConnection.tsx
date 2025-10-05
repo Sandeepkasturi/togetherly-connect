@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send, RefreshCw } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send, RefreshCw, QrCode } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
 import { DataType } from '@/hooks/usePeer';
+import QRScanner from './QRScanner';
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ const PeerConnection = ({
   const [newNickname, setNewNickname] = useState(myNickname);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
   const shareUrl = `https://togetherly-share.vercel.app/join?peerId=${peerId}`;
 
   useEffect(() => {
@@ -152,9 +154,25 @@ const PeerConnection = ({
 
   const shareText = "Let's watch videos together on Togetherly! Click the link to join my room.";
 
+  const handleQRScan = (scannedPeerId: string) => {
+    setRemoteId(scannedPeerId);
+    setIsQRScannerOpen(false);
+    toast({
+      title: 'QR Code Scanned',
+      description: 'Peer ID has been entered. Click Connect to proceed.',
+    });
+  };
+
   return (
     <>
-      <div className="p-6 bg-gradient-surface rounded-xl border border-border/50 backdrop-blur-xl">
+      {isQRScannerOpen && (
+        <QRScanner 
+          onScan={handleQRScan}
+          onClose={() => setIsQRScannerOpen(false)}
+        />
+      )}
+      
+      <div className="p-4 bg-card/50 rounded-xl border border-border/50 backdrop-blur-xl">
         <div className="space-y-5">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
@@ -235,18 +253,29 @@ const PeerConnection = ({
                 <LinkIcon className="h-4 w-4 text-accent" />
                 <p className="text-sm font-medium text-accent">Connect to Friend</p>
               </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  placeholder="Enter your friend's Peer ID"
-                  value={remoteId}
-                  onChange={(e) => setRemoteId(e.target.value)}
-                  className="bg-background/30 border-accent/30 font-mono"
-                />
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Enter Peer ID"
+                    value={remoteId}
+                    onChange={(e) => setRemoteId(e.target.value)}
+                    className="bg-background/30 border-accent/30 font-mono text-sm"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="icon"
+                    onClick={() => setIsQRScannerOpen(true)}
+                    className="flex-shrink-0 h-10 w-10"
+                    title="Scan QR Code"
+                  >
+                    <QrCode className="h-4 w-4" />
+                  </Button>
+                </div>
                 <Button 
-                  variant="premium" 
+                  variant="default" 
                   onClick={() => connectToPeer(remoteId, { nickname: myNickname })} 
                   disabled={!remoteId || !peerId}
-                  className="flex-shrink-0"
+                  className="w-full"
                 >
                   <LinkIcon className="h-4 w-4 mr-2" /> 
                   Connect
