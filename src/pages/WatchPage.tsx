@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import PeerConnection from '@/components/PeerConnection';
 import Chat from '@/components/Chat';
 import { PlaylistSidebar } from '@/components/PlaylistSidebar';
-import { Play, Info, Users, Tv, ListMusic } from 'lucide-react';
+import { Play, Info, Users, Tv, ListMusic, MessageCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
@@ -109,9 +109,9 @@ const WatchPage = () => {
           </Card>
         </div>
 
-        {/* Mobile Chat Card */}
-        <div className="px-3 pt-3 pb-3">
-          <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 backdrop-blur-xl border-white/10 h-[400px]">
+        {/* Mobile Chat - Fixed Position */}
+        <div className="fixed bottom-0 left-0 right-0 z-40" style={{ height: isChatOpen ? '60vh' : '0', transition: 'height 0.3s ease' }}>
+          <div className="h-full">
             <Chat
               messages={context.messages}
               sendMessage={context.sendMessage}
@@ -119,8 +119,32 @@ const WatchPage = () => {
               handleSendReaction={context.handleSendReaction}
               handleSendFile={context.handleSendFile}
             />
-          </Card>
+          </div>
         </div>
+
+        {/* Chat Toggle Button */}
+        {!isChatOpen && (
+          <button
+            onClick={() => setIsChatOpen(true)}
+            className="fixed bottom-4 right-4 z-50 bg-[#25d366] text-white rounded-full p-4 shadow-lg"
+          >
+            <MessageCircle className="h-6 w-6" />
+            {context.messages.filter(m => m.sender === 'them').length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {context.messages.filter(m => m.sender === 'them').length}
+              </span>
+            )}
+          </button>
+        )}
+        
+        {isChatOpen && (
+          <button
+            onClick={() => setIsChatOpen(false)}
+            className="fixed top-[calc(40vh-2.5rem)] right-4 z-50 bg-[#1f2c34] text-white rounded-full p-2 shadow-lg"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
 
         {/* Mobile YouTube Search */}
         <div className="px-3 pb-20">
@@ -272,12 +296,6 @@ const WatchPage = () => {
         currentVideoId={context.selectedVideoId}
       />
 
-      {/* Ambient lighting effects */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-3/4 left-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }} />
-      </div>
     </div>
   );
 };

@@ -51,43 +51,38 @@ const Chat = ({ messages, sendMessage, handleSendFile, isConnected, handleSendRe
   };
 
   return (
-    <div className="flex flex-col h-full bg-card border border-border/50 rounded-xl shadow-sm">
-      {/* Chat Header */}
-      <div className="px-6 py-4 border-b border-border/50 bg-gradient-to-r from-card to-card/80">
+    <div className="flex flex-col h-full bg-[#0b141a] rounded-xl">
+      {/* WhatsApp-style Header */}
+      <div className="px-4 py-3 border-b border-[#2a3942] bg-[#1f2c34]">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Messages</h2>
+          <h2 className="text-base font-medium text-[#e9edef]">Messages</h2>
           <div className={cn(
-            "flex items-center gap-2 text-sm",
-            isConnected ? "text-emerald-500" : "text-muted-foreground"
+            "flex items-center gap-2 text-xs",
+            isConnected ? "text-[#25d366]" : "text-[#8696a0]"
           )}>
             <div className={cn(
               "w-2 h-2 rounded-full",
-              isConnected ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground"
+              isConnected ? "bg-[#25d366]" : "bg-[#8696a0]"
             )} />
-            {isConnected ? "Connected" : "Disconnected"}
+            {isConnected ? "Online" : "Offline"}
           </div>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-background/50">
+      {/* Messages Area - WhatsApp background pattern */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#0b141a]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0h100v100H0z\' fill=\'%23182229\'/%3E%3Cpath d=\'M20 20l5 5-5 5m10-10l5 5-5 5\' stroke=\'%231f2c34\' stroke-width=\'0.5\' fill=\'none\' opacity=\'0.1\'/%3E%3C/svg%3E")', backgroundSize: '100px 100px' }}>
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full text-center">
-            <div className="text-muted-foreground">
-              <p className="text-lg font-medium mb-2">No messages yet</p>
-              <p className="text-sm">Start a conversation with your watch buddy!</p>
+            <div className="text-[#8696a0]">
+              <p className="text-base mb-1">No messages yet</p>
+              <p className="text-sm">Send a message to start chatting</p>
             </div>
           </div>
         ) : (
-          <AnimatePresence>
+          <>
             {messages.map((msg) => (
-              <motion.div
+              <div
                 key={msg.id}
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 500, damping: 25 }}
                 className={cn(
                   "flex w-full",
                   msg.sender === 'me' ? 'justify-end' : 
@@ -95,22 +90,22 @@ const Chat = ({ messages, sendMessage, handleSendFile, isConnected, handleSendRe
                 )}
               >
                 <div className={cn(
-                  "max-w-[80%] md:max-w-[70%]",
+                  "max-w-[85%]",
                   msg.sender === 'me' ? 'items-end' : 
                   msg.sender === 'them' ? 'items-start' : 'items-center'
                 )}>
                   {msg.nickname && msg.sender === 'them' && (
-                    <p className="text-xs text-muted-foreground mb-1 px-3 font-medium">{msg.nickname}</p>
+                    <p className="text-xs text-[#8696a0] mb-1 px-2">{msg.nickname}</p>
                   )}
                   <div
                     className={cn(
-                      "relative px-4 py-3 rounded-2xl shadow-sm transition-all duration-200",
+                      "relative px-3 py-2 shadow-sm",
                       msg.sender === 'me'
-                        ? 'bg-primary text-primary-foreground rounded-br-md hover:shadow-glow-primary/20'
+                        ? 'bg-[#005c4b] text-white rounded-lg rounded-br-none'
                         : msg.sender === 'them'
-                        ? 'bg-muted/80 border border-border/50 rounded-bl-md hover:bg-muted'
-                        : 'bg-transparent text-muted-foreground italic text-center',
-                      msg.sender !== 'system' && msg.messageType !== 'file' && 'cursor-pointer hover:scale-[1.02] active:scale-[0.98]'
+                        ? 'bg-[#1f2c34] text-[#e9edef] rounded-lg rounded-bl-none'
+                        : 'bg-[#182229] text-[#8696a0] italic text-center rounded-lg',
+                      msg.sender !== 'system' && msg.messageType !== 'file' && 'cursor-pointer active:opacity-80'
                     )}
                     onDoubleClick={() => msg.sender !== 'system' && msg.messageType !== 'file' && handleDoubleClick(msg.id)}
                   >
@@ -122,15 +117,15 @@ const Chat = ({ messages, sendMessage, handleSendFile, isConnected, handleSendRe
                         isMe={msg.sender === 'me'}
                       />
                     ) : (
-                      <p className="break-words leading-relaxed">{msg.content}</p>
+                      <p className="break-words text-sm leading-snug">{msg.content}</p>
                     )}
                     
                     {msg.sender !== 'system' && (
-                      <p className="text-xs opacity-70 mt-2 font-medium">{msg.timestamp}</p>
+                      <p className="text-[10px] opacity-60 mt-1 text-right">{msg.timestamp}</p>
                     )}
                     
                     {msg.reactions && msg.reactions.length > 0 && (
-                      <div className="absolute -bottom-3 right-2 flex items-center gap-1">
+                      <div className="absolute -bottom-2 right-2 flex items-center gap-1">
                         {Object.entries(
                           msg.reactions.reduce((acc, reaction) => {
                             acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
@@ -139,31 +134,31 @@ const Chat = ({ messages, sendMessage, handleSendFile, isConnected, handleSendRe
                         ).map(([emoji, count]) => (
                           <div
                             key={emoji}
-                            className="bg-card/95 border border-border/60 backdrop-blur-sm px-2 py-1 rounded-full text-xs flex items-center gap-1 shadow-sm hover:scale-110 transition-transform"
+                            className="bg-[#1f2c34] border border-[#2a3942] px-1.5 py-0.5 rounded-full text-xs flex items-center gap-0.5"
                           >
-                            <span className="text-sm">{emoji}</span>
-                            <span className="font-semibold text-primary">{count}</span>
+                            <span className="text-xs">{emoji}</span>
+                            <span className="text-[10px] text-[#25d366]">{count}</span>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
-          </AnimatePresence>
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="px-4 py-4 border-t border-border/50 bg-card/50">
+      {/* WhatsApp-style Input Area */}
+      <div className="px-2 py-2 bg-[#1f2c34]">
         {!isConnected && (
-          <div className="mb-3 p-3 bg-muted/50 border border-border/50 rounded-lg text-center">
-            <p className="text-sm text-muted-foreground">Connect with a friend to start chatting</p>
+          <div className="mb-2 p-2 bg-[#182229] rounded-lg text-center">
+            <p className="text-xs text-[#8696a0]">Connect to start chatting</p>
           </div>
         )}
-        <div className="flex items-end gap-3">
+        <div className="flex items-center gap-2">
           <input
             type="file"
             ref={fileInputRef}
@@ -174,39 +169,33 @@ const Chat = ({ messages, sendMessage, handleSendFile, isConnected, handleSendRe
           <Button 
             size="icon" 
             variant="ghost" 
-            className="shrink-0 h-10 w-10 rounded-xl hover:bg-primary/10 hover:text-primary transition-colors" 
+            className="shrink-0 h-9 w-9 rounded-full hover:bg-[#2a3942] text-[#8696a0] hover:text-[#e9edef]" 
             onClick={() => fileInputRef.current?.click()} 
             disabled={!isConnected}
           >
             <FileIcon className="h-5 w-5" />
           </Button>
           
-          <div className="flex-1 relative">
+          <div className="flex-1 flex items-center gap-2 bg-[#2a3942] rounded-full px-4 py-2">
             <Input
-              placeholder={isConnected ? "Type your message..." : "Connect to chat"}
+              placeholder={isConnected ? "Message" : "Offline"}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               disabled={!isConnected}
-              className="pr-12 py-3 rounded-xl border-border/50 bg-background/80 focus:bg-background transition-colors resize-none min-h-[44px]"
+              className="border-0 bg-transparent text-[#e9edef] placeholder:text-[#8696a0] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-6 text-sm"
             />
-            <Button 
-              size="icon" 
-              className="absolute right-1 top-1 h-8 w-8 rounded-lg" 
-              onClick={handleSend} 
-              disabled={!isConnected || !message.trim()}
-              variant={message.trim() ? "default" : "ghost"}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
           </div>
+          
+          <Button 
+            size="icon" 
+            className="shrink-0 h-9 w-9 rounded-full bg-[#25d366] hover:bg-[#20bd5a]" 
+            onClick={handleSend} 
+            disabled={!isConnected || !message.trim()}
+          >
+            <Send className="h-4 w-4 text-white" />
+          </Button>
         </div>
-        
-        {isConnected && (
-          <p className="text-xs text-muted-foreground mt-2 text-center">
-            Double-tap messages to react • Press Enter to send
-          </p>
-        )}
       </div>
     </div>
   );

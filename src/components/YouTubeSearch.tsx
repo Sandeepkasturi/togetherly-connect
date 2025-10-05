@@ -134,59 +134,57 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
   return (
     <div className="space-y-8">
       {/* Search Section */}
-      <div className="bg-black/60 backdrop-blur-xl rounded-2xl border border-white/10 p-6 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-        
+      <div className="bg-card/50 backdrop-blur-xl rounded-xl border border-border/50 p-4 relative overflow-hidden">
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl">
-                <Youtube className="h-6 w-6 text-white" />
+              <div className="p-2 bg-primary/10 rounded-lg border border-primary/20">
+                <Youtube className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">Discover Content</h2>
-                <p className="text-gray-400">Search for videos to watch together</p>
+                <h2 className="text-lg font-bold text-foreground">Discover Content</h2>
+                <p className="text-sm text-muted-foreground">Search videos</p>
               </div>
             </div>
-            <Sparkles className="h-6 w-6 text-yellow-400 animate-pulse ml-auto" />
           </div>
 
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search for movies, shows, music, and more..."
+                placeholder="Search videos..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 disabled={!isConnected}
-                className="pl-12 h-14 border-white/20 bg-black/40 text-white placeholder:text-gray-400 focus:bg-black/60 transition-all text-lg"
+                className="pl-10 h-10 bg-background/50 border-border/50"
               />
             </div>
             <Button 
               onClick={handleSearch} 
               disabled={!isConnected || isSearchLoading}
-              size="lg"
-              className="h-14 px-8 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 border-0 text-lg font-semibold"
+              size="sm"
+              variant="default"
+              className="h-10 px-4"
             >
               {isSearchLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
-                <Search className="h-5 w-5" />
+                <Search className="h-4 w-4" />
               )}
             </Button>
           </div>
 
           {/* Search Results */}
           {isSearchLoading && (
-            <div className="space-y-3 mb-8">
-              <h3 className="text-xl font-bold text-white mb-4">Search Results</h3>
+            <div className="space-y-2 mb-4">
+              <h3 className="text-sm font-semibold text-foreground mb-2">Search Results</h3>
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-white/5">
-                  <Skeleton className="w-32 h-20 rounded-lg bg-white/10" />
+                <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <Skeleton className="w-24 h-16 rounded bg-muted" />
                   <div className="space-y-2 flex-1">
-                    <Skeleton className="h-5 w-3/4 bg-white/10" />
-                    <Skeleton className="h-4 w-1/2 bg-white/10" />
+                    <Skeleton className="h-4 w-3/4 bg-muted" />
+                    <Skeleton className="h-3 w-1/2 bg-muted" />
                   </div>
                 </div>
               ))}
@@ -194,33 +192,33 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
           )}
 
           {results.length > 0 && (
-            <div className="space-y-4 mb-8">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-blue-500 rounded-full" />
+            <div className="space-y-3 mb-4">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full" />
                 Search Results
               </h3>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {results.map((video) => (
                   <div
                     key={video.id.videoId}
-                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-white/10 cursor-pointer transition-all duration-300 hover:scale-[1.02] group border border-transparent hover:border-white/20 bg-black/20"
+                    className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 cursor-pointer group border border-border/30 bg-card/30"
                     onClick={() => onVideoSelect(video.id.videoId)}
                   >
-                    <div className="relative overflow-hidden rounded-lg">
+                    <div className="relative overflow-hidden rounded">
                       <img 
                         src={video.snippet.thumbnails.medium.url} 
                         alt={video.snippet.title} 
-                        className="w-32 h-20 object-cover transition-transform duration-300 group-hover:scale-110" 
+                        className="w-24 h-16 object-cover" 
                       />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 flex items-center justify-center">
-                        <Play className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                        <Play className="w-6 h-6 text-white" />
                       </div>
                     </div>
                     <div className="flex-1">
-                      <p className="text-white font-medium group-hover:text-red-400 transition-colors line-clamp-2 text-lg">
+                      <p className="text-foreground font-medium line-clamp-2 text-sm">
                         {video.snippet.title}
                       </p>
-                      <p className="text-gray-400 text-sm mt-1">Ready to watch together</p>
+                      <p className="text-muted-foreground text-xs mt-1">Tap to watch</p>
                     </div>
                   </div>
                 ))}
