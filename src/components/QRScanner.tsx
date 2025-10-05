@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 interface QRScannerProps {
   onScan: (peerId: string) => void;
@@ -9,76 +10,49 @@ interface QRScannerProps {
 }
 
 const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [isScanning, setIsScanning] = useState(false);
   const { toast } = useToast();
-  const scanIntervalRef = useRef<number>();
 
   useEffect(() => {
-    startCamera();
-    return () => {
-      stopCamera();
-    };
-  }, []);
+    const scanner = new Html5QrcodeScanner(
+      'qr-reader',
+      { 
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      },
+      false
+    );
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setHasPermission(true);
-        startScanning();
+    const onScanSuccess = (decodedText: string) => {
+      // Extract peer ID from URL if it's a full URL
+      let peerId = decodedText;
+      try {
+        const url = new URL(decodedText);
+        const peerIdParam = url.searchParams.get('peerId');
+        if (peerIdParam) {
+          peerId = peerIdParam;
+        }
+      } catch {
+        // Not a URL, use as-is
       }
-    } catch (err) {
-      console.error('Error accessing camera:', err);
-      setHasPermission(false);
-      toast({
-        title: 'Camera Access Denied',
-        description: 'Please allow camera access to scan QR codes.',
-        variant: 'destructive',
-      });
-    }
-  };
 
-  const stopCamera = () => {
-    if (videoRef.current?.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-    }
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-    }
-  };
+      scanner.clear();
+      onScan(peerId);
+    };
 
-  const startScanning = () => {
-    scanIntervalRef.current = window.setInterval(() => {
-      detectQRCode();
-    }, 500);
-  };
+    const onScanFailure = (error: string) => {
+      // Ignore scanning failures (they happen continuously while scanning)
+      console.log('Scan error:', error);
+    };
 
-  const detectQRCode = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    
-    if (!context || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+    scanner.render(onScanSuccess, onScanFailure);
+    setIsScanning(true);
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-    
-    // Simple QR detection (you would use a library like jsQR for production)
-    // For now, we'll just provide manual input as fallback
-    // Install jsQR if you want actual QR scanning: npm install jsqr
-  };
+    return () => {
+      scanner.clear().catch(console.error);
+    };
+  }, [onScan]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
@@ -99,49 +73,10 @@ const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
         </div>
         
         <div className="p-4">
-          {hasPermission === null && (
-            <div className="aspect-square bg-[#0b141a] rounded-lg flex items-center justify-center">
-              <p className="text-[#8696a0]">Requesting camera access...</p>
-            </div>
-          )}
-          
-          {hasPermission === false && (
-            <div className="aspect-square bg-[#0b141a] rounded-lg flex items-center justify-center flex-col gap-3 p-6 text-center">
-              <Camera className="h-12 w-12 text-[#8696a0]" />
-              <p className="text-[#8696a0] text-sm">Camera access is required to scan QR codes</p>
-              <Button 
-                onClick={startCamera}
-                className="bg-[#25d366] hover:bg-[#20bd5a] text-white"
-              >
-                Grant Permission
-              </Button>
-            </div>
-          )}
-          
-          {hasPermission && (
-            <div className="relative aspect-square bg-black rounded-lg overflow-hidden">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-cover"
-              />
-              <canvas ref={canvasRef} className="hidden" />
-              
-              {/* Scanning overlay */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-64 h-64 border-2 border-[#25d366] rounded-lg relative">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-[#25d366]"></div>
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-[#25d366]"></div>
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-[#25d366]"></div>
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-[#25d366]"></div>
-                </div>
-              </div>
-            </div>
-          )}
+          <div id="qr-reader" className="w-full"></div>
           
           <p className="text-xs text-[#8696a0] text-center mt-4">
-            Position the QR code within the frame to scan
+            Position the QR code within the camera frame
           </p>
         </div>
       </div>
