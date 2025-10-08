@@ -1,12 +1,13 @@
 
 import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/UserContext';
-import { User, Settings, Sparkles, Tv } from 'lucide-react';
+import { User, Settings, Sparkles, Tv, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
   const { nickname } = useUser();
+  const location = useLocation();
 
   return (
     <motion.header 
@@ -28,6 +29,30 @@ const Header = () => {
               </span>
             </div>
           </Link>
+
+          {/* Navigation Links */}
+          <nav className="flex items-center gap-2">
+            <Link to="/watch">
+              <Button 
+                variant={location.pathname === '/watch' ? 'default' : 'ghost'} 
+                size="sm"
+                className="gap-2"
+              >
+                <Tv className="h-4 w-4" />
+                <span className="hidden sm:inline">Watch</span>
+              </Button>
+            </Link>
+            <Link to="/browser">
+              <Button 
+                variant={location.pathname === '/browser' ? 'default' : 'ghost'} 
+                size="sm"
+                className="gap-2"
+              >
+                <Globe className="h-4 w-4" />
+                <span className="hidden sm:inline">Browser</span>
+              </Button>
+            </Link>
+          </nav>
 
           {/* User Section */}
           <div className="flex items-center gap-3">
