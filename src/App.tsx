@@ -13,6 +13,7 @@ import { UserProvider } from "@/contexts/UserContext";
 import { PlaylistProvider } from "@/contexts/PlaylistContext";
 import AppLayout from "./layouts/AppLayout";
 import WatchPage from "./pages/WatchPage";
+import BrowserPage from "./pages/BrowserPage";
 import { Analytics } from "@vercel/analytics/react";
 
 const queryClient = new QueryClient();
@@ -31,6 +32,7 @@ const App = () => (
               <Route element={<AppLayout />}>
                 <Route path="/app" element={<AppPage />} />
                 <Route path="/watch" element={<WatchPage />} />
+                <Route path="/browser" element={<BrowserPage />} />
               </Route>
               <Route path="/join" element={<JoinPage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
