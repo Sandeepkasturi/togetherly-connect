@@ -36,8 +36,13 @@ export interface AppContextType {
   selectedVideoId: string;
   handleVideoSelect: (videoId: string) => void;
   playerSyncData: DataType | null;
+  browserSyncData: DataType | null;
   connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed';
   onManualReconnect: () => void;
+  isScreenSharing: boolean;
+  startScreenShare: () => void;
+  stopScreenShare: () => void;
+  remoteScreenStream: MediaStream | null;
 }
 
 const AppLayout = () => {
@@ -47,6 +52,7 @@ const AppLayout = () => {
   const { 
     peerId, connectToPeer, sendData, data, isConnected, conn,
     localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia,
+    screenStream, remoteScreenStream, isScreenSharing, startScreenShare, stopScreenShare,
     incomingConn, acceptConnection, rejectConnection
   } = usePeer();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -212,6 +218,28 @@ const AppLayout = () => {
             return msg;
           })
         );
+      } else if (data.type === 'screen_share_start') {
+        const systemMessage: Message = {
+          id: nanoid(),
+          sender: 'system',
+          content: `${data.payload.nickname} started sharing their screen`,
+          timestamp: new Date().toLocaleTimeString(),
+          messageType: 'system'
+        };
+        setMessages(prev => [...prev, systemMessage]);
+        sonnerToast.info("📺 Screen Share Started", {
+          description: `${data.payload.nickname} is sharing their screen`,
+          duration: 3000
+        });
+      } else if (data.type === 'screen_share_stop') {
+        const systemMessage: Message = {
+          id: nanoid(),
+          sender: 'system',
+          content: `${data.payload.nickname} stopped sharing their screen`,
+          timestamp: new Date().toLocaleTimeString(),
+          messageType: 'system'
+        };
+        setMessages(prev => [...prev, systemMessage]);
       }
     }
   }, [data, remoteNickname, location.pathname]);
@@ -340,6 +368,7 @@ const AppLayout = () => {
   }
   
   const playerSyncData = data?.type === 'player_state' ? data : null;
+  const browserSyncData = data?.type === 'browser_sync' ? data : null;
 
   const context: AppContextType = {
     peerId,
@@ -357,8 +386,13 @@ const AppLayout = () => {
     selectedVideoId,
     handleVideoSelect,
     playerSyncData,
+    browserSyncData,
     connectionState: isConnected ? 'connected' : 'disconnected',
-    onManualReconnect: () => connectToPeer('', { nickname })
+    onManualReconnect: () => connectToPeer('', { nickname }),
+    isScreenSharing,
+    startScreenShare,
+    stopScreenShare,
+    remoteScreenStream
   };
 
   return (

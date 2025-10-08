@@ -6,12 +6,14 @@ import { motion } from 'framer-motion';
 import PeerConnection from '@/components/PeerConnection';
 import Chat from '@/components/Chat';
 import { PlaylistSidebar } from '@/components/PlaylistSidebar';
-import { Play, Info, Users, Tv, ListMusic, MessageCircle, X } from 'lucide-react';
+import { Play, Info, Users, Tv, ListMusic, MessageCircle, X, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
 import ChatNotification from '@/components/ChatNotification';
+import WebBrowser from '@/components/WebBrowser';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const WatchPage = () => {
   const context = useOutletContext<AppContextType>();
@@ -219,15 +221,40 @@ const WatchPage = () => {
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: 0.6, delay: 0.3 }}
                 >
-                  <div className="rounded-xl overflow-hidden border border-white/20 shadow-2xl">
-                    <EnhancedVideoPlayer
-                      videoId={context.selectedVideoId}
-                      sendData={context.sendData}
-                      playerData={context.playerSyncData}
-                      isConnected={context.isConnected}
-                      onPlayingStateChange={handleVideoPlayingChange}
-                    />
-                  </div>
+                  <Tabs defaultValue="video" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 bg-black/40 border border-white/20">
+                      <TabsTrigger value="video" className="data-[state=active]:bg-white/20">
+                        <Tv className="h-4 w-4 mr-2" />
+                        Watch Video
+                      </TabsTrigger>
+                      <TabsTrigger value="browser" className="data-[state=active]:bg-white/20">
+                        <Globe className="h-4 w-4 mr-2" />
+                        Browse Web
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="video" className="mt-4">
+                      <div className="rounded-xl overflow-hidden border border-white/20 shadow-2xl">
+                        <EnhancedVideoPlayer
+                          videoId={context.selectedVideoId}
+                          sendData={context.sendData}
+                          playerData={context.playerSyncData}
+                          isConnected={context.isConnected}
+                          onPlayingStateChange={handleVideoPlayingChange}
+                        />
+                      </div>
+                    </TabsContent>
+                    <TabsContent value="browser" className="mt-4">
+                      <WebBrowser
+                        sendData={context.sendData}
+                        browserData={context.browserSyncData}
+                        isConnected={context.isConnected}
+                        isScreenSharing={context.isScreenSharing}
+                        onStartScreenShare={context.startScreenShare}
+                        onStopScreenShare={context.stopScreenShare}
+                        remoteScreenStream={context.remoteScreenStream}
+                      />
+                    </TabsContent>
+                  </Tabs>
                 </motion.div>
               </div>
 

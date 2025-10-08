@@ -65,6 +65,23 @@ export type DataType = {
     sharedBy: string;
     timestamp: string;
   };
+} | {
+  type: 'browser_sync';
+  payload: {
+    url: string;
+    action: 'navigate' | 'scroll';
+    scrollPosition?: { x: number; y: number };
+  };
+} | {
+  type: 'screen_share_start';
+  payload: {
+    nickname: string;
+  };
+} | {
+  type: 'screen_share_stop';
+  payload: {
+    nickname: string;
+  };
 };
 
 // Generate a fallback peer ID if PeerJS server fails
@@ -87,6 +104,11 @@ export const usePeer = () => {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
   const mediaCallInstance = useRef<MediaConnection | null>(null);
+
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const [remoteScreenStream, setRemoteScreenStream] = useState<MediaStream | null>(null);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const screenCallInstance = useRef<MediaConnection | null>(null);
 
   const [incomingConn, setIncomingConn] = useState<DataConnection | null>(null);
 
@@ -565,6 +587,68 @@ export const usePeer = () => {
     }
   }, [localStream]);
 
+  const startScreenShare = useCallback(async () => {
+    if (!peer || !conn) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false
+      });
+
+      setScreenStream(stream);
+      setIsScreenSharing(true);
+
+      // Notify peer that screen sharing has started
+      sendData({ type: 'screen_share_start', payload: { nickname: conn.metadata?.nickname || 'Friend' } });
+
+      // Setup screen share call
+      const outgoingCall = peer.call(conn.peer, stream, { metadata: { callType: 'screen' } });
+      
+      outgoingCall.on('stream', (remoteScreenStream) => {
+        setRemoteScreenStream(remoteScreenStream);
+      });
+
+      outgoingCall.on('close', () => {
+        stopScreenShare();
+      });
+
+      outgoingCall.on('error', (err) => {
+        console.error('Screen share error:', err);
+        stopScreenShare();
+      });
+
+      screenCallInstance.current = outgoingCall;
+
+      // Stop screen share when user stops sharing from browser UI
+      stream.getVideoTracks()[0].onended = () => {
+        stopScreenShare();
+      };
+
+    } catch (err) {
+      console.error('Failed to start screen share:', err);
+      setData({ type: 'system', payload: 'Could not start screen sharing. Please check permissions.' });
+    }
+  }, [peer, conn, sendData]);
+
+  const stopScreenShare = useCallback(() => {
+    if (screenCallInstance.current) {
+      screenCallInstance.current.close();
+    }
+    if (screenStream) {
+      screenStream.getTracks().forEach(track => track.stop());
+    }
+    setScreenStream(null);
+    setRemoteScreenStream(null);
+    setIsScreenSharing(false);
+    screenCallInstance.current = null;
+    
+    // Notify peer that screen sharing has stopped
+    if (conn) {
+      sendData({ type: 'screen_share_stop', payload: { nickname: conn.metadata?.nickname || 'Friend' } });
+    }
+  }, [screenStream, conn, sendData]);
+
   return { 
     peerId, 
     connectToPeer, 
@@ -577,7 +661,12 @@ export const usePeer = () => {
     isCallActive, 
     startCall, 
     endCall, 
-    toggleMedia, 
+    toggleMedia,
+    screenStream,
+    remoteScreenStream,
+    isScreenSharing,
+    startScreenShare,
+    stopScreenShare,
     incomingConn, 
     acceptConnection, 
     rejectConnection,
