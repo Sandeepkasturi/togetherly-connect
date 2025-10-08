@@ -126,20 +126,8 @@ const WebBrowser = ({
           >
             <Home className="h-4 w-4" />
           </Button>
-          <div className="flex-1 flex items-center gap-2">
-            <Input
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleNavigate()}
-              placeholder="Search or enter URL..."
-              className="bg-black/30 border-white/20 text-white placeholder:text-gray-400"
-            />
-            <Button
-              onClick={handleNavigate}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
+          <div className="flex-1">
+            <div className="gcse-search"></div>
           </div>
           <Button
             onClick={isScreenSharing ? onStopScreenShare : onStartScreenShare}
