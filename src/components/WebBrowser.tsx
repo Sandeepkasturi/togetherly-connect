@@ -55,15 +55,6 @@ const WebBrowser = ({
     }
   }, [remoteScreenStream]);
 
-  // Load Google Custom Search after component mounts
-  useEffect(() => {
-    // Trigger Google CSE to render
-    const windowWithGoogle = window as any;
-    if (windowWithGoogle.google && windowWithGoogle.google.search) {
-      windowWithGoogle.google.search.cse.element.render();
-    }
-  }, []);
-
   const handleScreenShare = async () => {
     if (isScreenSharing) {
       onStopScreenShare();
