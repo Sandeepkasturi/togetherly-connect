@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, RefreshCw, Home, Search, Monitor, MonitorOff } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Home, Monitor, MonitorOff } from 'lucide-react';
 import { DataType } from '@/hooks/usePeer';
+import { toast } from 'sonner';
 
 interface WebBrowserProps {
   sendData: (data: DataType) => void;
@@ -24,19 +24,36 @@ const WebBrowser = ({
   onStopScreenShare,
   remoteScreenStream
 }: WebBrowserProps) => {
-  const [url, setUrl] = useState('https://www.google.com');
   const [currentUrl, setCurrentUrl] = useState('https://www.google.com');
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasPromptedShare, setHasPromptedShare] = useState(false);
+
+  // Auto-prompt screen sharing when connected
+  useEffect(() => {
+    if (isConnected && !isScreenSharing && !hasPromptedShare && !remoteScreenStream) {
+      const timer = setTimeout(() => {
+        toast.info('Start screen sharing to broadcast your browser to your peer', {
+          action: {
+            label: 'Share Screen',
+            onClick: () => {
+              onStartScreenShare();
+              setHasPromptedShare(true);
+            }
+          },
+          duration: 10000
+        });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, isScreenSharing, hasPromptedShare, remoteScreenStream, onStartScreenShare]);
 
   // Handle incoming browser sync data
   useEffect(() => {
     if (browserData?.type === 'browser_sync') {
-      const { url: incomingUrl, action, scrollPosition } = browserData.payload;
+      const { url: incomingUrl } = browserData.payload;
       
-      if (action === 'navigate' && incomingUrl !== currentUrl) {
+      if (incomingUrl && incomingUrl !== currentUrl) {
         setCurrentUrl(incomingUrl);
-        setUrl(incomingUrl);
       }
     }
   }, [browserData, currentUrl]);
@@ -48,53 +65,36 @@ const WebBrowser = ({
     }
   }, [remoteScreenStream]);
 
-  const handleNavigate = () => {
-    let finalUrl = url;
-    
-    // Add https:// if no protocol is specified
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      // If it looks like a search query, use Google search
-      if (url.includes(' ') || !url.includes('.')) {
-        finalUrl = `https://www.google.com/search?q=${encodeURIComponent(url)}`;
-      } else {
-        finalUrl = `https://${url}`;
-      }
-    }
-    
-    setCurrentUrl(finalUrl);
+  const handleNavigate = (url: string) => {
+    setCurrentUrl(url);
     
     // Send navigation to peer
-    if (isConnected) {
+    if (isConnected && isScreenSharing) {
       sendData({
         type: 'browser_sync',
         payload: {
-          url: finalUrl,
+          url: url,
           action: 'navigate'
         }
       });
     }
   };
 
-  const handleBack = () => {
-    // Note: iframe history navigation is restricted for security reasons
-    // This is a simplified implementation
-  };
-
   const handleRefresh = () => {
-    if (iframeRef.current) {
-      iframeRef.current.src = currentUrl;
-    }
+    handleNavigate(currentUrl);
   };
 
   const handleHome = () => {
-    const homeUrl = 'https://www.google.com';
-    setUrl(homeUrl);
-    setCurrentUrl(homeUrl);
-    if (isConnected) {
-      sendData({
-        type: 'browser_sync',
-        payload: { url: homeUrl, action: 'navigate' }
-      });
+    handleNavigate('https://www.google.com');
+  };
+
+  const handleScreenShare = () => {
+    if (isScreenSharing) {
+      onStopScreenShare();
+      setHasPromptedShare(false);
+    } else {
+      onStartScreenShare();
+      setHasPromptedShare(true);
     }
   };
 
@@ -105,16 +105,9 @@ const WebBrowser = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleBack}
-            className="text-white hover:bg-white/10"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
             onClick={handleRefresh}
             className="text-white hover:bg-white/10"
+            title="Refresh"
           >
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -123,31 +116,40 @@ const WebBrowser = ({
             size="sm"
             onClick={handleHome}
             className="text-white hover:bg-white/10"
+            title="Home"
           >
             <Home className="h-4 w-4" />
           </Button>
           <div className="flex-1">
             <div className="gcse-search"></div>
           </div>
-          <Button
-            onClick={isScreenSharing ? onStopScreenShare : onStartScreenShare}
-            className={isScreenSharing ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
-          >
-            {isScreenSharing ? (
-              <>
-                <MonitorOff className="h-4 w-4 mr-2" />
-                Stop Sharing
-              </>
-            ) : (
-              <>
-                <Monitor className="h-4 w-4 mr-2" />
-                Share Screen
-              </>
-            )}
-          </Button>
+          {isConnected && (
+            <Button
+              onClick={handleScreenShare}
+              className={isScreenSharing ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}
+            >
+              {isScreenSharing ? (
+                <>
+                  <MonitorOff className="h-4 w-4 mr-2" />
+                  Stop Sharing
+                </>
+              ) : (
+                <>
+                  <Monitor className="h-4 w-4 mr-2" />
+                  Share Screen
+                </>
+              )}
+            </Button>
+          )}
         </div>
-        {isConnected && (
-          <p className="text-xs text-green-400">🌐 Sync browsing enabled - Your navigation is shared with your friend</p>
+        {isConnected && isScreenSharing && (
+          <p className="text-xs text-green-400">📡 Broadcasting your screen to peer - They see everything you do</p>
+        )}
+        {isConnected && remoteScreenStream && (
+          <p className="text-xs text-blue-400">👀 Viewing peer's screen in real-time</p>
+        )}
+        {isConnected && !isScreenSharing && !remoteScreenStream && (
+          <p className="text-xs text-yellow-400">💡 Start screen sharing to broadcast your browser activity</p>
         )}
       </div>
 
@@ -160,24 +162,20 @@ const WebBrowser = ({
               playsInline
               className="w-full h-full object-contain"
             />
-            <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-              🔴 Viewing Shared Screen
+            <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-semibold animate-pulse">
+              🔴 LIVE - Viewing Peer's Screen
             </div>
           </div>
         ) : (
-          <iframe
-            ref={iframeRef}
-            src={currentUrl}
-            className="w-full h-full border-0"
-            title="Web Browser"
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-          />
+          <div className="w-full h-full bg-black/20 flex items-center justify-center">
+            <div className="gcse-search"></div>
+          </div>
         )}
       </div>
 
       {isScreenSharing && (
-        <div className="bg-green-600/20 border-t border-green-500/30 p-2 text-center">
-          <p className="text-sm text-green-400">📡 Your screen is being shared</p>
+        <div className="bg-green-600/20 border-t border-green-500/30 p-2 text-center animate-pulse">
+          <p className="text-sm text-green-400">📡 YOUR SCREEN IS LIVE - Peer is watching</p>
         </div>
       )}
     </Card>
