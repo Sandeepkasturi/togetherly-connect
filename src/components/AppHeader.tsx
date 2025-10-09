@@ -2,7 +2,7 @@
 import { useUser } from '@/contexts/UserContext';
 import { NavLink } from 'react-router-dom';
 import { Button } from './ui/button';
-import { LogOut, Tv, LayoutDashboard, FileText, Menu } from 'lucide-react';
+import { LogOut, Tv, LayoutDashboard, FileText, Menu, Globe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import {
@@ -37,6 +37,10 @@ const AppHeader = () => {
       <NavLink to="/watch" className={navLinkClass} onClick={() => setIsOpen(false)}>
          <Tv className="h-4 w-4" />
         Watch
+      </NavLink>
+      <NavLink to="/browser" className={navLinkClass} onClick={() => setIsOpen(false)}>
+        <Globe className="h-4 w-4" />
+        Browser
       </NavLink>
       <NavLink to="/documentation" className={navLinkClass} onClick={() => setIsOpen(false)}>
         <FileText className="h-4 w-4" />
