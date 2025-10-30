@@ -40,7 +40,7 @@ export interface AppContextType {
   connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed';
   onManualReconnect: () => void;
   isScreenSharing: boolean;
-  startScreenShare: () => void;
+  startScreenShare: () => Promise<void>;
   stopScreenShare: () => void;
   remoteScreenStream: MediaStream | null;
 }
