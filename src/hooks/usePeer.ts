@@ -113,7 +113,18 @@ export const usePeer = () => {
   const [incomingConn, setIncomingConn] = useState<DataConnection | null>(null);
 
   const setupConnectionHandlers = useCallback((connection: DataConnection) => {
+    // Setup timeout for connection establishment
+    const connectionTimeout = setTimeout(() => {
+      if (!connection.open) {
+        console.log('Connection attempt timed out after 30 seconds');
+        connection.close();
+        setConnectionState('failed');
+        setData({ type: 'system', payload: 'Connection timed out. Please check the Peer ID and try again.' });
+      }
+    }, 30000); // 30 seconds timeout
+
     const onOpen = () => {
+      clearTimeout(connectionTimeout);
       console.log('Connection opened with:', connection.peer);
       setIsConnected(true);
       setConnectionState('connected');
@@ -125,6 +136,7 @@ export const usePeer = () => {
     };
 
     const onClose = () => {
+      clearTimeout(connectionTimeout);
       console.log('Connection closed with:', connection.peer);
       setIsConnected(false);
       setConnectionState('disconnected');
@@ -133,6 +145,7 @@ export const usePeer = () => {
     };
 
     const onError = (err: Error) => {
+      clearTimeout(connectionTimeout);
       console.error('Connection error:', err);
       setConnectionState('failed');
       setData({ type: 'system', payload: `Connection error: ${err.message}` });
@@ -149,6 +162,7 @@ export const usePeer = () => {
     }
 
     return () => {
+      clearTimeout(connectionTimeout);
       connection.off('open', onOpen);
       connection.off('data', onData);
       connection.off('close', onClose);
@@ -489,29 +503,7 @@ export const usePeer = () => {
         serialization: 'json'
       });
 
-      const connectionTimeout = setTimeout(() => {
-        if (!newConn.open) {
-          console.log('Connection attempt timed out after 30 seconds');
-          newConn.close();
-          setConnectionState('failed');
-          setData({ type: 'system', payload: 'Connection timed out. Please check the Peer ID and try again.' });
-        }
-      }, 30000); // 30 seconds timeout
-
-      newConn.on('open', () => {
-        clearTimeout(connectionTimeout);
-        console.log('Successfully connected to:', remoteId);
-        setConnectionState('connected');
-        setData({ type: 'system', payload: `Successfully connected to ${remoteId}` });
-      });
-
-      newConn.on('error', (err) => {
-        clearTimeout(connectionTimeout);
-        console.error('Connection failed:', err);
-        setConnectionState('failed');
-        setData({ type: 'system', payload: `Failed to connect: ${err.message || 'Please check the Peer ID and try again.'}` });
-      });
-
+      // Set connection immediately so useEffect can set up handlers
       setConn(newConn);
     } catch (error) {
       console.error('Error creating connection:', error);
