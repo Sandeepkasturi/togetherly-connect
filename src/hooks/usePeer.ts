@@ -591,10 +591,19 @@ export const usePeer = () => {
     if (!peer || !conn) return;
 
     try {
+      // High-quality screen sharing constraints
       const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: false
-      });
+        video: {
+          frameRate: { ideal: 30, max: 60 },
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 }
+        },
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      } as DisplayMediaStreamOptions);
 
       setScreenStream(stream);
       setIsScreenSharing(true);
@@ -602,32 +611,53 @@ export const usePeer = () => {
       // Notify peer that screen sharing has started
       sendData({ type: 'screen_share_start', payload: { nickname: conn.metadata?.nickname || 'Friend' } });
 
-      // Setup screen share call
-      const outgoingCall = peer.call(conn.peer, stream, { metadata: { callType: 'screen' } });
+      // Setup screen share call with optimized settings
+      const outgoingCall = peer.call(conn.peer, stream, { 
+        metadata: { callType: 'screen' },
+        sdpTransform: (sdp: string) => {
+          // Increase bandwidth for better quality
+          return sdp.replace(/b=AS:(\d+)/g, 'b=AS:8000');
+        }
+      });
       
       outgoingCall.on('stream', (remoteScreenStream) => {
+        console.log('Receiving remote screen stream');
         setRemoteScreenStream(remoteScreenStream);
       });
 
       outgoingCall.on('close', () => {
+        console.log('Screen share call closed');
         stopScreenShare();
       });
 
       outgoingCall.on('error', (err) => {
         console.error('Screen share error:', err);
+        setData({ type: 'system', payload: `Screen share error: ${err.message}` });
         stopScreenShare();
       });
 
       screenCallInstance.current = outgoingCall;
 
       // Stop screen share when user stops sharing from browser UI
-      stream.getVideoTracks()[0].onended = () => {
-        stopScreenShare();
-      };
+      stream.getTracks().forEach(track => {
+        track.onended = () => {
+          console.log('Screen share track ended');
+          stopScreenShare();
+        };
+      });
 
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to start screen share:', err);
-      setData({ type: 'system', payload: 'Could not start screen sharing. Please check permissions.' });
+      let message = 'Could not start screen sharing.';
+      if (err.name === 'NotAllowedError') {
+        message = 'Screen sharing permission denied.';
+      } else if (err.name === 'NotFoundError') {
+        message = 'No screen available to share.';
+      } else if (err.name === 'NotReadableError') {
+        message = 'Screen sharing already in use.';
+      }
+      setData({ type: 'system', payload: message });
+      throw err;
     }
   }, [peer, conn, sendData]);
 

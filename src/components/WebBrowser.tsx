@@ -1,17 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Monitor, MonitorOff, ExternalLink, Info } from 'lucide-react';
+import { ExternalLink, Info, RefreshCw } from 'lucide-react';
 import { DataType } from '@/hooks/usePeer';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import ScreenShareControls from './ScreenShareControls';
 
 interface WebBrowserProps {
   sendData: (data: DataType) => void;
   browserData?: DataType | null;
   isConnected: boolean;
   isScreenSharing: boolean;
-  onStartScreenShare: () => void;
+  onStartScreenShare: () => Promise<void>;
   onStopScreenShare: () => void;
   remoteScreenStream?: MediaStream | null;
 }
@@ -27,7 +28,7 @@ const WebBrowser = ({
 }: WebBrowserProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasPromptedShare, setHasPromptedShare] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [streamError, setStreamError] = useState(false);
 
   // Auto-prompt screen sharing when connected
   useEffect(() => {
@@ -48,28 +49,39 @@ const WebBrowser = ({
     }
   }, [isConnected, isScreenSharing, hasPromptedShare, remoteScreenStream, onStartScreenShare]);
 
-  // Display remote screen share
+  // Display remote screen share with error handling
   useEffect(() => {
     if (videoRef.current && remoteScreenStream) {
       videoRef.current.srcObject = remoteScreenStream;
+      setStreamError(false);
+
+      // Monitor stream health
+      const checkStream = setInterval(() => {
+        if (!remoteScreenStream.active) {
+          setStreamError(true);
+          clearInterval(checkStream);
+        }
+      }, 1000);
+
+      return () => clearInterval(checkStream);
+    } else if (videoRef.current) {
+      videoRef.current.srcObject = null;
     }
   }, [remoteScreenStream]);
 
-  const handleScreenShare = async () => {
-    if (isScreenSharing) {
-      onStopScreenShare();
-      setHasPromptedShare(false);
-      toast.success('Screen sharing stopped');
-    } else {
-      try {
-        await onStartScreenShare();
-        setHasPromptedShare(true);
-        toast.success('Screen sharing started! Your peer can now see your browser.');
-      } catch (error) {
-        toast.error('Failed to start screen sharing. Please try again.');
-      }
+  const handleVideoError = () => {
+    setStreamError(true);
+    toast.error('Video stream error. Trying to reconnect...');
+  };
+
+  const handleRetryStream = () => {
+    setStreamError(false);
+    if (videoRef.current && remoteScreenStream) {
+      videoRef.current.load();
+      toast.info('Retrying connection...');
     }
   };
+
 
   return (
     <div className="space-y-4">
@@ -87,64 +99,13 @@ const WebBrowser = ({
       <Card className="bg-black/40 backdrop-blur-xl border-white/20 overflow-hidden">
         {/* Header with controls */}
         <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 p-4 border-b border-white/10">
-          <div className="flex items-center justify-between gap-4 mb-3">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Monitor className="h-5 w-5" />
-              Shared Browser
-            </h2>
-            {isConnected && (
-              <Button
-                onClick={handleScreenShare}
-                size="lg"
-                className={isScreenSharing 
-                  ? "bg-red-600 hover:bg-red-700 text-white font-semibold" 
-                  : "bg-green-600 hover:bg-green-700 text-white font-semibold"
-                }
-              >
-                {isScreenSharing ? (
-                  <>
-                    <MonitorOff className="h-5 w-5 mr-2" />
-                    Stop Sharing Screen
-                  </>
-                ) : (
-                  <>
-                    <Monitor className="h-5 w-5 mr-2" />
-                    Share Your Screen
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-
-          {/* Status Messages */}
-          {isConnected && isScreenSharing && (
-            <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-2 animate-pulse">
-              <p className="text-sm text-green-400 font-medium text-center">
-                📡 BROADCASTING LIVE - Your peer is watching your screen
-              </p>
-            </div>
-          )}
-          {isConnected && remoteScreenStream && (
-            <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-2">
-              <p className="text-sm text-blue-400 font-medium text-center">
-                👀 Viewing peer's screen in real-time
-              </p>
-            </div>
-          )}
-          {isConnected && !isScreenSharing && !remoteScreenStream && (
-            <div className="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-2">
-              <p className="text-sm text-yellow-400 text-center">
-                💡 Click "Share Your Screen" to start broadcasting
-              </p>
-            </div>
-          )}
-          {!isConnected && (
-            <div className="bg-gray-500/20 border border-gray-500/30 rounded-lg p-2">
-              <p className="text-sm text-gray-400 text-center">
-                🔌 Connect to a peer to enable screen sharing
-              </p>
-            </div>
-          )}
+          <ScreenShareControls
+            isConnected={isConnected}
+            isScreenSharing={isScreenSharing}
+            onStartScreenShare={onStartScreenShare}
+            onStopScreenShare={onStopScreenShare}
+            remoteScreenStream={remoteScreenStream}
+          />
         </div>
 
         {/* Main Content Area */}
@@ -156,11 +117,25 @@ const WebBrowser = ({
                 ref={videoRef}
                 autoPlay
                 playsInline
+                muted
+                onError={handleVideoError}
                 className="w-full h-full object-contain"
               />
               <div className="absolute top-4 left-4 bg-red-600 text-white px-4 py-2 rounded-full text-sm font-bold animate-pulse shadow-lg">
                 🔴 LIVE - Peer's Screen
               </div>
+              
+              {streamError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/80">
+                  <div className="text-center space-y-4">
+                    <p className="text-white text-lg">Stream connection lost</p>
+                    <Button onClick={handleRetryStream} variant="outline">
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Retry Connection
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             // Show Google Custom Search
@@ -174,10 +149,7 @@ const WebBrowser = ({
                 </div>
                 
                 {/* Google Custom Search */}
-                <div 
-                  ref={searchContainerRef}
-                  className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20"
-                >
+                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 border border-white/20">
                   <div className="gcse-search"></div>
                 </div>
 
