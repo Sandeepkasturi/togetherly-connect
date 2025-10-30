@@ -113,10 +113,14 @@ export const usePeer = () => {
   const [incomingConn, setIncomingConn] = useState<DataConnection | null>(null);
 
   const setupConnectionHandlers = useCallback((connection: DataConnection) => {
+    console.log('📡 Setting up handlers for connection:', connection.peer);
+    console.log('📡 Connection open?', connection.open);
+    console.log('📡 Connection type:', connection.type);
+    
     // Setup timeout for connection establishment
     const connectionTimeout = setTimeout(() => {
       if (!connection.open) {
-        console.log('Connection attempt timed out after 30 seconds');
+        console.log('⏱️ Connection attempt timed out after 30 seconds');
         connection.close();
         setConnectionState('failed');
         setData({ type: 'system', payload: 'Connection timed out. Please check the Peer ID and try again.' });
@@ -125,19 +129,20 @@ export const usePeer = () => {
 
     const onOpen = () => {
       clearTimeout(connectionTimeout);
-      console.log('Connection opened with:', connection.peer);
+      console.log('✅ Connection opened with:', connection.peer);
       setIsConnected(true);
       setConnectionState('connected');
       setData({ type: 'system', payload: `Connected to ${connection.peer}` });
     };
 
     const onData = (receivedData: unknown) => {
+      console.log('📥 Received data:', receivedData);
       setData(receivedData as DataType);
     };
 
     const onClose = () => {
       clearTimeout(connectionTimeout);
-      console.log('Connection closed with:', connection.peer);
+      console.log('🔌 Connection closed with:', connection.peer);
       setIsConnected(false);
       setConnectionState('disconnected');
       setConn(null);
@@ -146,7 +151,7 @@ export const usePeer = () => {
 
     const onError = (err: Error) => {
       clearTimeout(connectionTimeout);
-      console.error('Connection error:', err);
+      console.error('❌ Connection error:', err);
       setConnectionState('failed');
       setData({ type: 'system', payload: `Connection error: ${err.message}` });
     };
@@ -158,6 +163,7 @@ export const usePeer = () => {
     
     // This handles the case where the connection is already open
     if (connection.open) {
+      console.log('🚀 Connection already open, calling onOpen immediately');
       onOpen();
     }
 
@@ -232,24 +238,12 @@ export const usePeer = () => {
         // Dynamically import PeerJS to solve module resolution issues with Vite
         const { default: Peer } = await import('peerjs');
 
-        // Try multiple server configurations for better reliability
+        // Use a single reliable PeerJS server so all users connect to the same one
         const serverConfigs = [
-          {
-            host: 'peerjs-server-8gvhk6w8o-peerjs.vercel.app',
-            port: 443,
-            path: '/',
-            secure: true
-          },
           {
             host: '0.peerjs.com',
             port: 443,
             path: '/',
-            secure: true
-          },
-          {
-            host: 'peerjs-server.herokuapp.com',
-            port: 443,
-            path: '/peerjs',
             secure: true
           }
         ];
@@ -377,17 +371,18 @@ export const usePeer = () => {
 
           // ... keep existing code for connection and call handlers
           newPeer.on('connection', (newConn: DataConnection) => {
-            console.log('Incoming connection from:', newConn.peer);
+            console.log('📞 Incoming connection from:', newConn.peer);
+            console.log('📞 Connection metadata:', newConn.metadata);
             
             if (conn?.open || isCallActive || incomingConn) {
-              console.log('Rejecting connection - already busy');
+              console.log('⛔ Rejecting connection - already busy');
               newConn.close();
               return;
             }
             
             const connectionTimeout = setTimeout(() => {
               if (!newConn.open) {
-                console.log('Connection request timed out after 5 minutes');
+                console.log('⏱️ Connection request timed out after 5 minutes');
                 newConn.close();
                 setIncomingConn(null);
                 setData({ type: 'system', payload: 'Connection request timed out after 5 minutes.' });
@@ -396,11 +391,11 @@ export const usePeer = () => {
 
             newConn.on('open', () => {
               clearTimeout(connectionTimeout);
-              console.log('Incoming connection established');
+              console.log('✅ Incoming connection established');
             });
 
             newConn.on('error', (err) => {
-              console.error('Incoming connection error:', err);
+              console.error('❌ Incoming connection error:', err);
               clearTimeout(connectionTimeout);
               setIncomingConn(null);
               setData({ type: 'system', payload: `Connection error: ${err.message}` });
@@ -492,7 +487,18 @@ export const usePeer = () => {
       return;
     }
 
-    console.log('Connecting to peer:', remoteId);
+    if (remoteId === peerId) {
+      console.error('Cannot connect to self');
+      setData({ type: 'system', payload: 'Cannot connect to your own Peer ID' });
+      return;
+    }
+
+    console.log('🔄 Attempting to connect to peer:', remoteId);
+    console.log('🔄 My peer ID:', peerId);
+    console.log('🔄 Peer instance:', peer);
+    console.log('🔄 Peer destroyed?', peer.destroyed);
+    console.log('🔄 Peer disconnected?', peer.disconnected);
+    
     setConnectionState('connecting');
     setData({ type: 'system', payload: `Connecting to ${remoteId}...` });
     
@@ -503,14 +509,18 @@ export const usePeer = () => {
         serialization: 'json'
       });
 
+      console.log('✅ Connection object created:', newConn);
+      console.log('✅ Connection peer:', newConn.peer);
+      console.log('✅ Connection open?', newConn.open);
+
       // Set connection immediately so useEffect can set up handlers
       setConn(newConn);
     } catch (error) {
-      console.error('Error creating connection:', error);
+      console.error('❌ Error creating connection:', error);
       setConnectionState('failed');
       setData({ type: 'system', payload: 'Failed to create connection. Please try again.' });
     }
-  }, [peer]);
+  }, [peer, peerId]);
   
   const sendData = useCallback((data: DataType) => {
     if (conn && conn.open) {
