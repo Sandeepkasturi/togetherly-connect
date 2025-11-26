@@ -25,7 +25,7 @@ const Landing = () => {
       return;
     }
     setNickname(inputNickname.trim());
-    navigate('/app');
+    navigate('/watch');
   };
 
   return (
