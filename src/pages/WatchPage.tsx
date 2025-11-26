@@ -4,9 +4,8 @@ import YouTubeSearch from '@/components/YouTubeSearch';
 import { AppContextType } from '@/layouts/AppLayout';
 import { motion } from 'framer-motion';
 import PeerConnection from '@/components/PeerConnection';
-import Chat from '@/components/Chat';
 import { PlaylistSidebar } from '@/components/PlaylistSidebar';
-import { Play, Info, Users, Tv, ListMusic, MessageCircle, X } from 'lucide-react';
+import { Play, Info, Users, Tv, ListMusic } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
@@ -78,21 +77,8 @@ const WatchPage = () => {
           </div>
         </div>
 
-        {/* Mobile Video Player */}
-        <div className="px-3 pt-3">
-          <div className="rounded-lg overflow-hidden border border-white/10 shadow-2xl">
-            <EnhancedVideoPlayer
-              videoId={context.selectedVideoId}
-              sendData={context.sendData}
-              playerData={context.playerSyncData}
-              isConnected={context.isConnected}
-              onPlayingStateChange={handleVideoPlayingChange}
-            />
-          </div>
-        </div>
-
         {/* Mobile Connection Card */}
-        <div className="px-3 pt-3">
+        <div className="px-3 pt-3 space-y-4">
           <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl border-white/10 p-4">
             <PeerConnection
               peerId={context.peerId}
@@ -107,51 +93,28 @@ const WatchPage = () => {
               onManualReconnect={context.onManualReconnect}
             />
           </Card>
-        </div>
 
-        {/* Mobile Chat - Fixed Position */}
-        <div className="fixed bottom-0 left-0 right-0 z-40" style={{ height: isChatOpen ? '60vh' : '0', transition: 'height 0.3s ease' }}>
-          <div className="h-full">
-            <Chat
-              messages={context.messages}
-              sendMessage={context.sendMessage}
+          {/* Discover content section */}
+          <div className="space-y-3 pb-20">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Discover</p>
+                <h2 className="text-lg font-semibold">Watch videos together</h2>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-white/20 text-white/80"
+              >
+                <Play className="h-4 w-4 mr-1" />
+                Start
+              </Button>
+            </div>
+            <YouTubeSearch
+              onVideoSelect={context.handleVideoSelect}
               isConnected={context.isConnected}
-              handleSendReaction={context.handleSendReaction}
-              handleSendFile={context.handleSendFile}
             />
           </div>
-        </div>
-
-        {/* Chat Toggle Button */}
-        {!isChatOpen && (
-          <button
-            onClick={() => setIsChatOpen(true)}
-            className="fixed bottom-4 right-4 z-50 bg-[#25d366] text-white rounded-full p-4 shadow-lg"
-          >
-            <MessageCircle className="h-6 w-6" />
-            {context.messages.filter(m => m.sender === 'them').length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {context.messages.filter(m => m.sender === 'them').length}
-              </span>
-            )}
-          </button>
-        )}
-        
-        {isChatOpen && (
-          <button
-            onClick={() => setIsChatOpen(false)}
-            className="fixed top-[calc(40vh-2.5rem)] right-4 z-50 bg-[#1f2c34] text-white rounded-full p-2 shadow-lg"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-
-        {/* Mobile YouTube Search */}
-        <div className="px-3 pb-20">
-          <YouTubeSearch
-            onVideoSelect={context.handleVideoSelect}
-            isConnected={context.isConnected}
-          />
         </div>
       </div>
 
@@ -257,14 +220,14 @@ const WatchPage = () => {
                   />
                 </Card>
 
-                <Card className="bg-black/40 backdrop-blur-xl border-white/20 h-[400px]">
-                  <Chat
-                    messages={context.messages}
-                    sendMessage={context.sendMessage}
-                    isConnected={context.isConnected}
-                    handleSendReaction={context.handleSendReaction}
-                    handleSendFile={context.handleSendFile}
-                  />
+                <Card className="bg-black/40 backdrop-blur-xl border-white/20 h-[400px] flex items-center justify-center">
+                  <div className="text-center space-y-2 px-4">
+                    <p className="text-sm text-gray-200 font-medium">Chat in a dedicated space</p>
+                    <p className="text-xs text-gray-400 max-w-xs mx-auto">
+                      Open the <span className="font-semibold">Chat</span> tab from the bottom navigation to send messages,
+                      share files, and react while you keep watching here.
+                    </p>
+                  </div>
                 </Card>
               </motion.div>
             </div>
