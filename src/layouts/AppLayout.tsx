@@ -5,6 +5,7 @@ import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import CallManager from '@/components/CallManager';
 import AppHeader from '@/components/AppHeader';
 import SplashScreen from '@/components/SplashScreen';
+import BottomNav from '@/components/BottomNav';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,33 +114,42 @@ const AppLayout = () => {
 
   useEffect(() => {
     if (data) {
-      if (data.type === 'chat') {
-        const newMessage: Message = { ...data.payload, sender: 'them', messageType: 'text' };
-        setMessages((prev) => [...prev, newMessage]);
-        
-        // Enhanced notification system
-        if (location.pathname.startsWith('/watch') && newMessage.nickname) {
-          // Check if user is in fullscreen or video is playing
-          const isWatchingIntently = document.fullscreenElement || document.hidden === false;
+        if (data.type === 'chat') {
+          const newMessage: Message = { ...data.payload, sender: 'them', messageType: 'text' };
+          setMessages((prev) => [...prev, newMessage]);
           
-          if (isWatchingIntently) {
-            sonnerToast.message(`💬 ${newMessage.nickname}`, {
-              description: newMessage.content,
-              duration: 4000,
-              action: {
-                label: "Reply",
-                onClick: () => {
-                  // Focus on chat input
-                  const chatInput = document.querySelector('input[placeholder*="message"]') as HTMLInputElement;
-                  if (chatInput) {
-                    chatInput.focus();
+          // Enhanced notification system: notify whenever user is away from Chat tab
+          if (newMessage.nickname && location.pathname !== '/chat') {
+            const isWatchingIntently = document.fullscreenElement || document.hidden === false;
+            
+            if (isWatchingIntently) {
+              sonnerToast.message(`💬 ${newMessage.nickname}` , {
+                description: newMessage.content,
+                duration: 4000,
+                action: {
+                  label: "Reply",
+                  onClick: () => {
+                    const chatInput = document.querySelector('input[placeholder*="Message"]') as HTMLInputElement | null;
+                    if (chatInput) {
+                      chatInput.focus();
+                    }
                   }
                 }
+              });
+            }
+
+            // Try to trigger native notification if supported
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+              if (Notification.permission === 'granted') {
+                new Notification(`New message from ${newMessage.nickname}`, {
+                  body: newMessage.content,
+                });
+              } else if (Notification.permission === 'default') {
+                Notification.requestPermission();
               }
-            });
+            }
           }
-        }
-      } else if (data.type === 'file') {
+        } else if (data.type === 'file') {
         const fileMessage: Message = {
           id: data.payload.id,
           sender: 'them',
@@ -403,6 +413,7 @@ const AppLayout = () => {
         <main className="flex-grow">
           <Outlet context={context} />
         </main>
+        <BottomNav />
         <CallManager
           localStream={localStream}
           remoteStream={remoteStream}
@@ -411,7 +422,7 @@ const AppLayout = () => {
           toggleMedia={toggleMedia}
           remoteNickname={remoteNickname}
         />
-         <AlertDialog open={!!incomingConn}>
+        <AlertDialog open={!!incomingConn}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Incoming Connection Request</AlertDialogTitle>
