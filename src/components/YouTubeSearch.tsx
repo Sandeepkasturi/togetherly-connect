@@ -48,7 +48,7 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
 
   // I've added your API key here to get it working.
   // IMPORTANT: For security, it's best to use a .env.local file for your API key instead of hardcoding it.
-  const API_KEY = "AIzaSyAJD2GwErQRz09LtRN6EQ6DBCyeBGEfxMs";
+  const API_KEY = "AIzaSyCFU4OekJXflsSqf5eorVjQoZ6ZyruK5gE";
   const API_KEY_ERROR_MESSAGE = 'The provided YouTube API key might be invalid or has exceeded its daily quota.';
 
   const handleSearch = async () => {
