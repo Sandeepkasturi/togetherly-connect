@@ -33,7 +33,7 @@ const AppPage = () => {
             <Button 
               size="lg" 
               onClick={() => navigate('/watch')} 
-              className="animated-gradient hover:glow-primary transition-all duration-300 hover:scale-105 font-semibold text-lg py-6 rounded-xl"
+              className="glass hover:glass-strong hover:glow-primary transition-all duration-300 hover:scale-105 font-semibold text-lg py-6 rounded-xl"
             >
               Get Started ✨
             </Button>
