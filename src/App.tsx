@@ -15,6 +15,7 @@ import AppLayout from "./layouts/AppLayout";
 import WatchPage from "./pages/WatchPage";
 import BrowserPage from "./pages/BrowserPage";
 import ChatPage from "./pages/ChatPage";
+import TheaterPage from "./pages/TheaterPage";
 import { Analytics } from "@vercel/analytics/react";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
               <Route element={<AppLayout />}>
                 <Route path="/app" element={<AppPage />} />
                 <Route path="/watch" element={<WatchPage />} />
+                <Route path="/theater" element={<TheaterPage />} />
                 <Route path="/browser" element={<BrowserPage />} />
                 <Route path="/chat" element={<ChatPage />} />
               </Route>
