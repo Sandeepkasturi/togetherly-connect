@@ -4,8 +4,7 @@ import YouTubeSearch from '@/components/YouTubeSearch';
 import { AppContextType } from '@/layouts/AppLayout';
 import { motion } from 'framer-motion';
 import PeerConnection from '@/components/PeerConnection';
-import { PlaylistSidebar } from '@/components/PlaylistSidebar';
-import { Play, Info, Users, Tv, ListMusic } from 'lucide-react';
+import { Play, Info, Users, Tv } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
@@ -14,7 +13,6 @@ import ChatNotification from '@/components/ChatNotification';
 
 const WatchPage = () => {
   const context = useOutletContext<AppContextType>();
-  const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState<any>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -57,28 +55,8 @@ const WatchPage = () => {
 
       {/* Mobile Simple Layout */}
       <div className="lg:hidden">
-        {/* Mobile Header */}
-        <div className="sticky top-0 z-50 bg-black/95 backdrop-blur-lg border-b border-white/10 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Tv className="h-5 w-5 text-red-500" />
-              <span className="text-lg font-bold bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
-                TOGETHERLY
-              </span>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsPlaylistOpen(true)}
-              className="text-white"
-            >
-              <ListMusic className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Mobile Video Player - CRITICAL FOR MOBILE USERS */}
-        <div className="px-3 pt-3 space-y-4">
+        {/* Mobile Video Player - Full Theater Experience */}
+        <div className="space-y-4">
           {context.selectedVideoId && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -181,15 +159,6 @@ const WatchPage = () => {
                       <Play className="h-5 w-5 mr-2" />
                       Start Watching
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="lg"
-                      className="border-white text-white hover:bg-white/10 px-8 py-3 text-lg"
-                      onClick={() => setIsPlaylistOpen(true)}
-                    >
-                      <ListMusic className="h-5 w-5 mr-2" />
-                      My Playlists
-                    </Button>
                   </div>
                 </motion.div>
 
@@ -266,14 +235,6 @@ const WatchPage = () => {
           </div>
         </div>
       </div>
-
-      {/* Playlist Sidebar */}
-      <PlaylistSidebar
-        isOpen={isPlaylistOpen}
-        onOpenChange={setIsPlaylistOpen}
-        onVideoSelect={context.handleVideoSelect}
-        currentVideoId={context.selectedVideoId}
-      />
 
     </div>
   );
