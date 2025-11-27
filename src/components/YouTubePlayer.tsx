@@ -91,8 +91,10 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
       videoId,
       playerVars: {
         'playsinline': 1,
-        'autoplay': 1,
+        'autoplay': 0,
         'controls': 1,
+        'rel': 0,
+        'modestbranding': 1,
       },
       events: {
         'onReady': onPlayerReady,
