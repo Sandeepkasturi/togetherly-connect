@@ -173,12 +173,7 @@ const AppLayout = () => {
         }
       } else if (data.type === 'video') {
         setSelectedVideoId(data.payload);
-        
-        // Video change notification
-        sonnerToast.info("🎬 Video Changed", {
-          description: "Your friend selected a new video to watch together",
-          duration: 3000
-        });
+        navigate('/theater');
       } else if (data.type === 'system') {
         const systemMessage: Message = { 
           id: Date.now().toString(), 
@@ -349,6 +344,7 @@ const AppLayout = () => {
     setSelectedVideoId(videoId);
     const dataToSend: DataType = { type: 'video', payload: videoId };
     sendData(dataToSend);
+    navigate('/theater');
   };
   
   const handleSendReaction = (messageId: string, emoji: string) => {
