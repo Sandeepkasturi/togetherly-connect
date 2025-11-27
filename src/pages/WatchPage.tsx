@@ -77,8 +77,24 @@ const WatchPage = () => {
           </div>
         </div>
 
-        {/* Mobile Connection Card */}
+        {/* Mobile Video Player - CRITICAL FOR MOBILE USERS */}
         <div className="px-3 pt-3 space-y-4">
+          {context.selectedVideoId && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-xl overflow-hidden shadow-2xl"
+            >
+              <EnhancedVideoPlayer
+                videoId={context.selectedVideoId}
+                sendData={context.sendData}
+                playerData={context.playerSyncData}
+                isConnected={context.isConnected}
+                onPlayingStateChange={handleVideoPlayingChange}
+              />
+            </motion.div>
+          )}
+
           <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl border-white/10 p-4">
             <PeerConnection
               peerId={context.peerId}
