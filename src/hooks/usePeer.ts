@@ -209,7 +209,13 @@ export const usePeer = () => {
       clearTimeout(connectionTimeout);
       console.error('❌ Connection error:', err);
       setConnectionState('failed');
-      setData({ type: 'system', payload: `Connection error: ${err.message}` });
+
+      let errorMessage = `Connection error: ${err.message}`;
+      if (err.message.includes('IceConnectionState of FAILED')) {
+        errorMessage = 'Could not connect to peer. This might be due to a firewall or network restriction. Try switching networks (e.g., Wi-Fi to 4G).';
+      }
+
+      setData({ type: 'system', payload: errorMessage });
     };
 
     connection.on('open', onOpen);
@@ -325,27 +331,27 @@ export const usePeer = () => {
             ...config,
             config: {
               iceServers: [
-                // Google STUN servers
+                // Google STUN servers - Highly reliable
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
-                // Additional STUN servers for better compatibility
-                { urls: 'stun:stun.cloudflare.com:3478' },
-                { urls: 'stun:stun.mozilla.org:3478' },
-                // Public TURN servers (fallback for restricted networks)
-                {
-                  urls: 'turn:turn.bistri.com:80',
-                  credential: 'homeo',
-                  username: 'homeo'
-                }
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' },
+                // Mozilla STUN server
+                { urls: 'stun:stun.services.mozilla.com' },
+                // Additional public STUN servers for redundancy
+                { urls: 'stun:stun.qq.com:3478' },
+                { urls: 'stun:stun.miwifi.com:3478' },
               ],
               sdpSemantics: 'unified-plan',
               iceCandidatePoolSize: 10,
               bundlePolicy: 'max-bundle',
-              rtcpMuxPolicy: 'require'
+              rtcpMuxPolicy: 'require',
+              iceTransportPolicy: 'all' // Allow both STUN (public) and local candidates
             },
             debug: 1,
-            pingInterval: 5000
+            pingInterval: 5000, // Keep connection alive
+            secure: true
           });
 
           // Set timeout for peer initialization

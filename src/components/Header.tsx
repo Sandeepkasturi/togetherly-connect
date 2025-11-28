@@ -4,13 +4,14 @@ import { useUser } from '@/contexts/UserContext';
 import { User, Settings, Sparkles, Tv, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
+import Logo from './Logo';
 
 const Header = () => {
   const { nickname } = useUser();
   const location = useLocation();
 
   return (
-    <motion.header 
+    <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
       className="sticky top-0 z-50 w-full border-b border-border/40 glass-strong"
@@ -21,8 +22,7 @@ const Header = () => {
           <Link to="/" className="flex items-center gap-3 no-underline hover:opacity-80 transition-opacity">
             <div className="flex items-center gap-2">
               <div className="relative">
-                <Tv className="h-8 w-8 text-primary" />
-                <Sparkles className="absolute -top-1 -right-1 h-4 w-4 text-accent animate-pulse" />
+                <Logo className="h-10 w-10" />
               </div>
               <span className="text-xl font-bold text-gradient-primary font-display">
                 Togetherly
@@ -33,8 +33,8 @@ const Header = () => {
           {/* Navigation Links */}
           <nav className="flex items-center gap-2">
             <Link to="/watch">
-              <Button 
-                variant={location.pathname === '/watch' ? 'default' : 'ghost'} 
+              <Button
+                variant={location.pathname === '/watch' ? 'default' : 'ghost'}
                 size="sm"
                 className="gap-2"
               >
@@ -43,8 +43,8 @@ const Header = () => {
               </Button>
             </Link>
             <Link to="/browser">
-              <Button 
-                variant={location.pathname === '/browser' ? 'default' : 'ghost'} 
+              <Button
+                variant={location.pathname === '/browser' ? 'default' : 'ghost'}
                 size="sm"
                 className="gap-2"
               >
@@ -60,7 +60,7 @@ const Header = () => {
               <User className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-foreground">{nickname || 'Guest'}</span>
             </div>
-            
+
             <Button variant="ghost" size="icon" className="relative hover:bg-primary/10 hover:text-primary transition-colors rounded-xl">
               <Settings className="h-5 w-5" />
             </Button>
