@@ -16,18 +16,48 @@ export interface Message {
   nickname?: string;
   reactions?: Reaction[];
   // New props for file sharing
-  messageType?: 'text' | 'file' | 'system';
+  messageType?: 'text' | 'file' | 'system' | 'voice';
   fileName?: string;
   fileType?: string;
   fileSize?: number;
   fileData?: string; // base64 encoded
+  voiceData?: string; // base64 encoded audio
+  voiceDuration?: number;
+  isEdited?: boolean;
+  isDeleted?: boolean;
 }
 
 export type DataType = {
   type: 'chat';
   payload: Omit<Message, 'sender'>;
 } | {
-  type: 'file';
+  type: 'file_start';
+  payload: {
+    id: string;
+    fileName: string;
+    fileType: string;
+    fileSize: number;
+    totalChunks: number;
+    timestamp: string;
+    nickname?: string;
+    isVoice?: boolean; // To distinguish voice messages
+    duration?: number; // For voice messages
+  };
+} | {
+  type: 'file_chunk';
+  payload: {
+    id: string;
+    chunkIndex: number;
+    chunk: string; // base64 encoded chunk
+  };
+} | {
+  type: 'file_ack'; // Optional: to acknowledge chunks for flow control if needed
+  payload: {
+    id: string;
+    chunkIndex: number;
+  };
+} | {
+  type: 'file'; // Deprecated for large files, keeping for backward compat or small updates
   payload: {
     id: string;
     fileName: string;
@@ -37,6 +67,29 @@ export type DataType = {
     timestamp: string;
     nickname?: string;
   };
+} | {
+  type: 'voice'; // Deprecated for large voice, keeping for backward compat
+  payload: {
+    id: string;
+    voiceData: string;
+    duration: number;
+    timestamp: string;
+    nickname?: string;
+  };
+} | {
+  type: 'edit_message';
+  payload: {
+    id: string;
+    newContent: string;
+  };
+} | {
+  type: 'delete_message';
+  payload: {
+    id: string;
+  };
+} | {
+  type: 'clear_chat';
+  payload: null;
 } | {
   type: 'video';
   payload: string;
@@ -58,6 +111,9 @@ export type DataType = {
     event: 'play' | 'pause';
     currentTime: number;
   };
+} | {
+  type: 'request_sync';
+  payload: null;
 } | {
   type: 'playlist_share';
   payload: {
@@ -99,7 +155,7 @@ export const usePeer = () => {
   const peerInstance = useRef<Peer | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'failed'>('disconnected');
-  
+
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isCallActive, setIsCallActive] = useState(false);
@@ -116,7 +172,7 @@ export const usePeer = () => {
     console.log('📡 Setting up handlers for connection:', connection.peer);
     console.log('📡 Connection open?', connection.open);
     console.log('📡 Connection type:', connection.type);
-    
+
     // Setup timeout for connection establishment
     const connectionTimeout = setTimeout(() => {
       if (!connection.open) {
@@ -160,7 +216,7 @@ export const usePeer = () => {
     connection.on('data', onData);
     connection.on('close', onClose);
     connection.on('error', onError);
-    
+
     // This handles the case where the connection is already open
     if (connection.open) {
       console.log('🚀 Connection already open, calling onOpen immediately');
@@ -197,7 +253,7 @@ export const usePeer = () => {
       console.log('Accepting connection from:', incomingConn.peer);
       setConn(incomingConn);
       setIncomingConn(null);
-      
+
       // Set up handlers immediately after accepting
       setTimeout(() => {
         if (incomingConn.open) {
@@ -234,7 +290,7 @@ export const usePeer = () => {
       try {
         // Check if we have a stored peer ID
         const storedPeerId = localStorage.getItem('togetherlyPeerId');
-        
+
         // Dynamically import PeerJS to solve module resolution issues with Vite
         const { default: Peer } = await import('peerjs');
 
@@ -305,7 +361,7 @@ export const usePeer = () => {
             if (peerInitialized) return;
             peerInitialized = true;
             clearTimeout(initTimeout);
-            
+
             console.log('Peer opened with ID:', id);
             console.log('Generated new peer ID:', id);
             setPeerId(id);
@@ -318,7 +374,7 @@ export const usePeer = () => {
           newPeer.on('error', (error: any) => {
             clearTimeout(initTimeout);
             console.error(`Peer error on server ${configIndex + 1}:`, error);
-            
+
             if (!peerInitialized) {
               console.log(`Server ${configIndex + 1} failed, trying next...`);
               newPeer.destroy();
@@ -327,7 +383,7 @@ export const usePeer = () => {
             }
 
             setData({ type: 'system', payload: `Peer error: ${error.message || 'Connection failed'}` });
-            
+
             // Enhanced error recovery for connected peers
             if (error.type === 'network' || error.type === 'disconnected' || error.type === 'server-error') {
               console.log('Network error, retrying in 3000ms... (1/3)');
@@ -342,10 +398,10 @@ export const usePeer = () => {
 
           newPeer.on('disconnected', () => {
             if (!peerInitialized) return;
-            
+
             console.log('Peer disconnected, attempting to reconnect...');
             setData({ type: 'system', payload: 'Connection lost, reconnecting...' });
-            
+
             // Attempt to reconnect with exponential backoff
             attempts = 0;
             const maxAttempts = 3;
@@ -373,13 +429,13 @@ export const usePeer = () => {
           newPeer.on('connection', (newConn: DataConnection) => {
             console.log('📞 Incoming connection from:', newConn.peer);
             console.log('📞 Connection metadata:', newConn.metadata);
-            
+
             if (conn?.open || isCallActive || incomingConn) {
               console.log('⛔ Rejecting connection - already busy');
               newConn.close();
               return;
             }
-            
+
             const connectionTimeout = setTimeout(() => {
               if (!newConn.open) {
                 console.log('⏱️ Connection request timed out after 5 minutes');
@@ -402,7 +458,7 @@ export const usePeer = () => {
             });
 
             setData({
-              type: 'system', 
+              type: 'system',
               payload: `Incoming connection from ${newConn.metadata?.nickname || newConn.peer}`
             });
             setIncomingConn(newConn);
@@ -427,7 +483,7 @@ export const usePeer = () => {
           newPeer.on('call', (incomingCall: MediaConnection) => {
             const callType = incomingCall.metadata?.callType === 'audio' ? 'audio' : 'video';
             setData({ type: 'system', payload: `Incoming ${callType} call from ${incomingCall.peer}...` });
-            
+
             const constraints = { video: callType === 'video', audio: true };
 
             navigator.mediaDevices.getUserMedia(constraints)
@@ -447,7 +503,7 @@ export const usePeer = () => {
 
       } catch (error) {
         console.error('Failed to initialize peer:', error);
-        
+
         // Use fallback ID generation
         const fallbackId = localStorage.getItem('togetherlyPeerId') || generateFallbackPeerId();
         console.log('Using fallback peer ID:', fallbackId);
@@ -481,7 +537,7 @@ export const usePeer = () => {
       setData({ type: 'system', payload: 'Peer not ready. Please wait and try again.' });
       return;
     }
-    
+
     if (!remoteId.trim()) {
       setData({ type: 'system', payload: 'Please enter a valid Peer ID' });
       return;
@@ -498,12 +554,12 @@ export const usePeer = () => {
     console.log('🔄 Peer instance:', peer);
     console.log('🔄 Peer destroyed?', peer.destroyed);
     console.log('🔄 Peer disconnected?', peer.disconnected);
-    
+
     setConnectionState('connecting');
     setData({ type: 'system', payload: `Connecting to ${remoteId}...` });
-    
+
     try {
-      const newConn = peer.connect(remoteId, { 
+      const newConn = peer.connect(remoteId, {
         metadata,
         reliable: true,
         serialization: 'json'
@@ -521,7 +577,7 @@ export const usePeer = () => {
       setData({ type: 'system', payload: 'Failed to create connection. Please try again.' });
     }
   }, [peer, peerId]);
-  
+
   const sendData = useCallback((data: DataType) => {
     if (conn && conn.open) {
       console.log('Sending data:', data);
@@ -551,40 +607,40 @@ export const usePeer = () => {
     if (!peer || !conn) return;
 
     const setupCallListeners = (call: MediaConnection) => {
-        call.on('stream', (stream) => {
-          setRemoteStream(stream);
-        });
-        call.on('close', () => {
-          endCall();
-        });
-        call.on('error', (err) => {
-          console.error('Call error:', err);
-          setData({ type: 'system', payload: `Call error: ${err.message}` });
-          endCall();
-        });
-        mediaCallInstance.current = call;
-        setIsCallActive(true);
+      call.on('stream', (stream) => {
+        setRemoteStream(stream);
+      });
+      call.on('close', () => {
+        endCall();
+      });
+      call.on('error', (err) => {
+        console.error('Call error:', err);
+        setData({ type: 'system', payload: `Call error: ${err.message}` });
+        endCall();
+      });
+      mediaCallInstance.current = call;
+      setIsCallActive(true);
     };
-    
+
     const constraints = { video: type === 'video', audio: true };
 
     navigator.mediaDevices.getUserMedia(constraints)
-        .then(stream => {
-            setLocalStream(stream);
-            const outgoingCall = peer.call(conn.peer, stream, { metadata: { callType: type } });
-            setupCallListeners(outgoingCall);
-        })
-        .catch(err => {
-            console.error('Failed to get local stream', err);
-            setData({ type: 'system', payload: 'Could not start camera/mic. Please check permissions.' });
-        });
+      .then(stream => {
+        setLocalStream(stream);
+        const outgoingCall = peer.call(conn.peer, stream, { metadata: { callType: type } });
+        setupCallListeners(outgoingCall);
+      })
+      .catch(err => {
+        console.error('Failed to get local stream', err);
+        setData({ type: 'system', payload: 'Could not start camera/mic. Please check permissions.' });
+      });
   }, [peer, conn, endCall]);
 
   const toggleMedia = useCallback((type: 'audio' | 'video') => {
     if (localStream) {
       const tracks = type === 'audio' ? localStream.getAudioTracks() : localStream.getVideoTracks();
       if (tracks[0]) {
-          tracks[0].enabled = !tracks[0].enabled;
+        tracks[0].enabled = !tracks[0].enabled;
       }
     }
   }, [localStream]);
@@ -614,14 +670,14 @@ export const usePeer = () => {
       sendData({ type: 'screen_share_start', payload: { nickname: conn.metadata?.nickname || 'Friend' } });
 
       // Setup screen share call with optimized settings
-      const outgoingCall = peer.call(conn.peer, stream, { 
+      const outgoingCall = peer.call(conn.peer, stream, {
         metadata: { callType: 'screen' },
         sdpTransform: (sdp: string) => {
           // Increase bandwidth for better quality
           return sdp.replace(/b=AS:(\d+)/g, 'b=AS:8000');
         }
       });
-      
+
       outgoingCall.on('stream', (remoteScreenStream) => {
         console.log('Receiving remote screen stream');
         setRemoteScreenStream(remoteScreenStream);
@@ -674,33 +730,33 @@ export const usePeer = () => {
     setRemoteScreenStream(null);
     setIsScreenSharing(false);
     screenCallInstance.current = null;
-    
+
     // Notify peer that screen sharing has stopped
     if (conn) {
       sendData({ type: 'screen_share_stop', payload: { nickname: conn.metadata?.nickname || 'Friend' } });
     }
   }, [screenStream, conn, sendData]);
 
-  return { 
-    peerId, 
-    connectToPeer, 
-    sendData, 
-    data, 
-    isConnected, 
-    conn, 
-    localStream, 
-    remoteStream, 
-    isCallActive, 
-    startCall, 
-    endCall, 
+  return {
+    peerId,
+    connectToPeer,
+    sendData,
+    data,
+    isConnected,
+    conn,
+    localStream,
+    remoteStream,
+    isCallActive,
+    startCall,
+    endCall,
     toggleMedia,
     screenStream,
     remoteScreenStream,
     isScreenSharing,
     startScreenShare,
     stopScreenShare,
-    incomingConn, 
-    acceptConnection, 
+    incomingConn,
+    acceptConnection,
     rejectConnection,
     connectionState,
     onManualReconnect
