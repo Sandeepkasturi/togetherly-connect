@@ -17,11 +17,15 @@ const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
     const scanner = new Html5QrcodeScanner(
       'qr-reader',
       {
-        fps: 10,
-        qrbox: { width: 250, height: 250 },
+        fps: 5,
+        // Let the library pick optimal scan box based on device, helps on mobile and desktop
+        qrbox: 250,
         aspectRatio: 1.0,
         rememberLastUsedCamera: true,
         supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true,
+        },
       },
       false
     );
