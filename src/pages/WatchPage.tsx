@@ -55,60 +55,66 @@ const WatchPage = () => {
 
       {/* Mobile Simple Layout */}
       <div className="lg:hidden">
-        {/* Mobile Video Player - Full Theater Experience */}
-        <div className="space-y-4">
-          {context.selectedVideoId && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="rounded-xl overflow-hidden shadow-2xl"
-            >
-              <EnhancedVideoPlayer
-                videoId={context.selectedVideoId}
-                sendData={context.sendData}
-                playerData={context.playerSyncData}
+        <div className="space-y-6 pb-20">
+          {/* Top Section: Connection Hub */}
+          <section className="px-4 pt-4">
+            <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl border-white/10 p-4">
+              <PeerConnection
+                peerId={context.peerId}
+                connectToPeer={context.connectToPeer}
                 isConnected={context.isConnected}
-                onPlayingStateChange={handleVideoPlayingChange}
+                myNickname={context.myNickname}
+                remoteNickname={context.remoteNickname}
+                sendData={context.sendData}
+                startCall={context.startCall}
+                isCallActive={context.isCallActive}
+                connectionState={context.connectionState}
+                onManualReconnect={context.onManualReconnect}
               />
-            </motion.div>
-          )}
+            </Card>
+          </section>
 
-          <Card className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 backdrop-blur-xl border-white/10 p-4">
-            <PeerConnection
-              peerId={context.peerId}
-              connectToPeer={context.connectToPeer}
-              isConnected={context.isConnected}
-              myNickname={context.myNickname}
-              remoteNickname={context.remoteNickname}
-              sendData={context.sendData}
-              startCall={context.startCall}
-              isCallActive={context.isCallActive}
-              connectionState={context.connectionState}
-              onManualReconnect={context.onManualReconnect}
-            />
-          </Card>
-
-          {/* Discover content section */}
-          <div className="space-y-3 pb-20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Discover</p>
-                <h2 className="text-lg font-semibold">Watch videos together</h2>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-white/20 text-white/80"
+          {/* Middle Section: Video Player */}
+          <section className="px-4">
+            {context.selectedVideoId ? (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-xl overflow-hidden shadow-2xl"
               >
-                <Play className="h-4 w-4 mr-1" />
-                Start
-              </Button>
+                <EnhancedVideoPlayer
+                  videoId={context.selectedVideoId}
+                  sendData={context.sendData}
+                  playerData={context.playerSyncData}
+                  isConnected={context.isConnected}
+                  onPlayingStateChange={handleVideoPlayingChange}
+                />
+              </motion.div>
+            ) : (
+              <div className="aspect-video w-full bg-gray-900/50 rounded-xl flex items-center justify-center border border-white/10">
+                <div className="text-center p-4">
+                  <Tv className="h-12 w-12 text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-400">Select a video to start watching</p>
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Bottom Section: Search & Discover */}
+          <section className="px-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.16em] text-gray-400">Discover</p>
+                  <h2 className="text-lg font-semibold">Watch videos together</h2>
+                </div>
+              </div>
+              <YouTubeSearch
+                onVideoSelect={context.handleVideoSelect}
+                isConnected={context.isConnected}
+              />
             </div>
-            <YouTubeSearch
-              onVideoSelect={context.handleVideoSelect}
-              isConnected={context.isConnected}
-            />
-          </div>
+          </section>
         </div>
       </div>
 

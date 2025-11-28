@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Youtube, Sparkles, Play } from 'lucide-react';
+import { Search, Youtube, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import VideoCarousel from './VideoCarousel';
 import { Skeleton } from '@/components/ui/skeleton';
 
+// Interface matching the structure expected by VideoCarousel
 interface YouTubeVideo {
   id: { videoId: string };
   snippet: {
@@ -24,31 +24,45 @@ interface YouTubeSearchProps {
 }
 
 const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
+  // Search State
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<YouTubeVideo[]>([]);
   const [isSearchLoading, setIsSearchLoading] = useState(false);
 
-  const [movies, setMovies] = useState<YouTubeVideo[]>([]);
-  const [songs, setSongs] = useState<YouTubeVideo[]>([]);
-  const [shorts, setShorts] = useState<YouTubeVideo[]>([]);
-  
-  const [isMoviesLoading, setIsMoviesLoading] = useState(false);
-  const [isSongsLoading, setIsSongsLoading] = useState(false);
-  const [isShortsLoading, setIsShortsLoading] = useState(false);
-
-  const [teluguMovies, setTeluguMovies] = useState<YouTubeVideo[]>([]);
-  const [teluguSongs, setTeluguSongs] = useState<YouTubeVideo[]>([]);
-  const [teluguShorts, setTeluguShorts] = useState<YouTubeVideo[]>([]);
-  
-  const [isTeluguMoviesLoading, setIsTeluguMoviesLoading] = useState(false);
-  const [isTeluguSongsLoading, setIsTeluguSongsLoading] = useState(false);
-  const [isTeluguShortsLoading, setIsTeluguShortsLoading] = useState(false);
+  // Suggested Content State
+  const [suggestedVideos, setSuggestedVideos] = useState<YouTubeVideo[]>([]);
+  const [isSuggestedLoading, setIsSuggestedLoading] = useState(true);
 
   const { toast } = useToast();
 
-  // YouTube Data API key (public). Prefer setting VITE_YOUTUBE_API_KEY in your environment.
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyAr3EMELBanXSHbYpa0SkrjR4RZORRwElg';
+  // YouTube Data API key
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyBdwv6_xRC5o-f1UOcg-GChuTb1ESSlk-s';
   const API_KEY_ERROR_MESSAGE = 'YouTube API key is invalid, restricted, or has exceeded its daily quota. Please check referrer settings.';
+
+  useEffect(() => {
+    fetchSuggestedVideos();
+  }, []);
+
+  const fetchSuggestedVideos = async () => {
+    if (!API_KEY) return;
+    setIsSuggestedLoading(true);
+    try {
+      // Fetch more results to pick random ones
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=Latest+Telugu+movie+trailers+songs&key=${API_KEY}&type=video&order=date&maxResults=20&videoEmbeddable=true`
+      );
+      if (!response.ok) throw new Error('Failed to fetch suggested videos');
+      const data = await response.json();
+
+      // Pick 8 random videos
+      const shuffled = data.items ? data.items.sort(() => 0.5 - Math.random()) : [];
+      setSuggestedVideos(shuffled.slice(0, 8));
+    } catch (error) {
+      console.error('Error fetching suggested videos:', error);
+    } finally {
+      setIsSuggestedLoading(false);
+    }
+  };
 
   const handleSearch = async () => {
     if (!API_KEY) {
@@ -74,61 +88,6 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
       setIsSearchLoading(false);
     }
   };
-
-  const fetchCategoryVideos = useCallback(async (
-    categoryQuery: string,
-    setData: React.Dispatch<React.SetStateAction<YouTubeVideo[]>>,
-    setLoading: React.Dispatch<React.SetStateAction<boolean>>,
-    categoryName: string
-  ) => {
-    setLoading(true);
-    try {
-      if (!API_KEY) {
-        throw new Error(API_KEY_ERROR_MESSAGE);
-      }
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(categoryQuery)}&key=${API_KEY}&type=video&maxResults=10`
-      );
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error.message || 'Failed to fetch videos');
-      }
-      const data = await response.json();
-      setData(data.items);
-    } catch (error: any) {
-      toast({
-        title: `Error fetching ${categoryName}`,
-        description: error.message,
-        variant: 'destructive',
-      });
-      setData([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [toast, API_KEY]);
-
-  useEffect(() => {
-    if (isConnected && API_KEY) {
-      if (movies.length === 0 && !isMoviesLoading) {
-        fetchCategoryVideos('latest movie trailers', setMovies, setIsMoviesLoading, 'Movies');
-      }
-      if (songs.length === 0 && !isSongsLoading) {
-        fetchCategoryVideos('trending music 2025', setSongs, setIsSongsLoading, 'Songs');
-      }
-      if (shorts.length === 0 && !isShortsLoading) {
-        fetchCategoryVideos('popular #shorts', setShorts, setIsShortsLoading, 'Shorts');
-      }
-      if (teluguMovies.length === 0 && !isTeluguMoviesLoading) {
-        fetchCategoryVideos('latest telugu movie trailers', setTeluguMovies, setIsTeluguMoviesLoading, 'Telugu Movies');
-      }
-      if (teluguSongs.length === 0 && !isTeluguSongsLoading) {
-        fetchCategoryVideos('trending telugu songs 2025', setTeluguSongs, setIsTeluguSongsLoading, 'Telugu Songs');
-      }
-      if (teluguShorts.length === 0 && !isTeluguShortsLoading) {
-        fetchCategoryVideos('telugu #shorts', setTeluguShorts, setIsTeluguShortsLoading, 'Telugu Shorts');
-      }
-    }
-  }, [isConnected, API_KEY, fetchCategoryVideos, movies.length, songs.length, shorts.length, isMoviesLoading, isSongsLoading, isShortsLoading, teluguMovies.length, teluguSongs.length, teluguShorts.length, isTeluguMoviesLoading, isTeluguSongsLoading, isTeluguShortsLoading]);
 
   return (
     <div className="space-y-8">
@@ -159,8 +118,8 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
                 className="pl-10 h-10 bg-background/50 border-border/50"
               />
             </div>
-            <Button 
-              onClick={handleSearch} 
+            <Button
+              onClick={handleSearch}
               disabled={!isConnected || isSearchLoading}
               size="sm"
               variant="default"
@@ -173,6 +132,62 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
               )}
             </Button>
           </div>
+
+          {/* Suggested Videos Section (Telugu Trailers & Songs) */}
+          {!query && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <div className="w-1 h-4 bg-[#FF0000] rounded-full" />
+                Latest Telugu Trailers & Songs
+              </h3>
+
+              {isSuggestedLoading ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[...Array(8)].map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="aspect-video rounded-lg bg-muted/30" />
+                      <Skeleton className="h-3 w-3/4 bg-muted/30" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {suggestedVideos.map((video) => {
+                    // Strict safety check to prevent crashes
+                    if (!video || !video.id || !video.id.videoId || !video.snippet) return null;
+
+                    return (
+                      <div
+                        key={video.id.videoId}
+                        className="group cursor-pointer space-y-2"
+                        onClick={() => onVideoSelect(video.id.videoId)}
+                      >
+                        <div className="relative aspect-video rounded-lg overflow-hidden border border-white/10 bg-black/20">
+                          <img
+                            src={video.snippet.thumbnails?.medium?.url || video.snippet.thumbnails?.default?.url || ''}
+                            alt={video.snippet.title || 'Video thumbnail'}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              // Fallback for broken images
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transform scale-50 group-hover:scale-100 transition-all duration-300">
+                              <Play className="w-5 h-5 text-white fill-white" />
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs font-medium text-foreground/90 line-clamp-2 leading-relaxed group-hover:text-primary transition-colors">
+                          {video.snippet.title || 'Untitled Video'}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Search Results */}
           {isSearchLoading && (
@@ -204,10 +219,10 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
                     onClick={() => onVideoSelect(video.id.videoId)}
                   >
                     <div className="relative overflow-hidden rounded">
-                      <img 
-                        src={video.snippet.thumbnails.medium.url} 
-                        alt={video.snippet.title} 
-                        className="w-24 h-16 object-cover" 
+                      <img
+                        src={video.snippet.thumbnails.medium.url}
+                        alt={video.snippet.title}
+                        className="w-24 h-16 object-cover"
                       />
                       <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                         <Play className="w-6 h-6 text-white" />
@@ -225,16 +240,6 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Content Categories */}
-      <div className="space-y-8">
-        <VideoCarousel title="🎬 Latest Movies & Trailers" videos={movies} onVideoSelect={onVideoSelect} isLoading={isMoviesLoading} isConnected={isConnected}/>
-        <VideoCarousel title="🎵 Trending Music" videos={songs} onVideoSelect={onVideoSelect} isLoading={isSongsLoading} isConnected={isConnected}/>
-        <VideoCarousel title="⚡ Popular Shorts" videos={shorts} onVideoSelect={onVideoSelect} isLoading={isShortsLoading} isConnected={isConnected}/>
-        <VideoCarousel title="🎭 Latest Telugu Movies" videos={teluguMovies} onVideoSelect={onVideoSelect} isLoading={isTeluguMoviesLoading} isConnected={isConnected}/>
-        <VideoCarousel title="🎶 Trending Telugu Music" videos={teluguSongs} onVideoSelect={onVideoSelect} isLoading={isTeluguSongsLoading} isConnected={isConnected}/>
-        <VideoCarousel title="⭐ Popular Telugu Shorts" videos={teluguShorts} onVideoSelect={onVideoSelect} isLoading={isTeluguShortsLoading} isConnected={isConnected}/>
       </div>
     </div>
   );

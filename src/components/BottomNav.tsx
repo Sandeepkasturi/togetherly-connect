@@ -29,10 +29,10 @@ const BottomNav = () => {
               type="button"
               onClick={() => navigate(tab.to)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-2xl text-xs font-medium transition-all", 
+                "flex flex-col items-center justify-center gap-1 px-3 py-1 rounded-2xl text-xs font-medium transition-all",
                 "text-muted-foreground hover:text-foreground",
                 isActive &&
-                  "bg-primary/10 text-primary shadow-sm shadow-primary/30 scale-[1.02]"
+                "bg-primary/10 text-primary shadow-sm shadow-primary/30 scale-[1.02]"
               )}
               aria-label={tab.label}
             >

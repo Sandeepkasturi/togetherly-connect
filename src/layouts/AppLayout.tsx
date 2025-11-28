@@ -34,6 +34,10 @@ export interface AppContextType {
   sendMessage: (content: string) => void;
   handleSendReaction: (messageId: string, emoji: string) => void;
   handleSendFile: (file: File) => void;
+  handleSendVoice: (voiceData: string, duration: number) => void;
+  handleEditMessage: (id: string, newContent: string) => void;
+  handleDeleteMessage: (id: string) => void;
+  clearChat: () => void;
   selectedVideoId: string;
   handleVideoSelect: (videoId: string) => void;
   playerSyncData: DataType | null;
@@ -50,7 +54,7 @@ const AppLayout = () => {
   const { nickname } = useUser();
   const navigate = useNavigate();
   const location = useLocation();
-  const { 
+  const {
     peerId, connectToPeer, sendData, data, isConnected, conn,
     localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia,
     screenStream, remoteScreenStream, isScreenSharing, startScreenShare, stopScreenShare,
@@ -59,10 +63,10 @@ const AppLayout = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
   const [remoteNickname, setRemoteNickname] = useState('Friend');
-  const [incomingPeerInfo, setIncomingPeerInfo] = useState<{nickname: string, peerId: string} | null>(null);
+  const [incomingPeerInfo, setIncomingPeerInfo] = useState<{ nickname: string, peerId: string } | null>(null);
   const { toast } = useToast();
   const { setSendDataRef, handleReceivedPlaylist } = usePlaylist();
-  
+
   // Splash screen states
   const [showSplashScreen, setShowSplashScreen] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -88,7 +92,7 @@ const AppLayout = () => {
       setIsConnecting(true);
       connectToPeer(peerIdToConnect, { nickname });
       localStorage.removeItem('peerIdToConnect');
-      
+
       // Show splash for 5 seconds while connecting
       setTimeout(() => {
         setIsConnecting(false);
@@ -114,42 +118,42 @@ const AppLayout = () => {
 
   useEffect(() => {
     if (data) {
-        if (data.type === 'chat') {
-          const newMessage: Message = { ...data.payload, sender: 'them', messageType: 'text' };
-          setMessages((prev) => [...prev, newMessage]);
-          
-          // Enhanced notification system: notify whenever user is away from Chat tab
-          if (newMessage.nickname && location.pathname !== '/chat') {
-            const isWatchingIntently = document.fullscreenElement || document.hidden === false;
-            
-            if (isWatchingIntently) {
-              sonnerToast.message(`💬 ${newMessage.nickname}` , {
-                description: newMessage.content,
-                duration: 4000,
-                action: {
-                  label: "Reply",
-                  onClick: () => {
-                    const chatInput = document.querySelector('input[placeholder*="Message"]') as HTMLInputElement | null;
-                    if (chatInput) {
-                      chatInput.focus();
-                    }
+      if (data.type === 'chat') {
+        const newMessage: Message = { ...data.payload, sender: 'them', messageType: 'text' };
+        setMessages((prev) => [...prev, newMessage]);
+
+        // Enhanced notification system: notify whenever user is away from Chat tab
+        if (newMessage.nickname && location.pathname !== '/chat') {
+          const isWatchingIntently = document.fullscreenElement || document.hidden === false;
+
+          if (isWatchingIntently) {
+            sonnerToast.message(`💬 ${newMessage.nickname}`, {
+              description: newMessage.content,
+              duration: 4000,
+              action: {
+                label: "Reply",
+                onClick: () => {
+                  const chatInput = document.querySelector('input[placeholder*="Message"]') as HTMLInputElement | null;
+                  if (chatInput) {
+                    chatInput.focus();
                   }
                 }
-              });
-            }
-
-            // Try to trigger native notification if supported
-            if (typeof window !== 'undefined' && 'Notification' in window) {
-              if (Notification.permission === 'granted') {
-                new Notification(`New message from ${newMessage.nickname}`, {
-                  body: newMessage.content,
-                });
-              } else if (Notification.permission === 'default') {
-                Notification.requestPermission();
               }
+            });
+          }
+
+          // Try to trigger native notification if supported
+          if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission === 'granted') {
+              new Notification(`New message from ${newMessage.nickname}`, {
+                body: newMessage.content,
+              });
+            } else if (Notification.permission === 'default') {
+              Notification.requestPermission();
             }
           }
-        } else if (data.type === 'file') {
+        }
+      } else if (data.type === 'file') {
         const fileMessage: Message = {
           id: data.payload.id,
           sender: 'them',
@@ -163,7 +167,7 @@ const AppLayout = () => {
           fileData: data.payload.fileData,
         };
         setMessages(prev => [...prev, fileMessage]);
-        
+
         // File sharing notification
         if (data.payload.nickname) {
           sonnerToast.success(`📎 File from ${data.payload.nickname}`, {
@@ -175,10 +179,10 @@ const AppLayout = () => {
         setSelectedVideoId(data.payload);
         navigate('/theater');
       } else if (data.type === 'system') {
-        const systemMessage: Message = { 
-          id: Date.now().toString(), 
-          content: data.payload, 
-          sender: 'system', 
+        const systemMessage: Message = {
+          id: Date.now().toString(),
+          content: data.payload,
+          sender: 'system',
           timestamp: new Date().toLocaleTimeString(),
           messageType: 'system'
         };
@@ -189,18 +193,18 @@ const AppLayout = () => {
           const messageContent = isFirstTime
             ? `${data.payload} has joined the room.`
             : `${remoteNickname} changed their name to ${data.payload}.`;
-          
+
           setRemoteNickname(data.payload);
-          
-          const systemMessage: Message = { 
-            id: Date.now().toString(), 
-            content: messageContent, 
-            sender: 'system', 
+
+          const systemMessage: Message = {
+            id: Date.now().toString(),
+            content: messageContent,
+            sender: 'system',
             timestamp: new Date().toLocaleTimeString(),
             messageType: 'system'
           };
           setMessages((prev) => [...prev, systemMessage]);
-          
+
           // Connection notification
           if (isFirstTime) {
             sonnerToast.success(`🎉 ${data.payload} joined!`, {
@@ -216,7 +220,7 @@ const AppLayout = () => {
               const reaction = data.payload.reaction;
               const alreadyReacted = msg.reactions?.some(r => r.emoji === reaction.emoji && r.by === reaction.by);
               if (alreadyReacted) return msg;
-              
+
               const newReactions = [...(msg.reactions || []), reaction];
               return { ...msg, reactions: newReactions };
             }
@@ -245,6 +249,91 @@ const AppLayout = () => {
           messageType: 'system'
         };
         setMessages(prev => [...prev, systemMessage]);
+      } else if (data.type === 'voice') {
+        const voiceMessage: Message = {
+          id: data.payload.id,
+          sender: 'them',
+          messageType: 'voice',
+          content: 'Voice Message',
+          timestamp: data.payload.timestamp,
+          nickname: data.payload.nickname,
+          voiceData: data.payload.voiceData,
+          voiceDuration: data.payload.duration,
+        };
+        setMessages(prev => [...prev, voiceMessage]);
+      } else if (data.type === 'edit_message') {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === data.payload.id ? { ...msg, content: data.payload.newContent, isEdited: true } : msg
+          )
+        );
+      } else if (data.type === 'delete_message') {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === data.payload.id ? { ...msg, isDeleted: true, content: 'This message was deleted' } : msg
+          )
+        );
+      } else if (data.type === 'clear_chat') {
+        setMessages([]);
+        sonnerToast.info("Chat cleared by peer");
+      } else if (data.type === 'file_start') {
+        setIncomingFiles(prev => ({
+          ...prev,
+          [data.payload.id]: {
+            fileName: data.payload.fileName,
+            fileType: data.payload.fileType,
+            fileSize: data.payload.fileSize,
+            totalChunks: data.payload.totalChunks,
+            chunks: new Array(data.payload.totalChunks).fill(null),
+            receivedChunks: 0,
+            timestamp: data.payload.timestamp,
+            nickname: data.payload.nickname,
+            isVoice: data.payload.isVoice,
+            duration: data.payload.duration,
+          }
+        }));
+      } else if (data.type === 'file_chunk') {
+        setIncomingFiles(prev => {
+          const fileState = prev[data.payload.id];
+          if (!fileState) return prev; // Should not happen if start received first
+
+          const newChunks = [...fileState.chunks];
+          newChunks[data.payload.chunkIndex] = data.payload.chunk;
+          const newReceivedCount = fileState.receivedChunks + 1;
+
+          if (newReceivedCount === fileState.totalChunks) {
+            // File complete
+            const fullData = newChunks.join('');
+            const newMessage: Message = {
+              id: data.payload.id,
+              sender: 'them',
+              messageType: fileState.isVoice ? 'voice' : 'file',
+              content: fileState.isVoice ? 'Voice Message' : fileState.fileName,
+              timestamp: fileState.timestamp,
+              nickname: fileState.nickname,
+              fileName: fileState.fileName,
+              fileType: fileState.fileType,
+              fileSize: fileState.fileSize,
+              fileData: fileState.isVoice ? undefined : fullData,
+              voiceData: fileState.isVoice ? fullData : undefined,
+              voiceDuration: fileState.duration,
+            };
+            setMessages(prevMsgs => [...prevMsgs, newMessage]);
+
+            // Clean up
+            const { [data.payload.id]: _, ...rest } = prev;
+            return rest;
+          }
+
+          return {
+            ...prev,
+            [data.payload.id]: {
+              ...fileState,
+              chunks: newChunks,
+              receivedChunks: newReceivedCount,
+            }
+          };
+        });
       }
     }
   }, [data, remoteNickname, location.pathname]);
@@ -257,7 +346,7 @@ const AppLayout = () => {
     if (data?.type === 'playlist_share') {
       const { playlist, sharedBy } = data.payload;
       handleReceivedPlaylist(playlist, sharedBy);
-      
+
       const systemMessage: Message = {
         id: nanoid(),
         sender: 'system',
@@ -273,7 +362,7 @@ const AppLayout = () => {
   const handleConnectToPeer = useCallback((id: string, metadata: { nickname: string }) => {
     setIsConnecting(true);
     connectToPeer(id, metadata);
-    
+
     // Show splash for 5 seconds while connecting
     setTimeout(() => {
       setIsConnecting(false);
@@ -293,12 +382,138 @@ const AppLayout = () => {
     setMessages((prev) => [...prev, { ...message, sender: 'me' }]);
   };
 
+  // State for file chunk reassembly
+  const [incomingFiles, setIncomingFiles] = useState<{
+    [id: string]: {
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      totalChunks: number;
+      chunks: string[];
+      receivedChunks: number;
+      timestamp: string;
+      nickname?: string;
+      isVoice?: boolean;
+      duration?: number;
+    }
+  }>({});
+
+  const sendFileChunks = async (
+    id: string,
+    data: string, // base64 string
+    metadata: {
+      fileName: string;
+      fileType: string;
+      fileSize: number;
+      timestamp: string;
+      nickname: string;
+      isVoice?: boolean;
+      duration?: number;
+    }
+  ) => {
+    const CHUNK_SIZE = 16 * 1024; // 16KB chunks
+    const totalChunks = Math.ceil(data.length / CHUNK_SIZE);
+
+    // Send start message
+    sendData({
+      type: 'file_start',
+      payload: {
+        id,
+        fileName: metadata.fileName,
+        fileType: metadata.fileType,
+        fileSize: metadata.fileSize,
+        totalChunks,
+        timestamp: metadata.timestamp,
+        nickname: metadata.nickname,
+        isVoice: metadata.isVoice,
+        duration: metadata.duration,
+      },
+    });
+
+    // Send chunks
+    for (let i = 0; i < totalChunks; i++) {
+      const chunk = data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      sendData({
+        type: 'file_chunk',
+        payload: {
+          id,
+          chunkIndex: i,
+          chunk,
+        },
+      });
+      // Small delay to prevent flooding the channel
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+  };
+
+  const handleSendVoice = (voiceData: string, duration: number) => {
+    if (!nickname) return;
+    const messageId = Date.now().toString();
+    const timestamp = new Date().toLocaleTimeString();
+
+    sendFileChunks(messageId, voiceData, {
+      fileName: 'Voice Message',
+      fileType: 'audio/webm',
+      fileSize: voiceData.length,
+      timestamp,
+      nickname,
+      isVoice: true,
+      duration,
+    });
+
+    const voiceMessage: Message = {
+      id: messageId,
+      sender: 'me',
+      messageType: 'voice',
+      content: 'Voice Message',
+      timestamp,
+      nickname,
+      voiceData,
+      voiceDuration: duration,
+    };
+    setMessages((prev) => [...prev, voiceMessage]);
+  };
+
+  const handleEditMessage = (id: string, newContent: string) => {
+    const dataToSend: DataType = {
+      type: 'edit_message',
+      payload: { id, newContent },
+    };
+    sendData(dataToSend);
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === id ? { ...msg, content: newContent, isEdited: true } : msg
+      )
+    );
+  };
+
+  const handleDeleteMessage = (id: string) => {
+    const dataToSend: DataType = {
+      type: 'delete_message',
+      payload: { id },
+    };
+    sendData(dataToSend);
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === id ? { ...msg, isDeleted: true, content: 'This message was deleted' } : msg
+      )
+    );
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    const dataToSend: DataType = { type: 'clear_chat', payload: null };
+    sendData(dataToSend);
+  };
+
   const handleSendFile = (file: File) => {
     if (!nickname) return;
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 50 * 1024 * 1024) { // 50MB limit
       toast({
         title: "File is too large",
-        description: "Please select a file smaller than 5MB.",
+        description: "Please select a file smaller than 50MB.",
         variant: "destructive",
       });
       return;
@@ -310,19 +525,13 @@ const AppLayout = () => {
       const fileData = reader.result as string;
       const messageId = Date.now().toString();
 
-      const dataToSend: DataType = {
-        type: 'file',
-        payload: {
-          id: messageId,
-          fileName: file.name,
-          fileType: file.type,
-          fileSize: file.size,
-          fileData,
-          timestamp: new Date().toLocaleTimeString(),
-          nickname,
-        },
-      };
-      sendData(dataToSend);
+      sendFileChunks(messageId, fileData, {
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        timestamp: new Date().toLocaleTimeString(),
+        nickname,
+      });
 
       const fileMessage: Message = {
         id: messageId,
@@ -346,13 +555,13 @@ const AppLayout = () => {
     sendData(dataToSend);
     navigate('/theater');
   };
-  
+
   const handleSendReaction = (messageId: string, emoji: string) => {
     if (!nickname) return;
-    
+
     const message = messages.find(m => m.id === messageId);
     const alreadyReacted = message?.reactions?.some(r => r.emoji === emoji && r.by === nickname);
-    if(alreadyReacted) return;
+    if (alreadyReacted) return;
 
     const reaction: Reaction = { emoji, by: nickname };
     const dataToSend: DataType = { type: 'reaction', payload: { messageId, reaction } };
@@ -372,8 +581,8 @@ const AppLayout = () => {
   if (!nickname) {
     return null;
   }
-  
-  const playerSyncData = data?.type === 'player_state' ? data : null;
+
+  const playerSyncData = (data?.type === 'player_state' || data?.type === 'request_sync') ? data : null;
   const browserSyncData = data?.type === 'browser_sync' ? data : null;
 
   const context: AppContextType = {
@@ -389,6 +598,10 @@ const AppLayout = () => {
     sendMessage: handleSendMessage,
     handleSendReaction,
     handleSendFile,
+    handleSendVoice,
+    handleEditMessage,
+    handleDeleteMessage,
+    clearChat,
     selectedVideoId,
     handleVideoSelect,
     playerSyncData,
@@ -404,9 +617,16 @@ const AppLayout = () => {
   return (
     <>
       <SplashScreen isVisible={showSplashScreen || isConnecting} />
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <div className="min-h-screen bg-transparent text-foreground flex flex-col relative overflow-hidden">
+        {/* Animated Background Orbs */}
+        <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] animate-float" />
+          <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] animate-float" style={{ animationDelay: '2s' }} />
+          <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-pink-600/10 rounded-full blur-[100px] animate-float" style={{ animationDelay: '4s' }} />
+        </div>
+
         <AppHeader />
-        <main className="flex-grow">
+        <main className="flex-grow relative z-10">
           <Outlet context={context} />
         </main>
         <BottomNav />
@@ -419,7 +639,7 @@ const AppLayout = () => {
           remoteNickname={remoteNickname}
         />
         <AlertDialog open={!!incomingConn}>
-          <AlertDialogContent>
+          <AlertDialogContent className="glass-panel">
             <AlertDialogHeader>
               <AlertDialogTitle>Incoming Connection Request</AlertDialogTitle>
               <AlertDialogDescription>
@@ -427,8 +647,8 @@ const AppLayout = () => {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={rejectConnection}>Reject</AlertDialogCancel>
-              <AlertDialogAction onClick={acceptConnection}>Accept</AlertDialogAction>
+              <AlertDialogCancel onClick={rejectConnection} className="glass-panel hover:bg-white/10">Reject</AlertDialogCancel>
+              <AlertDialogAction onClick={acceptConnection} className="bg-primary hover:bg-primary/90">Accept</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

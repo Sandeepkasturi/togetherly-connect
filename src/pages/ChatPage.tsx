@@ -13,6 +13,10 @@ const ChatPage = () => {
         isConnected={context.isConnected}
         handleSendReaction={context.handleSendReaction}
         handleSendFile={context.handleSendFile}
+        handleSendVoice={context.handleSendVoice}
+        handleEditMessage={context.handleEditMessage}
+        handleDeleteMessage={context.handleDeleteMessage}
+        clearChat={context.clearChat}
       />
     </div>
   );

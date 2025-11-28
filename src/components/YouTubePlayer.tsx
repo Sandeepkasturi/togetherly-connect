@@ -101,45 +101,79 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
 
   // Handle incoming peer data to sync players
   useEffect(() => {
-    if (!playerRef.current || !isPlayerReady || !playerData || playerData.type !== 'player_state' || !isConnected) {
+    if (!playerRef.current || !isPlayerReady || !playerData || !isConnected) {
       return;
     }
 
-    isUpdatingFromPeer.current = true;
-    
-    const { event, currentTime } = playerData.payload;
-    const player = playerRef.current;
-    
-    // Defensive check for player methods
-    if (typeof player.getCurrentTime !== 'function' || typeof player.getPlayerState !== 'function') {
-      isUpdatingFromPeer.current = false;
+    // Handle Sync Request from Peer
+    if (playerData.type === 'request_sync') {
+      const player = playerRef.current;
+      if (typeof player.getCurrentTime === 'function' && typeof player.getPlayerState === 'function') {
+        const currentTime = player.getCurrentTime();
+        const state = player.getPlayerState();
+        // Only send state if playing (1) or paused (2)
+        if (state === 1 || state === 2) {
+          sendData({
+            type: 'player_state',
+            payload: {
+              event: state === 1 ? 'play' : 'pause',
+              currentTime: currentTime,
+            },
+          });
+        }
+      }
       return;
     }
-    
-    if (event === 'play') {
-      const clientTime = player.getCurrentTime();
-      if (Math.abs(clientTime - currentTime) > 1.5) {
-        player.seekTo(currentTime, true);
+
+    // Handle Player State Update from Peer
+    if (playerData.type === 'player_state') {
+      isUpdatingFromPeer.current = true;
+
+      const { event, currentTime } = playerData.payload;
+      const player = playerRef.current;
+
+      // Defensive check for player methods
+      if (typeof player.getCurrentTime !== 'function' || typeof player.getPlayerState !== 'function') {
+        isUpdatingFromPeer.current = false;
+        return;
       }
-      // seekTo might start playback, but playVideo() ensures it.
-      if (player.getPlayerState() !== 1) { 
-        player.playVideo();
+
+      if (event === 'play') {
+        const clientTime = player.getCurrentTime();
+        if (Math.abs(clientTime - currentTime) > 1.5) {
+          player.seekTo(currentTime, true);
+        }
+        // seekTo might start playback, but playVideo() ensures it.
+        if (player.getPlayerState() !== 1) {
+          player.playVideo();
+        }
+      } else if (event === 'pause') {
+        // It's safer to pause first, then seek.
+        if (player.getPlayerState() !== 2) {
+          player.pauseVideo();
+        }
+        const clientTime = player.getCurrentTime();
+        if (Math.abs(clientTime - currentTime) > 1.5) {
+          player.seekTo(currentTime, true);
+        }
       }
-    } else if (event === 'pause') {
-      // It's safer to pause first, then seek.
-      if (player.getPlayerState() !== 2) {
-        player.pauseVideo();
-      }
-      const clientTime = player.getCurrentTime();
-      if (Math.abs(clientTime - currentTime) > 1.5) {
-        player.seekTo(currentTime, true);
-      }
+
+      // Increased timeout to allow player state to settle
+      setTimeout(() => { isUpdatingFromPeer.current = false; }, 300);
     }
 
-    // Increased timeout to allow player state to settle
-    setTimeout(() => { isUpdatingFromPeer.current = false; }, 300);
+  }, [playerData, isConnected, isPlayerReady, sendData]);
 
-  }, [playerData, isConnected, isPlayerReady]);
+  // Request sync when player becomes ready and connected
+  useEffect(() => {
+    if (isConnected && isPlayerReady) {
+      // Small delay to ensure everything is stable
+      const timer = setTimeout(() => {
+        sendData({ type: 'request_sync', payload: null });
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isConnected, isPlayerReady, sendData]);
 
   if (!videoId) {
     return (
@@ -171,7 +205,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
       className="aspect-video w-full relative overflow-hidden rounded-xl"
     >
       <div id="youtube-player" className="w-full h-full rounded-xl" />
-      
+
       {/* Connection status indicator */}
       {isConnected && (
         <motion.div

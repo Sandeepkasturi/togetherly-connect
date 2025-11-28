@@ -35,7 +35,7 @@ const AppHeader = () => {
         Dashboard
       </NavLink>
       <NavLink to="/watch" className={navLinkClass} onClick={() => setIsOpen(false)}>
-         <Tv className="h-4 w-4" />
+        <Tv className="h-4 w-4" />
         Watch
       </NavLink>
       <NavLink to="/browser" className={navLinkClass} onClick={() => setIsOpen(false)}>
@@ -50,7 +50,7 @@ const AppHeader = () => {
   );
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-40 w-full glass-ios">
       <div className="container flex h-14 items-center px-4">
         {/* Logo */}
         <div className="mr-4 flex items-center">
@@ -72,7 +72,7 @@ const AppHeader = () => {
           <span className="text-sm font-medium text-muted-foreground hidden sm:inline truncate max-w-32">
             Hi, {nickname}
           </span>
-          
+
           {/* Desktop Logout */}
           <Button variant="ghost" size="icon" onClick={handleLogout} className="hidden md:flex">
             <LogOut className="h-4 w-4" />
@@ -93,8 +93,8 @@ const AppHeader = () => {
                 <nav className="flex flex-col space-y-2">
                   <NavItems />
                 </nav>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={handleLogout}
                   className="w-full justify-start mt-4"
                 >
