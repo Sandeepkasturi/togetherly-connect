@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5QrcodeScanType } from 'html5-qrcode';
 
 interface QRScannerProps {
   onScan: (peerId: string) => void;
@@ -16,10 +16,12 @@ const QRScanner = ({ onScan, onClose }: QRScannerProps) => {
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
       'qr-reader',
-      { 
+      {
         fps: 10,
         qrbox: { width: 250, height: 250 },
         aspectRatio: 1.0,
+        rememberLastUsedCamera: true,
+        supportedScanTypes: [Html5QrcodeScanType.SCAN_TYPE_CAMERA],
       },
       false
     );
