@@ -46,10 +46,9 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
 
   const { toast } = useToast();
 
-  // I've added your API key here to get it working.
-  // IMPORTANT: For security, it's best to use a .env.local file for your API key instead of hardcoding it.
-  const API_KEY = "AIzaSyCFU4OekJXflsSqf5eorVjQoZ6ZyruK5gE";
-  const API_KEY_ERROR_MESSAGE = 'The provided YouTube API key might be invalid or has exceeded its daily quota.';
+  // YouTube Data API key (public). Prefer setting VITE_YOUTUBE_API_KEY in your environment.
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyAr3EMELBanXSHbYpa0SkrjR4RZORRwElg';
+  const API_KEY_ERROR_MESSAGE = 'YouTube API key is invalid, restricted, or has exceeded its daily quota. Please check referrer settings.';
 
   const handleSearch = async () => {
     if (!API_KEY) {
