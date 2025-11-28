@@ -15,9 +15,10 @@ interface YouTubePlayerProps {
   sendData: (data: DataType) => void;
   playerData: DataType | null;
   isConnected: boolean;
+  playerId?: string;
 }
 
-const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePlayerProps) => {
+const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 'youtube-player' }: YouTubePlayerProps) => {
   const playerRef = useRef<any>(null);
   const isUpdatingFromPeer = useRef(false);
   const [isApiReady, setIsApiReady] = useState(!!(window.YT && window.YT.Player));
@@ -75,7 +76,11 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
 
     setIsPlayerReady(false);
 
-    const player = new window.YT.Player('youtube-player', {
+    // Ensure element exists before initializing
+    const element = document.getElementById(playerId);
+    if (!element) return;
+
+    const player = new window.YT.Player(playerId, {
       videoId,
       playerVars: {
         'playsinline': 1,
@@ -97,7 +102,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
         playerRef.current = null;
       }
     };
-  }, [isApiReady, videoId]);
+  }, [isApiReady, videoId, playerId]);
 
   // Handle incoming peer data to sync players
   useEffect(() => {
@@ -204,7 +209,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected }: YouTubePl
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="aspect-video w-full relative overflow-hidden rounded-xl"
     >
-      <div id="youtube-player" className="w-full h-full rounded-xl" />
+      <div id={playerId} className="w-full h-full rounded-xl" />
 
       {/* Connection status indicator */}
       {isConnected && (

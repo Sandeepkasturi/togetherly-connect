@@ -154,7 +154,9 @@ export const usePeer = () => {
   const [data, setData] = useState<DataType | null>(null);
   const peerInstance = useRef<Peer | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'failed'>('disconnected');
+  const [connectionState, setConnectionState] = useState<'disconnected' | 'connecting' | 'connected' | 'failed' | 'reconnecting'>('disconnected');
+  const isReconnecting = useRef(false);
+  const reconnectAttempts = useRef(0);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -282,14 +284,46 @@ export const usePeer = () => {
 
   // Manual reconnect function
   const onManualReconnect = useCallback(() => {
+    if (isReconnecting.current) return;
+
     if (peerInstance.current && !peerInstance.current.destroyed) {
       console.log('Manual reconnect triggered');
+      isReconnecting.current = true;
+      setConnectionState('reconnecting');
+      setData({ type: 'system', payload: 'Reconnecting...' });
+
       peerInstance.current.reconnect();
+
+      // Reset flag after a delay
+      setTimeout(() => {
+        isReconnecting.current = false;
+      }, 5000);
     } else {
       // Reinitialize peer if it's destroyed
       window.location.reload();
     }
   }, []);
+
+  // Handle page visibility changes for aggressive reconnection
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ Page became visible');
+
+        // Check connection health
+        if (conn && !conn.open) {
+          console.log('👁️ Connection found closed on visibility change, reconnecting...');
+          onManualReconnect();
+        } else if (peerInstance.current && peerInstance.current.disconnected) {
+          console.log('👁️ Peer found disconnected on visibility change, reconnecting...');
+          peerInstance.current.reconnect();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [conn, onManualReconnect]);
 
   useEffect(() => {
     const initializePeer = async () => {
@@ -406,29 +440,24 @@ export const usePeer = () => {
             if (!peerInitialized) return;
 
             console.log('Peer disconnected, attempting to reconnect...');
+            setConnectionState('reconnecting');
             setData({ type: 'system', payload: 'Connection lost, reconnecting...' });
 
             // Attempt to reconnect with exponential backoff
-            attempts = 0;
-            const maxAttempts = 3;
-            const reconnectWithBackoff = () => {
-              if (attempts < maxAttempts && !newPeer.destroyed) {
-                attempts++;
-                const delay = Math.min(1000 * Math.pow(2, attempts), 10000);
-                setTimeout(() => {
-                  console.log(`Reconnection attempt ${attempts}/${maxAttempts}`);
-                  try {
-                    newPeer.reconnect();
-                  } catch (error) {
-                    console.error('Reconnection failed:', error);
-                    if (attempts >= maxAttempts) {
-                      setData({ type: 'system', payload: 'Reconnection failed. Please refresh the page.' });
-                    }
-                  }
-                }, delay);
-              }
-            };
-            reconnectWithBackoff();
+            if (reconnectAttempts.current < 5) {
+              reconnectAttempts.current++;
+              const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 10000);
+
+              setTimeout(() => {
+                if (!newPeer.destroyed) {
+                  console.log(`Reconnection attempt ${reconnectAttempts.current}`);
+                  newPeer.reconnect();
+                }
+              }, delay);
+            } else {
+              setConnectionState('failed');
+              setData({ type: 'system', payload: 'Connection lost. Please refresh or try reconnecting manually.' });
+            }
           });
 
           // ... keep existing code for connection and call handlers
@@ -586,16 +615,19 @@ export const usePeer = () => {
 
   const sendData = useCallback((data: DataType) => {
     if (conn && conn.open) {
-      console.log('Sending data:', data);
+      // console.log('Sending data:', data); // Reduce log noise
       try {
         conn.send(data);
       } catch (error) {
         console.error('Failed to send data:', error);
         setData({ type: 'system', payload: 'Failed to send message. Connection may be unstable.' });
+        // Try to reconnect if send fails
+        onManualReconnect();
       }
     } else {
       console.log('Connection not ready, data will be queued');
       if (conn) {
+        // Only queue if connection exists but maybe temporarily closed
         const openHandler = () => {
           try {
             conn.send(data);
@@ -604,10 +636,19 @@ export const usePeer = () => {
             console.error('Failed to send queued data:', error);
           }
         };
-        conn.on('open', openHandler);
+        // Add a timeout to the queue
+        const queueTimeout = setTimeout(() => {
+          conn.off('open', openHandler);
+          console.log('Queued message timed out');
+        }, 5000);
+
+        conn.on('open', () => {
+          clearTimeout(queueTimeout);
+          openHandler();
+        });
       }
     }
-  }, [conn]);
+  }, [conn, onManualReconnect]);
 
   const startCall = useCallback((type: 'audio' | 'video') => {
     if (!peer || !conn) return;

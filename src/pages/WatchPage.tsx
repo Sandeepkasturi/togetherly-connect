@@ -88,6 +88,7 @@ const WatchPage = () => {
                   playerData={context.playerSyncData}
                   isConnected={context.isConnected}
                   onPlayingStateChange={handleVideoPlayingChange}
+                  playerId="youtube-player-watch-mobile"
                 />
               </motion.div>
             ) : (
@@ -180,6 +181,7 @@ const WatchPage = () => {
                       playerData={context.playerSyncData}
                       isConnected={context.isConnected}
                       onPlayingStateChange={handleVideoPlayingChange}
+                      playerId="youtube-player-watch-desktop"
                     />
                   </div>
                 </motion.div>
