@@ -36,7 +36,7 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
   const { toast } = useToast();
 
   // YouTube Data API key
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyBdwv6_xRC5o-f1UOcg-GChuTb1ESSlk-s';
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyDBTmWEgfR60JAkBw7MoYmQlKe9VT5z12Q';
   const API_KEY_ERROR_MESSAGE = 'YouTube API key is invalid, restricted, or has exceeded its daily quota. Please check referrer settings.';
 
   useEffect(() => {
@@ -49,14 +49,14 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
     try {
       // Fetch more results to pick random ones
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=Latest+Telugu+movie+trailers+songs&key=${API_KEY}&type=video&order=date&maxResults=20&videoEmbeddable=true`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=Latest+Telugu+movie+trailers+songs&key=${API_KEY}&type=video&order=date&maxResults=5&videoEmbeddable=true`
       );
       if (!response.ok) throw new Error('Failed to fetch suggested videos');
       const data = await response.json();
 
       // Pick 8 random videos
       const shuffled = data.items ? data.items.sort(() => 0.5 - Math.random()) : [];
-      setSuggestedVideos(shuffled.slice(0, 8));
+      setSuggestedVideos(shuffled.slice(0, 3));
     } catch (error) {
       console.error('Error fetching suggested videos:', error);
     } finally {
@@ -74,7 +74,7 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
     setResults([]);
     try {
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&key=${API_KEY}&type=video&maxResults=5`
+        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&key=${API_KEY}&type=video&maxResults=4`
       );
       if (!response.ok) {
         const errorData = await response.json();
