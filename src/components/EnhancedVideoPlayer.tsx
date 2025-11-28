@@ -10,9 +10,10 @@ interface EnhancedVideoPlayerProps {
   playerData: DataType | null;
   isConnected: boolean;
   onPlayingStateChange?: (isPlaying: boolean) => void;
+  playerId?: string;
 }
 
-const EnhancedVideoPlayer = ({ videoId, sendData, playerData, isConnected, onPlayingStateChange }: EnhancedVideoPlayerProps) => {
+const EnhancedVideoPlayer = ({ videoId, sendData, playerData, isConnected, onPlayingStateChange, playerId }: EnhancedVideoPlayerProps) => {
   const [isRotated, setIsRotated] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -54,6 +55,7 @@ const EnhancedVideoPlayer = ({ videoId, sendData, playerData, isConnected, onPla
         sendData={sendData}
         playerData={playerData}
         isConnected={isConnected}
+        playerId={playerId}
       />
     </motion.div>
   );

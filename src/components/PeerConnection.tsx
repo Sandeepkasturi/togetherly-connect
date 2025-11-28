@@ -25,18 +25,18 @@ interface PeerConnectionProps {
   sendData: (data: DataType) => void;
   startCall: (type: 'audio' | 'video') => void;
   isCallActive: boolean;
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed';
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed' | 'reconnecting';
   onManualReconnect: () => void;
 }
 
-const PeerConnection = ({ 
-  peerId, 
-  connectToPeer, 
-  isConnected, 
-  myNickname, 
-  remoteNickname, 
-  sendData, 
-  startCall, 
+const PeerConnection = ({
+  peerId,
+  connectToPeer,
+  isConnected,
+  myNickname,
+  remoteNickname,
+  sendData,
+  startCall,
   isCallActive,
   connectionState,
   onManualReconnect
@@ -128,7 +128,7 @@ const PeerConnection = ({
     setIsEditingNickname(false);
     toast({ title: 'Success', description: 'Your nickname has been updated.' });
   };
-  
+
   const handleCancelEdit = () => {
     setNewNickname(myNickname);
     setIsEditingNickname(false);
@@ -166,12 +166,12 @@ const PeerConnection = ({
   return (
     <>
       {isQRScannerOpen && (
-        <QRScanner 
+        <QRScanner
           onScan={handleQRScan}
           onClose={() => setIsQRScannerOpen(false)}
         />
       )}
-      
+
       <div className="p-4 bg-card/50 rounded-xl border border-border/50 backdrop-blur-xl">
         <div className="space-y-5">
           <div className="flex items-center gap-3">
@@ -182,7 +182,7 @@ const PeerConnection = ({
               Connection Hub
             </h2>
           </div>
-          
+
           <div className="p-4 rounded-lg bg-background/30 border border-border/30">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
@@ -200,9 +200,9 @@ const PeerConnection = ({
                 </div>
               ) : (
                 <div className="flex items-center gap-2 w-full">
-                  <Input 
-                    value={newNickname} 
-                    onChange={(e) => setNewNickname(e.target.value)} 
+                  <Input
+                    value={newNickname}
+                    onChange={(e) => setNewNickname(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleNicknameChange()}
                     className="h-9 bg-background/50"
                     placeholder="New nickname"
@@ -217,7 +217,7 @@ const PeerConnection = ({
               )}
             </div>
           </div>
-          
+
           <div className="space-y-3">
             <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
               <div className="flex items-center gap-2 mb-2">
@@ -225,10 +225,10 @@ const PeerConnection = ({
                 <p className="text-xs font-medium text-primary">Your Connection ID</p>
               </div>
               <div className="flex items-center gap-2">
-                <Input 
-                  value={peerId || 'Generating...'} 
-                  readOnly 
-                  className="bg-background/30 border-primary/30 font-mono text-sm" 
+                <Input
+                  value={peerId || 'Generating...'}
+                  readOnly
+                  className="bg-background/30 border-primary/30 font-mono text-sm"
                   placeholder="Generating Peer ID..."
                 />
                 <Button variant="outline" size="icon" onClick={handleCopyToClipboard} disabled={!peerId} className="flex-shrink-0">
@@ -246,7 +246,7 @@ const PeerConnection = ({
               )}
             </div>
           </div>
-          
+
           {!isConnected && (
             <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
               <div className="flex items-center gap-2 mb-3">
@@ -261,8 +261,8 @@ const PeerConnection = ({
                     onChange={(e) => setRemoteId(e.target.value)}
                     className="bg-background/30 border-accent/30 font-mono text-sm"
                   />
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="icon"
                     onClick={() => setIsQRScannerOpen(true)}
                     className="flex-shrink-0 h-10 w-10"
@@ -271,19 +271,19 @@ const PeerConnection = ({
                     <QrCode className="h-4 w-4" />
                   </Button>
                 </div>
-                <Button 
-                  variant="default" 
-                  onClick={() => connectToPeer(remoteId, { nickname: myNickname })} 
+                <Button
+                  variant="default"
+                  onClick={() => connectToPeer(remoteId, { nickname: myNickname })}
                   disabled={!remoteId || !peerId}
                   className="w-full"
                 >
-                  <LinkIcon className="h-4 w-4 mr-2" /> 
+                  <LinkIcon className="h-4 w-4 mr-2" />
                   Connect
                 </Button>
               </div>
             </div>
           )}
-          
+
           {isConnected && !isCallActive && (
             <div className="p-4 rounded-lg bg-green-500/5 border border-green-500/20">
               <div className="flex items-center gap-2 mb-3">
@@ -291,16 +291,16 @@ const PeerConnection = ({
                 <p className="text-sm font-medium text-green-400">Connected - Start a Call</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  onClick={() => startCall('audio')} 
+                <Button
+                  onClick={() => startCall('audio')}
                   variant="glass"
                   className="w-full border-green-500/30 hover:bg-green-500/10"
                 >
                   <Phone className="h-4 w-4 mr-2" />
                   Audio Call
                 </Button>
-                <Button 
-                  onClick={() => startCall('video')} 
+                <Button
+                  onClick={() => startCall('video')}
                   variant="premium"
                   className="w-full"
                 >
@@ -310,15 +310,14 @@ const PeerConnection = ({
               </div>
             </div>
           )}
-          
+
           <div className="p-4 rounded-lg bg-muted/20 border border-border/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`h-3 w-3 rounded-full ${
-                  connectionState === 'connected' ? 'bg-green-500 animate-pulse' :
-                  connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                  connectionState === 'failed' ? 'bg-red-500' : 'bg-gray-500'
-                }`} />
+                <div className={`h-3 w-3 rounded-full ${connectionState === 'connected' ? 'bg-green-500 animate-pulse' :
+                    connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                      connectionState === 'failed' ? 'bg-red-500' : 'bg-gray-500'
+                  }`} />
                 <div>
                   <p className="text-sm font-medium text-foreground">
                     {getStatusText()}
@@ -375,13 +374,13 @@ const PeerConnection = ({
           </div>
           <DialogFooter className="sm:justify-start pt-4">
             <div className="flex w-full flex-col gap-2 sm:flex-row">
-               <Button asChild variant="outline" className="w-full">
+              <Button asChild variant="outline" className="w-full">
                 <a href={`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + shareUrl)}`} target="_blank" rel="noopener noreferrer">
                   <MessageCircle className="mr-2 h-4 w-4" />
                   WhatsApp
                 </a>
               </Button>
-               <Button asChild variant="outline" className="w-full">
+              <Button asChild variant="outline" className="w-full">
                 <a href={`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareText)}`} target="_blank" rel="noopener noreferrer">
                   <Send className="mr-2 h-4 w-4" />
                   Telegram

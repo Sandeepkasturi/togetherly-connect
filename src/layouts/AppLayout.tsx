@@ -42,7 +42,7 @@ export interface AppContextType {
   handleVideoSelect: (videoId: string) => void;
   playerSyncData: DataType | null;
   browserSyncData: DataType | null;
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed';
+  connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed' | 'reconnecting';
   onManualReconnect: () => void;
   isScreenSharing: boolean;
   startScreenShare: () => Promise<void>;
@@ -411,38 +411,48 @@ const AppLayout = () => {
       duration?: number;
     }
   ) => {
-    const CHUNK_SIZE = 16 * 1024; // 16KB chunks
+    // Reduced chunk size to 8KB to prevent "message too big" errors
+    const CHUNK_SIZE = 8 * 1024;
     const totalChunks = Math.ceil(data.length / CHUNK_SIZE);
 
-    // Send start message
-    sendData({
-      type: 'file_start',
-      payload: {
-        id,
-        fileName: metadata.fileName,
-        fileType: metadata.fileType,
-        fileSize: metadata.fileSize,
-        totalChunks,
-        timestamp: metadata.timestamp,
-        nickname: metadata.nickname,
-        isVoice: metadata.isVoice,
-        duration: metadata.duration,
-      },
-    });
-
-    // Send chunks
-    for (let i = 0; i < totalChunks; i++) {
-      const chunk = data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+    try {
+      // Send start message
       sendData({
-        type: 'file_chunk',
+        type: 'file_start',
         payload: {
           id,
-          chunkIndex: i,
-          chunk,
+          fileName: metadata.fileName,
+          fileType: metadata.fileType,
+          fileSize: metadata.fileSize,
+          totalChunks,
+          timestamp: metadata.timestamp,
+          nickname: metadata.nickname,
+          isVoice: metadata.isVoice,
+          duration: metadata.duration,
         },
       });
-      // Small delay to prevent flooding the channel
-      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Send chunks with increased delay
+      for (let i = 0; i < totalChunks; i++) {
+        const chunk = data.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+        sendData({
+          type: 'file_chunk',
+          payload: {
+            id,
+            chunkIndex: i,
+            chunk,
+          },
+        });
+        // Increased delay to 50ms to prevent buffer overflow and ensure stability
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    } catch (error) {
+      console.error('Error sending file chunks:', error);
+      toast({
+        title: "Transfer Failed",
+        description: "Failed to send file. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
