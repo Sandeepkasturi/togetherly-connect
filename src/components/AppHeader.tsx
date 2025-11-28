@@ -10,6 +10,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import Logo from './Logo';
 
 const AppHeader = () => {
   const { nickname, setNickname } = useUser();
@@ -55,7 +56,7 @@ const AppHeader = () => {
         {/* Logo */}
         <div className="mr-4 flex items-center">
           <NavLink to="/" className="flex items-center space-x-2">
-            <Tv className="h-6 w-6" />
+            <Logo className="h-8 w-8" />
             <span className="font-bold text-lg sm:inline-block">
               Togetherly
             </span>

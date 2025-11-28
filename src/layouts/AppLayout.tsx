@@ -626,7 +626,7 @@ const AppLayout = () => {
         </div>
 
         <AppHeader />
-        <main className="flex-grow relative z-10">
+        <main className="flex-grow relative z-10 pb-20">
           <Outlet context={context} />
         </main>
         <BottomNav />

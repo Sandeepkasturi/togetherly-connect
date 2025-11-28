@@ -14,7 +14,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
 
   return (
-    <nav className="sticky bottom-0 inset-x-0 z-30 border-t border-border/60 bg-background/80 backdrop-blur-xl">
+    <nav className="fixed bottom-0 inset-x-0 z-50 border-t border-border/60 bg-background/80 backdrop-blur-xl pb-safe">
       <div className="mx-auto max-w-xl flex items-center justify-around py-2 px-2">
         {TABS.map((tab) => {
           const isActive =

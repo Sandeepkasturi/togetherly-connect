@@ -83,7 +83,7 @@ const TheaterPage = () => {
             <ArrowLeft className="h-5 w-5 mr-2" />
             Back
           </Button>
-          
+
           <div className="flex items-center gap-2">
             {context.isConnected && (
               <div className="flex items-center gap-2 bg-green-500/20 backdrop-blur-sm border border-green-500/30 px-3 py-1.5 rounded-full">
@@ -125,8 +125,8 @@ const TheaterPage = () => {
       <div className="flex-1 overflow-y-auto">
         <div className="min-h-screen flex flex-col">
           {/* Video Player Section */}
-          <div className="flex-none h-[60vh] md:h-[80vh] bg-black flex items-center justify-center relative">
-             <motion.div
+          <div className="flex-none h-[50vh] md:h-[80vh] bg-black flex items-center justify-center relative">
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.5 }}
@@ -148,7 +148,7 @@ const TheaterPage = () => {
               <div className="flex items-center gap-2 text-primary">
                 <h2 className="text-2xl font-bold tracking-tight">Discover More</h2>
               </div>
-              <YouTubeSearch 
+              <YouTubeSearch
                 onVideoSelect={context.handleVideoSelect}
                 isConnected={context.isConnected}
               />
