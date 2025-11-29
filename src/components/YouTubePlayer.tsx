@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { DataType } from '@/hooks/usePeer';
 import { Play } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 declare global {
   interface Window {
@@ -19,6 +20,7 @@ interface YouTubePlayerProps {
 }
 
 const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 'youtube-player' }: YouTubePlayerProps) => {
+  const { toast } = useToast();
   const playerRef = useRef<any>(null);
   const isUpdatingFromPeer = useRef(false);
   const [isApiReady, setIsApiReady] = useState(!!(window.YT && window.YT.Player));
@@ -151,11 +153,21 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
         // seekTo might start playback, but playVideo() ensures it.
         if (player.getPlayerState() !== 1) {
           player.playVideo();
+          toast({
+            title: '▶️ Playing',
+            description: 'Peer resumed the video',
+            duration: 2000,
+          });
         }
       } else if (event === 'pause') {
         // It's safer to pause first, then seek.
         if (player.getPlayerState() !== 2) {
           player.pauseVideo();
+          toast({
+            title: '⏸️ Paused',
+            description: 'Peer paused the video',
+            duration: 2000,
+          });
         }
         const clientTime = player.getCurrentTime();
         if (Math.abs(clientTime - currentTime) > 1.5) {
