@@ -5,18 +5,16 @@ import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
 import { ArrowLeft, Users, MessageCircle, Search, Link as LinkIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
-import ChatNotification from '@/components/ChatNotification';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import Chat from '@/components/Chat';
 import YouTubeSearch from '@/components/YouTubeSearch';
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import Chat from "@/components/Chat";
 import PeerConnection from '@/components/PeerConnection';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from '@/components/ui/badge';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 const TheaterPage = () => {
   const context = useOutletContext<AppContextType>();
   const navigate = useNavigate();
-  const [notificationMessage, setNotificationMessage] = useState<any>(null);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
   const [unreadCount, setUnreadCount] = useState(0);
@@ -34,9 +32,6 @@ const TheaterPage = () => {
     if (lastMessage && lastMessage.sender === 'them') {
       if (activeTab !== 'chat') {
         setUnreadCount(prev => prev + 1);
-        if (isVideoPlaying) {
-          setNotificationMessage(lastMessage);
-        }
       }
     }
   }, [context.messages, isVideoPlaying, activeTab]);
@@ -45,23 +40,8 @@ const TheaterPage = () => {
   useEffect(() => {
     if (activeTab === 'chat') {
       setUnreadCount(0);
-      setNotificationMessage(null);
     }
   }, [activeTab]);
-
-  const handleOpenChat = () => {
-    setActiveTab('chat');
-    setNotificationMessage(null);
-  };
-
-  const handleDismissNotification = () => {
-    setNotificationMessage(null);
-  };
-
-  const handleQuickReply = (replyText: string) => {
-    context.sendMessage(replyText);
-    setNotificationMessage(null);
-  };
 
   const handleVideoPlayingChange = (playing: boolean) => {
     setIsVideoPlaying(playing);
@@ -77,13 +57,7 @@ const TheaterPage = () => {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      {/* Chat Notification (Global) */}
-      <ChatNotification
-        message={notificationMessage}
-        onDismiss={handleDismissNotification}
-        onOpenChat={handleOpenChat}
-        onQuickReply={handleQuickReply}
-      />
+
 
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col h-screen">
