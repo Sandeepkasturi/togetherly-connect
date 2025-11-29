@@ -3,41 +3,20 @@ import { useOutletContext } from 'react-router-dom';
 import YouTubeSearch from '@/components/YouTubeSearch';
 import { AppContextType } from '@/layouts/AppLayout';
 import { motion } from 'framer-motion';
+import { useOutletContext } from 'react-router-dom';
+import YouTubeSearch from '@/components/YouTubeSearch';
+import { AppContextType } from '@/layouts/AppLayout';
+import { motion } from 'framer-motion';
 import PeerConnection from '@/components/PeerConnection';
 import { Play, Info, Users, Tv } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useState, useEffect } from 'react';
 import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
-import ChatNotification from '@/components/ChatNotification';
 
 const WatchPage = () => {
   const context = useOutletContext<AppContextType>();
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState<any>(null);
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-
-  // Show notification for new messages when video is playing or chat is closed
-  useEffect(() => {
-    const lastMessage = context.messages[context.messages.length - 1];
-    if (lastMessage && lastMessage.sender === 'them' && (isVideoPlaying || !isChatOpen)) {
-      setNotificationMessage(lastMessage);
-    }
-  }, [context.messages, isVideoPlaying, isChatOpen]);
-
-  const handleOpenChat = () => {
-    setIsChatOpen(true);
-    setNotificationMessage(null);
-  };
-
-  const handleDismissNotification = () => {
-    setNotificationMessage(null);
-  };
-
-  const handleQuickReply = (replyText: string) => {
-    context.sendMessage(replyText);
-    setNotificationMessage(null);
-  };
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false); // Added useState for isVideoPlaying
 
   const handleVideoPlayingChange = (playing: boolean) => {
     setIsVideoPlaying(playing);
@@ -45,13 +24,7 @@ const WatchPage = () => {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Chat Notification */}
-      <ChatNotification
-        message={notificationMessage}
-        onDismiss={handleDismissNotification}
-        onOpenChat={handleOpenChat}
-        onQuickReply={handleQuickReply}
-      />
+
 
       {/* Mobile Simple Layout */}
       <div className="lg:hidden">

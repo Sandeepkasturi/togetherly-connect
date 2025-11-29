@@ -77,6 +77,19 @@ const AppLayout = () => {
     }
   }, [nickname, navigate]);
 
+  // Manage BMC Widget Visibility
+  useEffect(() => {
+    if (location.pathname === '/app') {
+      document.body.classList.add('show-bmc');
+    } else {
+      document.body.classList.remove('show-bmc');
+    }
+
+    return () => {
+      document.body.classList.remove('show-bmc');
+    };
+  }, [location.pathname]);
+
   // Show splash screen for 5 seconds on app load
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -123,7 +136,7 @@ const AppLayout = () => {
         setMessages((prev) => [...prev, newMessage]);
 
         // Enhanced notification system: notify whenever user is away from Chat tab
-        if (newMessage.nickname && location.pathname !== '/chat') {
+        if (newMessage.nickname && location.pathname !== '/chat' && location.pathname !== '/watch') {
           const isWatchingIntently = document.fullscreenElement || document.hidden === false;
 
           if (isWatchingIntently) {
