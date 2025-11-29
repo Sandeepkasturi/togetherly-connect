@@ -121,4 +121,10 @@
   .glow-primary {
     @apply shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow duration-300;
   }
+
+  /* Buy Me A Coffee Widget Customization */
+  #bmc-wbtn {
+    transform: scale(0.8) !important;
+    transform-origin: bottom right !important;
+  }
 }
