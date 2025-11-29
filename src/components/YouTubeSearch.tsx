@@ -36,7 +36,7 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
   const { toast } = useToast();
 
   // YouTube Data API key
-  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyDBTmWEgfR60JAkBw7MoYmQlKe9VT5z12Q';
+  const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyCFU4OekJXflsSqf5eorVjQoZ6ZyruK5gE';
   const API_KEY_ERROR_MESSAGE = 'YouTube API key is invalid, restricted, or has exceeded its daily quota. Please check referrer settings.';
 
   // Cache helper functions
