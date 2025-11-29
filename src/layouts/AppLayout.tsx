@@ -145,9 +145,23 @@ const AppLayout = () => {
           // Try to trigger native notification if supported
           if (typeof window !== 'undefined' && 'Notification' in window) {
             if (Notification.permission === 'granted') {
-              new Notification(`New message from ${newMessage.nickname}`, {
-                body: newMessage.content,
-              });
+              try {
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(`New message from ${newMessage.nickname}`, {
+                      body: newMessage.content,
+                      icon: '/logo.png', // Optional: Add icon if available
+                      badge: '/logo.png' // Optional: Add badge if available
+                    });
+                  });
+                } else {
+                  new Notification(`New message from ${newMessage.nickname}`, {
+                    body: newMessage.content,
+                  });
+                }
+              } catch (e) {
+                console.error("Notification failed:", e);
+              }
             } else if (Notification.permission === 'default') {
               Notification.requestPermission();
             }
