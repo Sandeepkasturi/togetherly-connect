@@ -126,5 +126,12 @@
   #bmc-wbtn {
     transform: scale(0.8) !important;
     transform-origin: bottom right !important;
+    display: none !important;
+    /* Hidden by default */
+  }
+
+  /* Only show when body has the class */
+  body.show-bmc #bmc-wbtn {
+    display: flex !important;
   }
 }
