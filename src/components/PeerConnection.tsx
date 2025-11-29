@@ -73,41 +73,60 @@ const PeerConnection = ({
     }
   }, [peerId, shareUrl, isShareModalOpen, toast]);
 
-  const handleCopyToClipboard = () => {
-    if (!peerId) {
+  // Auto-fill and connect from localStorage (Join Link Flow)
+  useEffect(() => {
+    const targetPeerId = localStorage.getItem('peerIdToConnect');
+    if (targetPeerId && peerId) {
+      setRemoteId(targetPeerId);
+      // Optional: Auto-connect
+      // connectToPeer(targetPeerId, { nickname: myNickname });
+      // localStorage.removeItem('peerIdToConnect');
+
       toast({
-        title: 'No Peer ID',
-        description: 'Peer ID is still generating. Please wait.',
-        variant: 'destructive'
+        title: 'Ready to Connect',
+        description: `Found peer ID ${targetPeerId}. Click Connect to join.`,
       });
-      return;
+      localStorage.removeItem('peerIdToConnect');
     }
+  }, [peerId]);
+
+  useEffect(() => {
+    if (peerId) {
+      // Auto-copy link when generated (optional, but good for UX if user just clicked "Create Room")
+      // We won't auto-copy on load to avoid annoyance, but we'll make the copy button more prominent
+    }
+  }, [peerId]);
+
+  const handleCopyToClipboard = () => {
+    if (!peerId) return;
     navigator.clipboard.writeText(peerId);
-    toast({ title: 'Success', description: 'Your Peer ID has been copied to the clipboard.' });
+    toast({ title: 'Copied!', description: 'Peer ID copied to clipboard.' });
   };
 
   const handleCopyShareLinkToClipboard = () => {
-    if (!peerId) {
-      toast({
-        title: 'No Peer ID',
-        description: 'Peer ID is still generating. Please wait.',
-        variant: 'destructive'
-      });
-      return;
-    }
+    if (!peerId) return;
     navigator.clipboard.writeText(shareUrl);
-    toast({ title: 'Success', description: 'Invitation link has been copied to the clipboard.' });
+    toast({ title: 'Copied!', description: 'Invitation link copied to clipboard.' });
   };
 
-  const handleShareLink = () => {
-    if (!peerId) {
-      toast({
-        title: 'No Peer ID',
-        description: 'Peer ID is still generating. Please wait.',
-        variant: 'destructive'
-      });
-      return;
+  const handleShareLink = async () => {
+    if (!peerId) return;
+
+    // Use Web Share API if available
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join me on Togetherly',
+          text: shareText,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        console.log('Error sharing:', err);
+      }
     }
+
+    // Fallback to modal
     setIsShareModalOpen(true);
   };
 
@@ -315,8 +334,8 @@ const PeerConnection = ({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`h-3 w-3 rounded-full ${connectionState === 'connected' ? 'bg-green-500 animate-pulse' :
-                    connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
-                      connectionState === 'failed' ? 'bg-red-500' : 'bg-gray-500'
+                  connectionState === 'connecting' ? 'bg-yellow-500 animate-pulse' :
+                    connectionState === 'failed' ? 'bg-red-500' : 'bg-gray-500'
                   }`} />
                 <div>
                   <p className="text-sm font-medium text-foreground">

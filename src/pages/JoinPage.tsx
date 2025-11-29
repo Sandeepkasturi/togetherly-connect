@@ -11,7 +11,7 @@ const JoinPage = () => {
     if (peerId) {
       localStorage.setItem('peerIdToConnect', peerId);
     }
-    navigate('/');
+    navigate('/watch');
   }, [searchParams, navigate]);
 
   return (
