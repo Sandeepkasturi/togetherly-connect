@@ -39,11 +39,45 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
   const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY || 'AIzaSyDBTmWEgfR60JAkBw7MoYmQlKe9VT5z12Q';
   const API_KEY_ERROR_MESSAGE = 'YouTube API key is invalid, restricted, or has exceeded its daily quota. Please check referrer settings.';
 
+  // Cache helper functions
+  const getCachedData = (key: string) => {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    try {
+      const { data, timestamp } = JSON.parse(cached);
+      // Cache expires after 24 hours
+      if (Date.now() - timestamp > 24 * 60 * 60 * 1000) {
+        localStorage.removeItem(key);
+        return null;
+      }
+      return data;
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const setCachedData = (key: string, data: any) => {
+    localStorage.setItem(key, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }));
+  };
+
   useEffect(() => {
     fetchSuggestedVideos();
   }, []);
 
   const fetchSuggestedVideos = async () => {
+    const CACHE_KEY = 'youtube_suggested_videos_telugu';
+
+    // Try to get from cache first
+    const cachedVideos = getCachedData(CACHE_KEY);
+    if (cachedVideos) {
+      setSuggestedVideos(cachedVideos);
+      setIsSuggestedLoading(false);
+      return;
+    }
+
     if (!API_KEY) return;
     setIsSuggestedLoading(true);
     try {
@@ -56,7 +90,10 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
 
       // Pick 8 random videos
       const shuffled = data.items ? data.items.sort(() => 0.5 - Math.random()) : [];
-      setSuggestedVideos(shuffled.slice(0, 3));
+      const selected = shuffled.slice(0, 3);
+
+      setSuggestedVideos(selected);
+      setCachedData(CACHE_KEY, selected);
     } catch (error) {
       console.error('Error fetching suggested videos:', error);
     } finally {
@@ -70,8 +107,20 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
       return;
     }
     if (!query.trim()) return;
+
+    const CACHE_KEY = `youtube_search_${query.trim().toLowerCase()}`;
+
     setIsSearchLoading(true);
     setResults([]);
+
+    // Try to get from cache first
+    const cachedResults = getCachedData(CACHE_KEY);
+    if (cachedResults) {
+      setResults(cachedResults);
+      setIsSearchLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch(
         `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${query}&key=${API_KEY}&type=video&maxResults=4`
@@ -82,6 +131,7 @@ const YouTubeSearch = ({ onVideoSelect, isConnected }: YouTubeSearchProps) => {
       }
       const data = await response.json();
       setResults(data.items);
+      setCachedData(CACHE_KEY, data.items);
     } catch (error: any) {
       toast({ title: 'Search Error', description: error.message, variant: 'destructive' });
     } finally {
