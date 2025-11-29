@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
@@ -129,8 +129,12 @@ const AppLayout = () => {
     }
   }, [isConnected, conn?.open, nickname, sendData]);
 
+  const lastProcessedData = useRef<DataType | null>(null);
+
   useEffect(() => {
-    if (data) {
+    if (data && data !== lastProcessedData.current) {
+      lastProcessedData.current = data;
+
       if (data.type === 'chat') {
         const newMessage: Message = { ...data.payload, sender: 'them', messageType: 'text' };
         setMessages((prev) => [...prev, newMessage]);
