@@ -1,0 +1,14 @@
+[
+    {
+        "relation": [
+            "delegate_permission/common.handle_all_urls"
+        ],
+        "target": {
+            "namespace": "android_app",
+            "package_name": "com.example.togetherapp",
+            "sha256_cert_fingerprints": [
+                "8C:E6:FD:8B:66:A3:EB:68:4C:93:83:38:9F:DB:99:8C:F9:D8:0F:E3:6E:56:35:8C:56:96:23:CF:F8:97:5A:A0"
+            ]
+        }
+    }
+]
