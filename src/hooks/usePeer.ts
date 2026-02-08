@@ -328,8 +328,8 @@ export const usePeer = () => {
   useEffect(() => {
     const initializePeer = async () => {
       try {
-        // Check if we have a stored peer ID
-        const storedPeerId = localStorage.getItem('togetherlyPeerId');
+        // Don't reuse stored peer IDs - they cause conflicts when PeerJS server
+        // already has a session. Generate fresh IDs each time for reliability.
 
         // Dynamically import PeerJS to solve module resolution issues with Vite
         const { default: Peer } = await import('peerjs');
@@ -350,10 +350,9 @@ export const usePeer = () => {
         const tryInitializePeer = async (configIndex = 0) => {
           if (configIndex >= serverConfigs.length) {
             // All servers failed, use fallback ID
-            const fallbackId = storedPeerId || generateFallbackPeerId();
+            const fallbackId = generateFallbackPeerId();
             console.log('All PeerJS servers failed, using fallback ID:', fallbackId);
             setPeerId(fallbackId);
-            localStorage.setItem('togetherlyPeerId', fallbackId);
             setData({ type: 'system', payload: 'Using offline mode. Share your ID to connect when both users are online.' });
             return;
           }
@@ -361,7 +360,7 @@ export const usePeer = () => {
           const config = serverConfigs[configIndex];
           console.log(`Initializing peer with config ${configIndex + 1}/${serverConfigs.length}:`, config.host);
 
-          const newPeer = new Peer(storedPeerId || undefined, {
+          const newPeer = new Peer(undefined, {
             ...config,
             config: {
               iceServers: [
@@ -373,18 +372,31 @@ export const usePeer = () => {
                 { urls: 'stun:stun4.l.google.com:19302' },
                 // Mozilla STUN server
                 { urls: 'stun:stun.services.mozilla.com' },
-                // Additional public STUN servers for redundancy
-                { urls: 'stun:stun.qq.com:3478' },
-                { urls: 'stun:stun.miwifi.com:3478' },
+                // Free TURN servers for NAT traversal (critical for mobile/restricted networks)
+                {
+                  urls: 'turn:openrelay.metered.ca:80',
+                  username: 'openrelayproject',
+                  credential: 'openrelayproject',
+                },
+                {
+                  urls: 'turn:openrelay.metered.ca:443',
+                  username: 'openrelayproject',
+                  credential: 'openrelayproject',
+                },
+                {
+                  urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+                  username: 'openrelayproject',
+                  credential: 'openrelayproject',
+                },
               ],
               sdpSemantics: 'unified-plan',
               iceCandidatePoolSize: 10,
               bundlePolicy: 'max-bundle',
               rtcpMuxPolicy: 'require',
-              iceTransportPolicy: 'all' // Allow both STUN (public) and local candidates
+              iceTransportPolicy: 'all'
             },
             debug: 1,
-            pingInterval: 5000, // Keep connection alive
+            pingInterval: 5000,
             secure: true
           });
 
@@ -403,9 +415,7 @@ export const usePeer = () => {
             clearTimeout(initTimeout);
 
             console.log('Peer opened with ID:', id);
-            console.log('Generated new peer ID:', id);
             setPeerId(id);
-            localStorage.setItem('togetherlyPeerId', id);
             peerInstance.current = newPeer;
             setPeer(newPeer);
             setData({ type: 'system', payload: `Peer ID generated: ${id}` });
@@ -540,10 +550,9 @@ export const usePeer = () => {
         console.error('Failed to initialize peer:', error);
 
         // Use fallback ID generation
-        const fallbackId = localStorage.getItem('togetherlyPeerId') || generateFallbackPeerId();
+        const fallbackId = generateFallbackPeerId();
         console.log('Using fallback peer ID:', fallbackId);
         setPeerId(fallbackId);
-        localStorage.setItem('togetherlyPeerId', fallbackId);
         setData({ type: 'system', payload: 'Using offline mode. Connection will work when both users are online.' });
       }
     };
@@ -786,6 +795,7 @@ export const usePeer = () => {
 
   return {
     peerId,
+    peer,
     connectToPeer,
     sendData,
     data,
