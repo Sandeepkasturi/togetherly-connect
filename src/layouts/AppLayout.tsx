@@ -58,7 +58,8 @@ const AppLayout = () => {
     peerId, connectToPeer, sendData, data, isConnected, conn,
     localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia,
     screenStream, remoteScreenStream, isScreenSharing, startScreenShare, stopScreenShare,
-    incomingConn, acceptConnection, rejectConnection
+    incomingConn, acceptConnection, rejectConnection,
+    connectionState, onManualReconnect
   } = usePeer();
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
@@ -647,8 +648,8 @@ const AppLayout = () => {
     handleVideoSelect,
     playerSyncData,
     browserSyncData,
-    connectionState: isConnected ? 'connected' : 'disconnected',
-    onManualReconnect: () => connectToPeer('', { nickname }),
+    connectionState,
+    onManualReconnect,
     isScreenSharing,
     startScreenShare,
     stopScreenShare,
