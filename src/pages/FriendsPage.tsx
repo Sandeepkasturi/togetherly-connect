@@ -152,21 +152,25 @@ const FriendsPage = () => {
         setSentRequests(prev => new Set([...prev, targetId]));
     };
 
-    const acceptRequest = async (fromUserId: string) => {
+    const acceptRequest = async (user: DBUser) => {
         if (!userProfile) return;
         // Update their follow to accepted
         await supabase.from('follows')
             .update({ status: 'accepted' })
-            .eq('follower_id', fromUserId)
+            .eq('follower_id', user.id)
             .eq('following_id', userProfile.id);
         // Create reverse follow so they appear in each other's friends
         await supabase.from('follows').upsert({
             follower_id: userProfile.id,
-            following_id: fromUserId,
+            following_id: user.id,
             status: 'accepted',
         }, { onConflict: 'follower_id,following_id' });
+
         loadRequests();
         loadFriends();
+
+        // Automatically connect
+        connectToFriend(user.peer_id);
     };
 
     const declineRequest = async (fromUserId: string) => {
@@ -286,7 +290,7 @@ const FriendsPage = () => {
                         : pendingRequests.map(u => (
                             <UserCard key={u.id} user={u} action={
                                 <div className="flex gap-2">
-                                    <button onClick={() => acceptRequest(u.id)}
+                                    <button onClick={() => acceptRequest(u)}
                                         className="w-8 h-8 rounded-full flex items-center justify-center"
                                         style={{ background: 'rgba(52,200,90,0.2)' }}>
                                         <Check className="h-4 w-4 text-[#34C85A]" />
