@@ -74,6 +74,15 @@ const AppLayout = () => {
   // Show splash screen only when manually connecting to a peer
   const [isConnecting, setIsConnecting] = useState(false);
 
+  // Synchronize nickname from user profile if missing
+  useEffect(() => {
+    if (userProfile?.displayName && !nickname) {
+      console.log("[AppLayout] Syncing nickname from profile:", userProfile.displayName);
+      const { setNickname } = useUser();
+      setNickname(userProfile.displayName);
+    }
+  }, [userProfile, nickname]);
+
   useEffect(() => {
     // Helper for safe storage access
     const safeGet = (key: string) => {
@@ -616,8 +625,14 @@ const AppLayout = () => {
     );
   };
 
-  if (!nickname) {
-    return null;
+  // If we are authenticated but have no nickname yet, show loading instead of null
+  if (!nickname && userProfile) {
+    return <SplashScreen isVisible={true} />;
+  }
+
+  // Final emergency fallback — only null if we truly have no identity
+  if (!nickname && !isGuest) {
+    return <SplashScreen isVisible={true} />;
   }
 
   const playerSyncData = (data?.type === 'player_state' || data?.type === 'request_sync') ? data : null;

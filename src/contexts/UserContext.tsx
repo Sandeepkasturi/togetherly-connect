@@ -14,7 +14,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const setNickname = (name: string) => {
-    localStorage.setItem('nickname', name);
+    if (!name) return;
+    try {
+      localStorage.setItem('nickname', name);
+    } catch (e) {
+      console.warn("Storage blocked:", e);
+    }
     setNicknameState(name);
   };
 
