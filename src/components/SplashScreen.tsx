@@ -41,16 +41,23 @@ const LoadingBar = () => (
 
 const SplashScreen = ({ isVisible }: SplashScreenProps) => {
   const [shouldRender, setShouldRender] = React.useState(isVisible);
+  const [showExitButton, setShowExitButton] = React.useState(false);
 
   React.useEffect(() => {
     if (isVisible) {
       setShouldRender(true);
+      // Show emergency exit button if stuck after 8s
+      const timer = setTimeout(() => setShowExitButton(true), 8000);
+      return () => clearTimeout(timer);
     } else {
-      // Small delay to allow exit animation
       const timer = setTimeout(() => setShouldRender(false), 500);
       return () => clearTimeout(timer);
     }
   }, [isVisible]);
+
+  const handleForceExit = () => {
+    setShouldRender(false);
+  };
 
   if (!shouldRender) return null;
 
@@ -116,11 +123,25 @@ const SplashScreen = ({ isVisible }: SplashScreenProps) => {
             </motion.div>
 
             {/* Loading bar */}
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-4">
               <LoadingBar />
-              <p className="text-[10px] tracking-widest uppercase opacity-30">
-                Initialising…
-              </p>
+
+              <div className="h-10 flex flex-col items-center justify-center">
+                {showExitButton ? (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    onClick={handleForceExit}
+                    className="px-6 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[11px] font-bold hover:bg-white/20 transition-colors"
+                  >
+                    Enter App Anyway
+                  </motion.button>
+                ) : (
+                  <p className="text-[10px] tracking-widest uppercase opacity-30 text-white">
+                    Initialising…
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </motion.div>
