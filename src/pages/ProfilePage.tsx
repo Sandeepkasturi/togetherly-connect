@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOutletContext, useNavigate } from 'react-router-dom';
@@ -24,13 +25,34 @@ const ProfilePage = () => {
     const { userProfile, logout, isGuest } = useAuth();
     const context = useOutletContext<AppContextType>();
     const navigate = useNavigate();
+    const [recentConnections, setRecentConnections] = useState<any[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
     const handleLogout = () => {
         logout();
         navigate('/auth');
     };
 
+    useEffect(() => {
+        if (userProfile?.id) {
+            setIsLoadingHistory(true);
+            import('@/lib/supabase').then(({ supabase }) => {
+                supabase
+                    .from('recent_connections')
+                    .select('*')
+                    .eq('user_id', userProfile.id)
+                    .order('last_connected_at', { ascending: false })
+                    .limit(5)
+                    .then(({ data }) => {
+                        if (data) setRecentConnections(data);
+                        setIsLoadingHistory(false);
+                    });
+            });
+        }
+    }, [userProfile?.id]);
+
     if (isGuest) {
+        // ... return guest UI (unchanged)
         return (
             <div className="min-h-full px-4 pt-6 pb-20 flex flex-col items-center justify-center text-center space-y-6">
                 <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-2">
@@ -60,6 +82,11 @@ const ProfilePage = () => {
         year: 'numeric'
     });
 
+    const handleReconnect = (peerId: string) => {
+        localStorage.setItem('peerIdToConnect', peerId);
+        navigate('/app');
+    };
+
     return (
         <div className="min-h-full px-4 pt-4 pb-20 space-y-6 overflow-y-auto">
 
@@ -74,21 +101,55 @@ const ProfilePage = () => {
                             className="h-full w-full object-cover rounded-[32px]"
                         />
                     </div>
-                    <div className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full bg-[#30D158] border-4 border-black flex items-center justify-center">
-                        <ShieldCheck className="h-4 w-4 text-white" />
-                    </div>
                 </div>
 
                 <div className="space-y-1">
                     <h1 className="text-[26px] font-bold text-white tracking-tight">
                         {userProfile.display_name}
                     </h1>
-                    <p className="text-[14px] text-white/40 font-medium">Verified Member</p>
+                    <p className="text-[14px] text-white/40 font-medium tracking-wide flex items-center justify-center gap-1.5">
+                        <ShieldCheck className="h-4 w-4 text-[#30D158]" /> Verified Member
+                    </p>
+                </div>
+            </motion.div>
+
+            {/* ── Recent Connections Section ── */}
+            <motion.div {...fadeUp(0.1)} className="space-y-3">
+                <div className="flex items-center gap-2 px-2">
+                    <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">Recent Connections</h2>
+                </div>
+
+                <div className="ios-card divide-y divide-white/[0.06]">
+                    {recentConnections.length > 0 ? (
+                        recentConnections.map((conn) => (
+                            <div key={conn.id} className="flex items-center gap-4 px-4 py-3 group">
+                                <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                                    <User className="h-5 w-5 text-white/30" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-[15px] font-semibold text-white truncate">{conn.nickname}</p>
+                                    <p className="text-[11px] text-white/30 truncate font-mono">{conn.peer_id}</p>
+                                </div>
+                                <motion.button
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => handleReconnect(conn.peer_id)}
+                                    className="px-3 py-1.5 rounded-lg bg-[#0A84FF]/10 text-[#0A84FF] text-[12px] font-bold border border-[#0A84FF]/20"
+                                >
+                                    Connect
+                                </motion.button>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="px-4 py-8 text-center space-y-2">
+                            <p className="text-[14px] text-white/30 italic">No recent connections found.</p>
+                            <p className="text-[11px] text-white/20">Go to Jump In to connect with peers!</p>
+                        </div>
+                    )}
                 </div>
             </motion.div>
 
             {/* ── Account Details Card ── */}
-            <motion.div {...fadeUp(0.1)} className="space-y-3">
+            <motion.div {...fadeUp(0.15)} className="space-y-3">
                 <div className="flex items-center gap-2 px-2">
                     <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">Account Info</h2>
                 </div>
@@ -119,7 +180,6 @@ const ProfilePage = () => {
                         <button
                             onClick={() => {
                                 navigator.clipboard.writeText(userProfile.peer_id);
-                                // toast implementation here if needed
                             }}
                             className="p-2 text-white/30 hover:text-white/60 transition-colors"
                         >
@@ -141,26 +201,12 @@ const ProfilePage = () => {
             </motion.div>
 
             {/* ── Actions ── */}
-            <motion.div {...fadeUp(0.2)} className="space-y-3">
+            <motion.div {...fadeUp(0.25)} className="space-y-3">
                 <div className="flex items-center gap-2 px-2">
-                    <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">Actions</h2>
+                    <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">System</h2>
                 </div>
 
                 <div className="ios-card overflow-hidden divide-y divide-white/[0.06]">
-                    <motion.button
-                        whileTap={{ backgroundColor: 'rgba(255,255,255,0.04)' }}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors group"
-                    >
-                        <div className="h-10 w-10 rounded-xl bg-[#0A84FF]/10 flex items-center justify-center shrink-0">
-                            <ShieldCheck className="h-5 w-5 text-[#0A84FF]" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[15px] font-semibold text-white">Privacy Settings</p>
-                            <p className="text-[12px] text-white/30">Manage your visibility</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-white/20" />
-                    </motion.button>
-
                     <button
                         onClick={handleLogout}
                         className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-[#FF453A]/5 transition-colors group"
@@ -177,7 +223,7 @@ const ProfilePage = () => {
                 </div>
             </motion.div>
 
-            <motion.p {...fadeUp(0.3)} className="text-center text-[12px] text-white/20 pt-4">
+            <motion.p {...fadeUp(0.35)} className="text-center text-[12px] text-white/20 pt-4">
                 Togetherly Connect v1.0.0
             </motion.p>
 

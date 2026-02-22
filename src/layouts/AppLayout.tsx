@@ -30,6 +30,7 @@ export interface AppContextType {
   remoteNickname: string;
   sendData: (data: DataType) => void;
   startCall: (type: "audio" | "video") => void;
+  disconnectPeer: () => void;
   isCallActive: boolean;
   messages: Message[];
   sendMessage: (content: string) => void;
@@ -53,7 +54,7 @@ export interface AppContextType {
 
 const AppLayout = () => {
   const { nickname } = useUser();
-  const { permanentPeerId } = useAuth();
+  const { permanentPeerId, userProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -125,8 +126,22 @@ const AppLayout = () => {
     // Only send nickname after connection is fully established
     if (isConnected && conn && conn.open && nickname) {
       sendData({ type: 'nickname', payload: nickname });
+
+      // Track recent connection if registered
+      if (userProfile?.id) {
+        import('@/lib/supabase').then(({ supabase }) => {
+          supabase.from('recent_connections').upsert({
+            user_id: userProfile.id,
+            peer_id: conn.peer,
+            nickname: remoteNickname === 'Friend' ? 'Peer' : remoteNickname,
+            last_connected_at: new Date().toISOString()
+          }, { onConflict: 'user_id,peer_id' }).then(({ error }) => {
+            if (error) console.error('Failed to update connection history:', error);
+          });
+        });
+      }
     }
-  }, [isConnected, conn?.open, nickname, sendData]);
+  }, [isConnected, conn?.open, nickname, sendData, userProfile?.id, remoteNickname]);
 
   const lastProcessedData = useRef<DataType | null>(null);
 
@@ -633,6 +648,7 @@ const AppLayout = () => {
     remoteNickname,
     sendData,
     startCall,
+    disconnectPeer: endCall, // Reusing endCall logic for connection cleanup
     isCallActive,
     messages,
     sendMessage: handleSendMessage,

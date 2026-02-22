@@ -256,6 +256,18 @@ export const usePeer = (initialPeerId?: string | null) => {
     setData({ type: 'system', payload: 'Call ended.' });
   }, []);
 
+  const disconnectPeer = useCallback(() => {
+    if (conn) {
+      console.log('Manual disconnection requested');
+      conn.close();
+      setConn(null);
+      setIsConnected(false);
+      setConnectionState('disconnected');
+      setData({ type: 'system', payload: 'Disconnected from peer.' });
+    }
+    endCall(); // Ensure calls are also ended
+  }, [conn, endCall]);
+
   const acceptConnection = useCallback(() => {
     if (incomingConn) {
       console.log('Accepting connection from:', incomingConn.peer);
@@ -813,6 +825,7 @@ export const usePeer = (initialPeerId?: string | null) => {
     isScreenSharing,
     startScreenShare,
     stopScreenShare,
+    disconnectPeer,
     incomingConn,
     acceptConnection,
     rejectConnection,

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Check, X, Users, Clock, Wifi } from 'lucide-react';
+import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, DBUser, DBFollow } from '@/lib/supabase';
 
@@ -250,15 +250,32 @@ const FriendsPage = () => {
                     friends.length === 0
                         ? <EmptyState icon={<Users className="h-8 w-8 text-white/20" />} text="No friends yet — find people in Discover" />
                         : friends.map(u => (
-                            <UserCard key={u.id} user={u} action={
-                                <button
-                                    onClick={() => connectToFriend(u.peer_id)}
-                                    className="text-[12px] font-semibold px-3 py-1.5 rounded-xl"
-                                    style={{ background: 'rgba(10,132,255,0.25)', color: '#0A84FF', fontFamily: "'Outfit', sans-serif" }}
-                                >
-                                    Connect
-                                </button>
-                            } />
+                            <div key={u.id} className="ios-card overflow-hidden">
+                                <UserCard user={u} action={
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => {
+                                                localStorage.setItem('peerIdToConnect', u.peer_id);
+                                                navigate('/chat');
+                                            }}
+                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#BF5AF2]/10 text-[#BF5AF2] border border-[#BF5AF2]/20 hover:bg-[#BF5AF2]/20 transition-colors"
+                                            title="Direct Chat"
+                                        >
+                                            <MessageCircle className="h-4 w-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                localStorage.setItem('peerIdToConnect', u.peer_id);
+                                                navigate('/watch');
+                                            }}
+                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/20 transition-colors"
+                                            title="Call & Watch"
+                                        >
+                                            <Wifi className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                } />
+                            </div>
                         ))
                 )}
 
