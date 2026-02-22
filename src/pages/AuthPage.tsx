@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import Logo from '@/components/Logo';
 
 // ── Animated orb ─────────────────────────────────────────────
 const Orb = ({ x, y, size, color, delay }: {
@@ -73,7 +74,7 @@ const AuthPage = () => {
                     className="text-center space-y-2"
                 >
                     <div
-                        className="mx-auto mb-4 w-20 h-20 rounded-[28px] flex items-center justify-center text-4xl"
+                        className="mx-auto mb-4 w-20 h-20 rounded-[28px] flex items-center justify-center overflow-hidden"
                         style={{
                             background: 'rgba(255,255,255,0.06)',
                             border: '1px solid rgba(255,255,255,0.12)',
@@ -81,7 +82,7 @@ const AuthPage = () => {
                             boxShadow: '0 8px 32px rgba(10,132,255,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
                         }}
                     >
-                        🔗
+                        <Logo className="h-11 w-11" animate />
                     </div>
                     <h1
                         className="text-4xl font-bold tracking-tight"
