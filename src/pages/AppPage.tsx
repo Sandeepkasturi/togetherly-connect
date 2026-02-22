@@ -5,6 +5,7 @@ import { Tv2, MessageCircle, MonitorUp, Zap, Users, ArrowRight, ChevronRight, Sh
 import PeerConnection from '@/components/PeerConnection';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import AppFooter from '@/components/AppFooter';
 
 // ── Visual separator between the two sections ─────────────────────
 
@@ -188,18 +189,8 @@ const AppPage = () => {
         </div>
       </motion.div>
 
-      {/* ── Full-width CTA ── */}
-      <motion.div {...fadeUp(0.35)}>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          onClick={() => navigate('/watch')}
-          className="w-full h-14 rounded-2xl animated-gradient flex items-center justify-center gap-3 font-bold text-[17px] shadow-lg shadow-[#0A84FF]/20"
-        >
-          <Tv2 className="h-5 w-5" />
-          Start Watching Together
-          <ArrowRight className="h-4 w-4 ml-auto opacity-70" />
-        </motion.button>
-      </motion.div>
+      {/* ── Footer ── */}
+      <AppFooter />
 
     </div>
   );
