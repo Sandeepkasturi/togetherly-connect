@@ -100,11 +100,19 @@ const AppLayout = () => {
   }, []);
 
   useEffect(() => {
-    const peerIdToConnect = localStorage.getItem('peerIdToConnect');
+    // Helper for safe storage access
+    const safeGet = (key: string) => {
+      try { return localStorage.getItem(key); } catch { return null; }
+    };
+    const safeRemove = (key: string) => {
+      try { localStorage.removeItem(key); } catch { }
+    };
+
+    const peerIdToConnect = safeGet('peerIdToConnect');
     if (peerIdToConnect && peerId && nickname && !isConnected && !conn) {
       setIsConnecting(true);
       connectToPeer(peerIdToConnect, { nickname });
-      localStorage.removeItem('peerIdToConnect');
+      safeRemove('peerIdToConnect');
 
       // Show splash for 5 seconds while connecting
       setTimeout(() => {

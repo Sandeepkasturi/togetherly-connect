@@ -49,13 +49,41 @@ const PROFILE_KEY = 'tg_google_profile';
 
 // ── Helpers ───────────────────────────────────────────────────
 
+function safeStorageGet(key: string, type: 'local' | 'session' = 'local'): string | null {
+    try {
+        const storage = type === 'local' ? window.localStorage : window.sessionStorage;
+        return storage.getItem(key);
+    } catch (e) {
+        console.warn(`[Auth] Failed to access ${type}Storage:`, e);
+        return null;
+    }
+}
+
+function safeStorageSet(key: string, value: string, type: 'local' | 'session' = 'local') {
+    try {
+        const storage = type === 'local' ? window.localStorage : window.sessionStorage;
+        storage.setItem(key, value);
+    } catch (e) {
+        console.warn(`[Auth] Failed to set ${type}Storage:`, e);
+    }
+}
+
+function safeStorageRemove(key: string, type: 'local' | 'session' = 'local') {
+    try {
+        const storage = type === 'local' ? window.localStorage : window.sessionStorage;
+        storage.removeItem(key);
+    } catch (e) {
+        console.warn(`[Auth] Failed to remove ${type}Storage:`, e);
+    }
+}
+
 function saveProfile(profile: GoogleProfile) {
-    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    safeStorageSet(PROFILE_KEY, JSON.stringify(profile));
 }
 
 function loadProfile(): GoogleProfile | null {
+    const raw = safeStorageGet(PROFILE_KEY);
     try {
-        const raw = localStorage.getItem(PROFILE_KEY);
         return raw ? JSON.parse(raw) : null;
     } catch { return null; }
 }
@@ -65,7 +93,7 @@ function loadProfile(): GoogleProfile | null {
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [googleProfile, setGoogleProfile] = useState<GoogleProfile | null>(loadProfile);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-    const [isGuest, setIsGuest] = useState(() => sessionStorage.getItem(GUEST_KEY) === '1');
+    const [isGuest, setIsGuest] = useState(() => safeStorageGet(GUEST_KEY, 'session') === '1');
     const [isLoading, setIsLoading] = useState(true);
     const onlineInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
