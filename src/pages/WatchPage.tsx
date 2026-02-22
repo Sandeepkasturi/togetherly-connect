@@ -1,30 +1,64 @@
-
 import { useOutletContext } from 'react-router-dom';
 import YouTubeSearch from '@/components/YouTubeSearch';
 import { AppContextType } from '@/layouts/AppLayout';
 import { motion } from 'framer-motion';
 import ConnectionWizard from '@/components/ConnectionWizard';
-import { Tv } from 'lucide-react';
+import { Tv, Search, Wifi, WifiOff, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState } from 'react';
 import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
+import { cn } from '@/lib/utils';
 
 const WatchPage = () => {
   const context = useOutletContext<AppContextType>();
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
   const handleVideoPlayingChange = (playing: boolean) => {
     setIsVideoPlaying(playing);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-
-      {/* Mobile Simple Layout */}
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Mobile Layout */}
       <div className="lg:hidden">
-        <div className="space-y-4 pb-20">
-          {/* Connection Wizard */}
-          <section className="px-4 pt-4">
-            <div className="bg-card/30 backdrop-blur-xl rounded-2xl border border-border/30 p-4">
+        <div className="space-y-0 pb-24">
+          {/* Compact Connection Status Bar */}
+          <button
+            onClick={() => setShowWizard(!showWizard)}
+            className={cn(
+              "w-full flex items-center justify-between px-4 py-3 transition-colors",
+            context.isConnected
+                ? "bg-[hsl(var(--chat-online)/0.05)] border-b border-[hsl(var(--chat-online)/0.1)]"
+                : "bg-primary/5 border-b border-primary/10"
+            )}
+          >
+            <div className="flex items-center gap-2.5">
+              {context.isConnected ? (
+                <Wifi className="h-4 w-4 text-[hsl(var(--chat-online))]" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-muted-foreground" />
+              )}
+              <span className="text-sm font-medium">
+                {context.isConnected
+                  ? `Connected with ${context.remoteNickname || 'peer'}`
+                  : 'Tap to connect with a friend'}
+              </span>
+            </div>
+            {showWizard ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </button>
+
+          {/* Expandable Connection Wizard */}
+          {showWizard && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="border-b border-border/30 bg-card/30 backdrop-blur-xl px-4 py-4"
+            >
               <ConnectionWizard
                 peerId={context.peerId}
                 connectToPeer={context.connectToPeer}
@@ -37,16 +71,16 @@ const WatchPage = () => {
                 connectionState={context.connectionState}
                 onManualReconnect={context.onManualReconnect}
               />
-            </div>
-          </section>
+            </motion.div>
+          )}
 
           {/* Video Player */}
-          <section className="px-4">
+          <section className="px-4 pt-4">
             {context.selectedVideoId ? (
               <motion.div
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-xl overflow-hidden shadow-2xl"
+                className="rounded-2xl overflow-hidden shadow-2xl shadow-black/40 border border-white/5"
               >
                 <EnhancedVideoPlayer
                   videoId={context.selectedVideoId}
@@ -58,27 +92,25 @@ const WatchPage = () => {
                 />
               </motion.div>
             ) : (
-              <div className="aspect-video w-full bg-muted/20 rounded-xl flex items-center justify-center border border-border/20">
-                <div className="text-center p-4">
-                  <Tv className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Select a video to start watching</p>
+              <div className="aspect-video w-full rounded-2xl overflow-hidden relative border border-white/5">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
+                  <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4">
+                    <Tv className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground mb-1">No video selected</p>
+                  <p className="text-xs text-muted-foreground text-center">Search below to find something to watch together</p>
                 </div>
               </div>
             )}
           </section>
 
           {/* Search */}
-          <section className="px-4">
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">Discover</p>
-                <h2 className="text-lg font-semibold text-foreground">Watch videos together</h2>
-              </div>
-              <YouTubeSearch
-                onVideoSelect={context.handleVideoSelect}
-                isConnected={context.isConnected}
-              />
-            </div>
+          <section className="px-4 pt-5">
+            <YouTubeSearch
+              onVideoSelect={context.handleVideoSelect}
+              isConnected={context.isConnected}
+            />
           </section>
         </div>
       </div>
@@ -86,9 +118,9 @@ const WatchPage = () => {
       {/* Desktop Layout */}
       <div className="hidden lg:block">
         <div className="relative min-h-screen overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/10" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
 
-          <div className="relative z-20 container mx-auto px-4 py-8 min-h-screen flex items-center">
+          <div className="relative z-20 container mx-auto px-6 py-8 min-h-screen flex items-center">
             <div className="grid grid-cols-3 gap-8 w-full">
               <div className="col-span-2 space-y-6">
                 <motion.div
@@ -96,7 +128,7 @@ const WatchPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8 }}
                 >
-                  <div className="rounded-xl overflow-hidden border border-border/20 shadow-2xl">
+                  <div className="rounded-2xl overflow-hidden border border-white/5 shadow-2xl shadow-black/40">
                     <EnhancedVideoPlayer
                       videoId={context.selectedVideoId}
                       sendData={context.sendData}
@@ -115,7 +147,7 @@ const WatchPage = () => {
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="space-y-6"
               >
-                <div className="bg-card/30 backdrop-blur-xl border border-border/30 rounded-2xl p-6">
+                <div className="glass-panel p-6">
                   <ConnectionWizard
                     peerId={context.peerId}
                     connectToPeer={context.connectToPeer}
@@ -134,9 +166,8 @@ const WatchPage = () => {
           </div>
         </div>
 
-        {/* Desktop YouTube Search */}
-        <div className="relative z-10 bg-black pt-8">
-          <div className="container mx-auto px-4">
+        <div className="relative z-10 bg-background pt-8 pb-8">
+          <div className="container mx-auto px-6">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -150,7 +181,6 @@ const WatchPage = () => {
           </div>
         </div>
       </div>
-
     </div>
   );
 };

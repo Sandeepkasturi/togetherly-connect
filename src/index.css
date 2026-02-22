@@ -41,6 +41,16 @@
 
     --radius: 1rem;
 
+    /* Chat palette */
+    --chat-bg: 200 20% 6%;
+    --chat-header: 200 18% 13%;
+    --chat-bubble-me: 160 100% 18%;
+    --chat-bubble-them: 200 18% 16%;
+    --chat-input-bg: 200 15% 18%;
+    --chat-online: 142 70% 49%;
+    --chat-text: 200 10% 92%;
+    --chat-muted: 200 10% 55%;
+
     /* Liquid Glass Gradients */
     --gradient-bg: linear-gradient(180deg, #000000 0%, #1a1a2e 100%);
     --gradient-glass: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
@@ -91,23 +101,23 @@
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturation));
   }
 
+  /* Floating bottom nav */
+  .floating-nav {
+    @apply bg-black/60 border border-white/10 rounded-[1.75rem];
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
   /* Liquid Animations */
   .animate-float {
     animation: float 6s ease-in-out infinite;
   }
 
   @keyframes float {
-    0% {
-      transform: translateY(0px);
-    }
-
-    50% {
-      transform: translateY(-10px);
-    }
-
-    100% {
-      transform: translateY(0px);
-    }
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
   }
 
   .tap-effect {
@@ -122,15 +132,25 @@
     @apply shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-shadow duration-300;
   }
 
+  /* Shimmer loading effect */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .shimmer {
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.04) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
   /* Buy Me A Coffee Widget Customization */
   #bmc-wbtn {
     transform: scale(0.8) !important;
     transform-origin: bottom right !important;
     display: none !important;
-    /* Hidden by default */
   }
 
-  /* Only show when body has the class */
   body.show-bmc #bmc-wbtn {
     display: flex !important;
   }
