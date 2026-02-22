@@ -544,6 +544,16 @@ export const usePeer = (initialPeerId?: string | null) => {
 
             const constraints = { video: callType === 'video', audio: true };
 
+            if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+              console.warn('Media devices or getUserMedia not available in this environment');
+              if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                setData({ type: 'system', payload: 'Secure connection (HTTPS) is required for video/audio calls on mobile.' });
+              } else {
+                setData({ type: 'system', payload: 'Camera/Mic access is not supported on this browser.' });
+              }
+              return;
+            }
+
             navigator.mediaDevices.getUserMedia(constraints)
               .then(stream => {
                 setLocalStream(stream);
@@ -692,6 +702,12 @@ export const usePeer = (initialPeerId?: string | null) => {
     };
 
     const constraints = { video: type === 'video', audio: true };
+
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.warn('navigator.mediaDevices not available');
+      setData({ type: 'system', payload: 'Camera/Mic not supported or blocked in this browser.' });
+      return;
+    }
 
     navigator.mediaDevices.getUserMedia(constraints)
       .then(stream => {

@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     historyApiFallback: true,
   },
+  define: {
+    global: 'window',
+  },
   plugins: [
     react(),
     mode === 'development' &&
@@ -20,5 +23,9 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  build: {
+    target: 'es2020',
+    sourcemap: true,
   },
 }));

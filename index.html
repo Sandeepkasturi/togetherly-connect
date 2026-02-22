@@ -34,6 +34,11 @@
   <meta name="twitter:site" content="@lovable_dev" />
   <script async src="https://cse.google.com/cse.js?cx=c1602e277bc964e0c"></script>
   <meta name="google-adsense-account" content="ca-pub-5705769977328101">
+  <script>
+    // Polyfill for libraries that expect Node.js globals
+    window.global = window;
+    window.process = { env: {} };
+  </script>
 </head>
 
 <body>
