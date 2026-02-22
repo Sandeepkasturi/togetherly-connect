@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Message } from '@/hooks/usePeer';
-import { Send, File as FileIcon, Mic, Trash2, Edit2, MoreVertical, X, Check } from 'lucide-react';
+import { Send, File as FileIcon, Mic, Trash2, Edit2, MoreVertical, X, Check, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import FileDisplay from './FileDisplay';
@@ -23,6 +23,7 @@ interface ChatProps {
   handleEditMessage: (id: string, newContent: string) => void;
   handleDeleteMessage: (id: string) => void;
   clearChat: () => void;
+  remoteNickname?: string;
 }
 
 const Chat = ({
@@ -34,7 +35,8 @@ const Chat = ({
   handleSendVoice,
   handleEditMessage,
   handleDeleteMessage,
-  clearChat
+  clearChat,
+  remoteNickname
 }: ChatProps) => {
   const [message, setMessage] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -73,9 +75,7 @@ const Chat = ({
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
+        if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
 
       mediaRecorder.onstop = () => {
@@ -83,8 +83,7 @@ const Chat = ({
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = () => {
-          const base64Audio = reader.result as string;
-          handleSendVoice(base64Audio, recordingDuration);
+          handleSendVoice(reader.result as string, recordingDuration);
         };
         stream.getTracks().forEach(track => track.stop());
       };
@@ -92,9 +91,7 @@ const Chat = ({
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingDuration(0);
-      timerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
+      timerRef.current = setInterval(() => setRecordingDuration(prev => prev + 1), 1000);
     } catch (error) {
       console.error('Error accessing microphone:', error);
     }
@@ -104,9 +101,7 @@ const Chat = ({
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     }
   };
 
@@ -123,12 +118,8 @@ const Chat = ({
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      handleSendFile(file);
-    }
-    if (event.target) {
-      event.target.value = '';
-    }
+    if (file) handleSendFile(file);
+    if (event.target) event.target.value = '';
   };
 
   const startEditing = (msg: Message) => {
@@ -143,179 +134,195 @@ const Chat = ({
     setEditContent('');
   };
 
+  const peerInitial = (remoteNickname || 'P')[0].toUpperCase();
+
   return (
-    <div className="flex flex-col h-full bg-[#0b141a] rounded-xl">
-      {/* WhatsApp-style Header */}
-      <div className="px-4 py-3 border-b border-[#2a3942] bg-[#1f2c34]">
+    <div className="flex flex-col h-full bg-[hsl(var(--chat-bg))]">
+      {/* Header with peer avatar */}
+      <div className="px-4 py-3 border-b border-white/5 bg-[hsl(var(--chat-header))]">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-medium text-[#e9edef]">Messages</h2>
-          <div className="flex items-center gap-4">
-            <div className={cn(
-              "flex items-center gap-2 text-xs",
-              isConnected ? "text-[#25d366]" : "text-[#8696a0]"
-            )}>
-              <div className={cn(
-                "w-2 h-2 rounded-full",
-                isConnected ? "bg-[#25d366]" : "bg-[#8696a0]"
-              )} />
-              {isConnected ? "Online" : "Offline"}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="h-9 w-9 rounded-full bg-primary/20 flex items-center justify-center text-sm font-bold text-primary">
+                {peerInitial}
+              </div>
+              {isConnected && (
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[hsl(var(--chat-online))] border-2 border-[hsl(var(--chat-header))]" />
+              )}
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-[#8696a0]">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-[#2a3942] border-[#1f2c34] text-[#e9edef]">
-                <DropdownMenuItem onClick={clearChat} className="text-red-400 focus:text-red-400 focus:bg-[#1f2c34]">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear Chat
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div>
+              <h2 className="text-sm font-semibold text-[hsl(var(--chat-text))]">
+                {isConnected ? (remoteNickname || 'Peer') : 'Messages'}
+              </h2>
+              <p className="text-[11px] text-[hsl(var(--chat-muted))]">
+                {isConnected ? 'Online' : 'Offline'}
+              </p>
+            </div>
           </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-[hsl(var(--chat-muted))] hover:bg-white/5 rounded-full">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-[hsl(var(--chat-header))] border-white/10 text-[hsl(var(--chat-text))]">
+              <DropdownMenuItem onClick={clearChat} className="text-destructive focus:text-destructive focus:bg-white/5">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear Chat
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#0b141a]" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'100\' height=\'100\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M0 0h100v100H0z\' fill=\'%23182229\'/%3E%3Cpath d=\'M20 20l5 5-5 5m10-10l5 5-5 5\' stroke=\'%231f2c34\' stroke-width=\'0.5\' fill=\'none\' opacity=\'0.1\'/%3E%3C/svg%3E")', backgroundSize: '100px 100px' }}>
+      <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-center">
-            <div className="text-[#8696a0]">
-              <p className="text-base mb-1">No messages yet</p>
-              <p className="text-sm">Send a message to start chatting</p>
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
+                <MessageCircle className="h-7 w-7 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">No messages yet</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {isConnected ? 'Say hello!' : 'Connect to start chatting'}
+                </p>
+              </div>
             </div>
           </div>
         ) : (
           <>
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={cn(
-                  "flex w-full group",
-                  msg.sender === 'me' ? 'justify-end' :
-                    msg.sender === 'them' ? 'justify-start' : 'justify-center'
-                )}
-              >
-                <div className={cn(
-                  "max-w-[85%] relative",
-                  msg.sender === 'me' ? 'items-end' :
-                    msg.sender === 'them' ? 'items-start' : 'items-center'
-                )}>
-                  {msg.nickname && msg.sender === 'them' && (
-                    <p className="text-xs text-[#8696a0] mb-1 px-2">{msg.nickname}</p>
+            {messages.map((msg, idx) => {
+              const prevMsg = messages[idx - 1];
+              const isGrouped = prevMsg && prevMsg.sender === msg.sender && msg.sender !== 'system';
+
+              return (
+                <div
+                  key={msg.id}
+                  className={cn(
+                    "flex w-full group",
+                    msg.sender === 'me' ? 'justify-end' :
+                      msg.sender === 'them' ? 'justify-start' : 'justify-center',
+                    !isGrouped && idx > 0 && 'mt-3'
                   )}
-
-                  <div
-                    className={cn(
-                      "relative px-3 py-2 shadow-sm group",
-                      msg.sender === 'me'
-                        ? 'bg-[#005c4b] text-white rounded-lg rounded-br-none'
-                        : msg.sender === 'them'
-                          ? 'bg-[#1f2c34] text-[#e9edef] rounded-lg rounded-bl-none'
-                          : 'bg-[#182229] text-[#8696a0] italic text-center rounded-lg',
-                      msg.sender !== 'system' && msg.messageType !== 'file' && 'cursor-pointer active:opacity-80',
-                      msg.isDeleted && "opacity-60 italic"
+                >
+                  <div className={cn("max-w-[80%] relative")}>
+                    {msg.nickname && msg.sender === 'them' && !isGrouped && (
+                      <p className="text-[11px] text-[hsl(var(--chat-muted))] mb-1 px-1">{msg.nickname}</p>
                     )}
-                    onDoubleClick={() => msg.sender !== 'system' && msg.messageType !== 'file' && !msg.isDeleted && handleDoubleClick(msg.id)}
-                  >
-                    {/* Message Actions Dropdown */}
-                    {msg.sender === 'me' && !msg.isDeleted && msg.messageType !== 'system' && (
-                      <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-bl-lg p-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-4 w-4 p-0 text-white/70 hover:text-white">
-                              <MoreVertical className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-[#2a3942] border-[#1f2c34] text-[#e9edef]">
-                            {msg.messageType === 'text' && (
-                              <DropdownMenuItem onClick={() => startEditing(msg)}>
-                                <Edit2 className="h-3 w-3 mr-2" /> Edit
+
+                    <div
+                      className={cn(
+                        "relative px-3 py-2 shadow-sm",
+                        msg.sender === 'me'
+                          ? 'bg-[hsl(var(--chat-bubble-me))] text-white rounded-2xl rounded-br-md'
+                          : msg.sender === 'them'
+                            ? 'bg-[hsl(var(--chat-bubble-them))] text-[hsl(var(--chat-text))] rounded-2xl rounded-bl-md'
+                            : 'bg-white/5 text-[hsl(var(--chat-muted))] italic text-center rounded-xl text-xs',
+                        msg.sender !== 'system' && msg.messageType !== 'file' && 'cursor-pointer active:opacity-80',
+                        msg.isDeleted && "opacity-60 italic"
+                      )}
+                      onDoubleClick={() => msg.sender !== 'system' && msg.messageType !== 'file' && !msg.isDeleted && handleDoubleClick(msg.id)}
+                    >
+                      {/* Message Actions */}
+                      {msg.sender === 'me' && !msg.isDeleted && msg.messageType !== 'system' && (
+                        <div className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 p-0 rounded-full bg-black/40 text-white/80 hover:text-white">
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-[hsl(var(--chat-header))] border-white/10 text-[hsl(var(--chat-text))]">
+                              {msg.messageType === 'text' && (
+                                <DropdownMenuItem onClick={() => startEditing(msg)}>
+                                  <Edit2 className="h-3 w-3 mr-2" /> Edit
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem onClick={() => handleDeleteMessage(msg.id)} className="text-destructive">
+                                <Trash2 className="h-3 w-3 mr-2" /> Delete
                               </DropdownMenuItem>
-                            )}
-                            <DropdownMenuItem onClick={() => handleDeleteMessage(msg.id)} className="text-red-400">
-                              <Trash2 className="h-3 w-3 mr-2" /> Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    )}
-
-                    {msg.messageType === 'file' ? (
-                      <FileDisplay
-                        fileName={msg.fileName}
-                        fileSize={msg.fileSize}
-                        fileData={msg.fileData}
-                        isMe={msg.sender === 'me'}
-                      />
-                    ) : msg.messageType === 'voice' ? (
-                      <div className="flex items-center gap-2 min-w-[150px]">
-                        <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-black/20 hover:bg-black/30 text-white">
-                          <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[10px] border-l-white border-b-[6px] border-b-transparent ml-1" />
-                        </Button>
-                        <div className="flex flex-col flex-1">
-                          <div className="h-1 bg-white/30 rounded-full w-full mb-1">
-                            <div className="h-full bg-white rounded-full w-1/3" />
-                          </div>
-                          <span className="text-[10px] opacity-70">{formatDuration(msg.voiceDuration || 0)}</span>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <audio src={msg.voiceData} controls className="hidden" />
-                      </div>
-                    ) : (
-                      <p className="break-words text-sm leading-snug pr-4">{msg.content}</p>
-                    )}
+                      )}
 
-                    <div className="flex items-center justify-end gap-1 mt-1">
-                      {msg.isEdited && <span className="text-[10px] opacity-60 italic">edited</span>}
-                      {msg.sender !== 'system' && (
-                        <p className="text-[10px] opacity-60">{msg.timestamp}</p>
+                      {msg.messageType === 'file' ? (
+                        <FileDisplay
+                          fileName={msg.fileName}
+                          fileSize={msg.fileSize}
+                          fileData={msg.fileData}
+                          isMe={msg.sender === 'me'}
+                        />
+                      ) : msg.messageType === 'voice' ? (
+                        <div className="flex items-center gap-2 min-w-[140px]">
+                          <Button size="icon" variant="ghost" className="h-7 w-7 rounded-full bg-white/10 hover:bg-white/20 text-white">
+                            <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[8px] border-l-white border-b-[5px] border-b-transparent ml-0.5" />
+                          </Button>
+                          <div className="flex flex-col flex-1">
+                            <div className="h-1 bg-white/20 rounded-full w-full mb-1">
+                              <div className="h-full bg-white/60 rounded-full w-1/3" />
+                            </div>
+                            <span className="text-[10px] opacity-60">{formatDuration(msg.voiceDuration || 0)}</span>
+                          </div>
+                          <audio src={msg.voiceData} controls className="hidden" />
+                        </div>
+                      ) : (
+                        <p className="break-words text-[14px] leading-relaxed">{msg.content}</p>
+                      )}
+
+                      <div className="flex items-center justify-end gap-1 mt-0.5">
+                        {msg.isEdited && <span className="text-[10px] opacity-50 italic">edited</span>}
+                        {msg.sender !== 'system' && (
+                          <p className="text-[10px] opacity-40">{msg.timestamp}</p>
+                        )}
+                      </div>
+
+                      {msg.reactions && msg.reactions.length > 0 && (
+                        <div className="absolute -bottom-2.5 right-1 flex items-center gap-0.5">
+                          {Object.entries(
+                            msg.reactions.reduce((acc, reaction) => {
+                              acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
+                              return acc;
+                            }, {} as Record<string, number>)
+                          ).map(([emoji, count]) => (
+                            <div
+                              key={emoji}
+                              className="bg-[hsl(var(--chat-header))] border border-white/10 px-1.5 py-0.5 rounded-full text-[10px] flex items-center gap-0.5 shadow-sm"
+                            >
+                              <span>{emoji}</span>
+                              <span className="text-primary">{count}</span>
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </div>
-
-                    {msg.reactions && msg.reactions.length > 0 && (
-                      <div className="absolute -bottom-2 right-2 flex items-center gap-1">
-                        {Object.entries(
-                          msg.reactions.reduce((acc, reaction) => {
-                            acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
-                            return acc;
-                          }, {} as Record<string, number>)
-                        ).map(([emoji, count]) => (
-                          <div
-                            key={emoji}
-                            className="bg-[#1f2c34] border border-[#2a3942] px-1.5 py-0.5 rounded-full text-xs flex items-center gap-0.5"
-                          >
-                            <span className="text-xs">{emoji}</span>
-                            <span className="text-[10px] text-[#25d366]">{count}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         )}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="px-2 py-2 bg-[#1f2c34]">
+      <div className="px-3 py-2.5 bg-[hsl(var(--chat-header))] border-t border-white/5">
         {!isConnected && (
-          <div className="mb-2 p-2 bg-[#182229] rounded-lg text-center">
-            <p className="text-xs text-[#8696a0]">Connect to start chatting</p>
+          <div className="mb-2 p-2 bg-white/5 rounded-xl text-center">
+            <p className="text-xs text-muted-foreground">Connect to start chatting</p>
           </div>
         )}
 
         {editingMessageId && (
-          <div className="flex items-center justify-between bg-[#0b141a] p-2 rounded-t-lg mb-1 border-l-4 border-[#005c4b]">
+          <div className="flex items-center justify-between bg-primary/5 p-2 rounded-xl mb-2 border-l-2 border-primary">
             <div className="flex flex-col">
-              <span className="text-xs text-[#005c4b] font-medium">Editing Message</span>
-              <span className="text-xs text-[#8696a0] truncate max-w-[200px]">{editContent}</span>
+              <span className="text-[11px] text-primary font-medium">Editing</span>
+              <span className="text-xs text-muted-foreground truncate max-w-[200px]">{editContent}</span>
             </div>
-            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={cancelEditing}>
-              <X className="h-4 w-4 text-[#8696a0]" />
+            <Button size="icon" variant="ghost" className="h-6 w-6 rounded-full" onClick={cancelEditing}>
+              <X className="h-3.5 w-3.5 text-muted-foreground" />
             </Button>
           </div>
         )}
@@ -331,53 +338,71 @@ const Chat = ({
           <Button
             size="icon"
             variant="ghost"
-            className="shrink-0 h-9 w-9 rounded-full hover:bg-[#2a3942] text-[#8696a0] hover:text-[#e9edef]"
+            className="shrink-0 h-9 w-9 rounded-full hover:bg-white/5 text-[hsl(var(--chat-muted))]"
             onClick={() => fileInputRef.current?.click()}
             disabled={!isConnected}
           >
             <FileIcon className="h-5 w-5" />
           </Button>
 
-          <div className="flex-1 flex items-center gap-2 bg-[#2a3942] rounded-full px-4 py-2">
+          <div className="flex-1 flex items-center bg-[hsl(var(--chat-input-bg))] rounded-full px-4 py-2 border border-white/5">
             <Input
               placeholder={isConnected ? (editingMessageId ? "Edit message..." : "Message") : "Offline"}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSend()}
               disabled={!isConnected}
-              className="border-0 bg-transparent text-[#e9edef] placeholder:text-[#8696a0] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-6 text-sm"
+              className="border-0 bg-transparent text-[hsl(var(--chat-text))] placeholder:text-[hsl(var(--chat-muted))] focus-visible:ring-0 focus-visible:ring-offset-0 px-0 h-6 text-sm"
             />
           </div>
 
-          {message.trim() || editingMessageId ? (
-            <Button
-              size="icon"
-              className="shrink-0 h-9 w-9 rounded-full bg-[#25d366] hover:bg-[#20bd5a]"
-              onClick={handleSend}
-              disabled={!isConnected}
-            >
-              {editingMessageId ? <Check className="h-4 w-4 text-white" /> : <Send className="h-4 w-4 text-white" />}
-            </Button>
-          ) : (
-            <Button
-              size="icon"
-              className={cn(
-                "shrink-0 h-9 w-9 rounded-full transition-colors",
-                isRecording ? "bg-red-500 hover:bg-red-600 animate-pulse" : "bg-[#2a3942] hover:bg-[#374248]"
-              )}
-              onClick={isRecording ? stopRecording : startRecording}
-              disabled={!isConnected}
-            >
-              {isRecording ? (
-                <div className="h-3 w-3 bg-white rounded-sm" />
-              ) : (
-                <Mic className="h-4 w-4 text-[#8696a0]" />
-              )}
-            </Button>
-          )}
+          <AnimatePresence mode="wait">
+            {message.trim() || editingMessageId ? (
+              <motion.div
+                key="send"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Button
+                  size="icon"
+                  className="shrink-0 h-9 w-9 rounded-full bg-primary hover:bg-primary/90"
+                  onClick={handleSend}
+                  disabled={!isConnected}
+                >
+                  {editingMessageId ? <Check className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="mic"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ duration: 0.15 }}
+              >
+                <Button
+                  size="icon"
+                  className={cn(
+                    "shrink-0 h-9 w-9 rounded-full transition-colors",
+                    isRecording ? "bg-destructive hover:bg-destructive/90 animate-pulse" : "bg-white/5 hover:bg-white/10"
+                  )}
+                  onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!isConnected}
+                >
+                  {isRecording ? (
+                    <div className="h-3 w-3 bg-white rounded-sm" />
+                  ) : (
+                    <Mic className="h-4 w-4 text-[hsl(var(--chat-muted))]" />
+                  )}
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         {isRecording && (
-          <div className="text-center text-xs text-red-400 mt-1 font-medium">
+          <div className="text-center text-xs text-destructive mt-1.5 font-medium">
             Recording: {formatDuration(recordingDuration)}
           </div>
         )}

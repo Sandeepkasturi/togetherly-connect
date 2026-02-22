@@ -6,7 +6,7 @@ const ChatPage = () => {
   const context = useOutletContext<AppContextType>();
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#0b141a] pb-16">
+    <div className="fixed inset-0 flex flex-col bg-[hsl(var(--chat-bg))] pb-[88px] lg:pb-0">
       <Chat
         messages={context.messages}
         sendMessage={context.sendMessage}
@@ -17,6 +17,7 @@ const ChatPage = () => {
         handleEditMessage={context.handleEditMessage}
         handleDeleteMessage={context.handleDeleteMessage}
         clearChat={context.clearChat}
+        remoteNickname={context.remoteNickname}
       />
     </div>
   );
