@@ -22,6 +22,7 @@ import ChatPage from "./pages/ChatPage";
 import TheaterPage from "./pages/TheaterPage";
 import FriendsPage from "./pages/FriendsPage";
 import ProfilePage from "./pages/ProfilePage";
+import SplashScreen from "@/components/SplashScreen";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string ?? '';
@@ -32,11 +33,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-white/20 border-t-[#0A84FF] animate-spin" />
-      </div>
-    );
+    return <SplashScreen isVisible={true} />;
   }
 
   if (!isAuthenticated) {

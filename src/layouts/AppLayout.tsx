@@ -71,33 +71,8 @@ const AppLayout = () => {
   const { toast } = useToast();
   const { setSendDataRef, handleReceivedPlaylist } = usePlaylist();
 
-  // Splash screen states
-  const [showSplashScreen, setShowSplashScreen] = useState(true);
+  // Show splash screen only when manually connecting to a peer
   const [isConnecting, setIsConnecting] = useState(false);
-
-  // Auth guard is handled by ProtectedRoute in App.tsx — no redirect needed here
-
-  // Manage BMC Widget Visibility
-  useEffect(() => {
-    if (location.pathname === '/app') {
-      document.body.classList.add('show-bmc');
-    } else {
-      document.body.classList.remove('show-bmc');
-    }
-
-    return () => {
-      document.body.classList.remove('show-bmc');
-    };
-  }, [location.pathname]);
-
-  // Show splash screen for 5 seconds on app load
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplashScreen(false);
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, []);
 
   useEffect(() => {
     // Helper for safe storage access
@@ -680,7 +655,7 @@ const AppLayout = () => {
 
   return (
     <>
-      <SplashScreen isVisible={showSplashScreen || isConnecting} />
+      {isConnecting && <SplashScreen isVisible={true} />}
 
 
       <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">

@@ -62,91 +62,81 @@ const SplashScreen = ({ isVisible }: SplashScreenProps) => {
   if (!shouldRender) return null;
 
   return (
-    <AnimatePresence>
-      {isVisible && (
+    <div
+      className={`fixed inset-0 z-[10000] flex flex-col items-center justify-center overflow-hidden transition-opacity duration-500 ${isVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      style={{ background: '#000000' }}
+    >
+      {/* ── Ambient orbs ── */}
+      <Orb x="-10%" y="5%" size={300} color="rgba(10,132,255,0.6)" delay={0} />
+      <Orb x="55%" y="55%" size={280} color="rgba(191,90,242,0.6)" delay={2} />
+
+      {/* ── Content ── */}
+      <div className="relative z-10 flex flex-col items-center gap-8 select-none">
+        {/* Logo ring */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, scale: 1.02 }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
-          className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden"
-          style={{ background: '#000000' }}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="relative"
         >
-          {/* ── Ambient orbs ── */}
-          <Orb x="-10%" y="5%" size={300} color="rgba(10,132,255,0.6)" delay={0} />
-          <Orb x="55%" y="55%" size={280} color="rgba(191,90,242,0.6)" delay={2} />
-
-          {/* ── Content ── */}
-          <div className="relative z-10 flex flex-col items-center gap-8 select-none">
-            {/* Logo ring */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="relative"
-            >
-              <div
-                className="w-24 h-24 rounded-[30px] flex items-center justify-center"
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(10px)',
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                }}
-              >
-                <Logo className="w-14 h-14" animate />
-              </div>
-            </motion.div>
-
-            {/* Wordmark */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-              className="text-center space-y-1"
-            >
-              <h1
-                className="text-[32px] font-bold tracking-tight"
-                style={{
-                  fontFamily: "'Outfit', sans-serif",
-                  color: '#ffffff'
-                }}
-              >
-                Togetherly
-              </h1>
-              <p
-                className="text-[12px] font-medium tracking-widest uppercase opacity-40"
-                style={{ fontFamily: "'Outfit', sans-serif" }}
-              >
-                Connect · Watch · Share
-              </p>
-            </motion.div>
-
-            {/* Loading bar */}
-            <div className="flex flex-col items-center gap-4">
-              <LoadingBar />
-
-              <div className="h-10 flex flex-col items-center justify-center">
-                {showExitButton ? (
-                  <motion.button
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    onClick={handleForceExit}
-                    className="px-6 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[11px] font-bold hover:bg-white/20 transition-colors"
-                  >
-                    Enter App Anyway
-                  </motion.button>
-                ) : (
-                  <p className="text-[10px] tracking-widest uppercase opacity-30 text-white">
-                    Initialising…
-                  </p>
-                )}
-              </div>
-            </div>
+          <div
+            className="w-24 h-24 rounded-[30px] flex items-center justify-center"
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            }}
+          >
+            <Logo className="w-14 h-14" animate />
           </div>
         </motion.div>
-      )}
-    </AnimatePresence>
+
+        {/* Wordmark */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.3 }}
+          className="text-center space-y-1"
+        >
+          <h1
+            className="text-[32px] font-bold tracking-tight"
+            style={{
+              fontFamily: "'Outfit', sans-serif",
+              color: '#ffffff'
+            }}
+          >
+            Togetherly
+          </h1>
+          <p
+            className="text-[12px] font-medium tracking-widest uppercase opacity-40"
+            style={{ fontFamily: "'Outfit', sans-serif" }}
+          >
+            Connect · Watch · Share
+          </p>
+        </motion.div>
+
+        {/* Loading bar */}
+        <div className="flex flex-col items-center gap-4">
+          <LoadingBar />
+
+          <div className="h-10 flex flex-col items-center justify-center">
+            {showExitButton ? (
+              <button
+                onClick={handleForceExit}
+                className="px-6 py-2 rounded-full bg-white/10 border border-white/20 text-white text-[11px] font-bold hover:bg-white/20 transition-colors"
+              >
+                Enter App Anyway
+              </button>
+            ) : (
+              <p className="text-[10px] tracking-widest uppercase opacity-30 text-white">
+                Initialising…
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 
