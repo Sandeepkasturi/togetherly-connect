@@ -100,7 +100,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // ── Derived state ─────────────────────────────────────────
     const permanentPeerId = userProfile?.peer_id ?? null;
 
-    // ── Sync user to Supabase after Google login ─────────────
+    // ── Sync user to Supabase after Google login (Fixed Syntax) ──
     const syncUserToSupabase = useCallback(async (profile: GoogleProfile): Promise<UserProfile | null> => {
         try {
             const peerId = generatePermanentPeerId(profile.sub);
