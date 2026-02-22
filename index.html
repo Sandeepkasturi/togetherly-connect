@@ -44,14 +44,16 @@
 </head>
 
 <body>
-  <!-- Fallback Boot Screen (Removed by React/CSS) -->
+  <div id="root"></div>
+
+  <!-- Fallback Boot Screen (Moved after #root for CSS sibling selector) -->
   <div id="boot-fallback"
-    style="position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;z-index:9999;transition:opacity 0.5s;">
+    style="position:fixed;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:sans-serif;z-index:9999;transition:opacity 0.5s;pointer-events:none;">
     <div
       style="width:24px;height:24px;border:2px solid rgba(255,255,255,0.1);border-top-color:#0A84FF;border-radius:50%;animation:boot-spin 1s linear infinite;">
     </div>
-    <p style="margin-top:20px;font-size:12px;opacity:0.6;letter-spacing:1px;text-transform:uppercase;"
-      id="boot-fallback-status">Initializing...</p>
+    <p style="margin-top:20px;font-size:11px;opacity:0.5;letter-spacing:1px;text-transform:uppercase;"
+      id="boot-fallback-status">Connecting...</p>
     <style>
       @keyframes boot-spin {
         to {
@@ -60,16 +62,31 @@
       }
 
       #root:not(:empty)+#boot-fallback {
-        display: none;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
       }
     </style>
   </div>
 
-  <div id="root"></div>
+  <script>
+    console.log("[INDEX] HTML Parsed, initializing app...");
+    // Emergency manual removal called by main.tsx
+    window.dismissFallback = function () {
+      const fb = document.getElementById('boot-fallback');
+      if (fb) {
+        fb.style.opacity = '0';
+        setTimeout(() => fb.remove(), 500);
+      }
+    };
+  </script>
+
+  <script type="module" src="/src/main.tsx"></script>
+
+  <!-- External widgets loaded last to prevent blocking -->
   <script data-name="BMC-Widget" data-cfasync="false" src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
     data-id="sandeepkasturi" data-description="Support me on Buy me a coffee!" data-color="#517a92"
     data-position="Right" data-x_margin="18" data-y_margin="90"></script>
-  <script type="module" src="/src/main.tsx"></script>
 </body>
 
 </html>

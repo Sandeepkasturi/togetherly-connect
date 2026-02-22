@@ -102,164 +102,166 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // ── Sync user to Supabase after Google login ─────────────
     const syncUserToSupabase = useCallback(async (profile: GoogleProfile): Promise<UserProfile | null> => {
-        // ── Race against a timeout to prevent hanging the whole app ──
-        const syncPromise = supabase
-            .from('users')
-            .upsert({
-                google_sub: profile.sub,
-                email: profile.email,
-                display_name: profile.name,
-                photo_url: profile.picture,
-                peer_id: peerId,
-                is_online: true,
-                last_seen: new Date().toISOString(),
-            }, { onConflict: 'google_sub' })
-            .select()
-            .single();
-
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Supabase sync timeout')), 4000)
-        );
-
-        const { data, error } = await Promise.race([syncPromise, timeoutPromise]) as any;
-
-        if (error) {
-            console.error('[Auth] Supabase upsert error:', error);
-            // Still work offline — create an in-memory profile
-            const offline: DBUser = {
-                id: profile.sub, google_sub: profile.sub,
-                email: profile.email, display_name: profile.name,
-                photo_url: profile.picture, peer_id: peerId,
-                is_online: true, last_seen: new Date().toISOString(),
-                created_at: new Date().toISOString(),
-            };
-            return { ...offline, displayName: profile.name, photoURL: profile.picture };
-        }
-
-        const up: UserProfile = {
-            ...data,
-            displayName: data.display_name,
-            photoURL: data.photo_url ?? profile.picture,
-        };
-        return up;
-    } catch (e) {
-        console.error('[Auth] syncUserToSupabase failed (Fallback mode):', e);
-        // Emergency fallback for sync failure
-        return null;
-    }
-}, []);
-
-// ── Online presence heartbeat ─────────────────────────────
-const startPresence = useCallback((userId: string) => {
-    const ping = () => supabase
-        .from('users')
-        .update({ is_online: true, last_seen: new Date().toISOString() })
-        .eq('id', userId)
-        .then(() => {/* silent */ });
-
-    ping();
-    onlineInterval.current = setInterval(ping, 30_000);
-
-    const markOffline = () => {
-        supabase.from('users')
-            .update({ is_online: false, last_seen: new Date().toISOString() })
-            .eq('id', userId);
-    };
-
-    window.addEventListener('beforeunload', markOffline);
-    return () => {
-        clearInterval(onlineInterval.current!);
-        window.removeEventListener('beforeunload', markOffline);
-        markOffline();
-    };
-}, []);
-
-// ── Google login (implicit / token flow via popup) ────────
-const loginWithGoogle = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-        setIsLoading(true);
         try {
-            // Fetch user info from Google
-            const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-            });
-            const profile: GoogleProfile = await res.json();
+            const peerId = generatePermanentPeerId(profile.sub);
 
-            saveProfile(profile);
-            setGoogleProfile(profile);
-            sessionStorage.removeItem(GUEST_KEY);
-            setIsGuest(false);
+            // ── Race against a timeout to prevent hanging the whole app ──
+            const syncPromise = supabase
+                .from('users')
+                .upsert({
+                    google_sub: profile.sub,
+                    email: profile.email,
+                    display_name: profile.name,
+                    photo_url: profile.picture,
+                    peer_id: peerId,
+                    is_online: true,
+                    last_seen: new Date().toISOString(),
+                }, { onConflict: 'google_sub' })
+                .select()
+                .single();
 
-            const up = await syncUserToSupabase(profile);
-            setUserProfile(up);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Supabase sync timeout')), 4000)
+            );
 
-            if (up) startPresence(up.id);
+            const { data, error } = await Promise.race([syncPromise, timeoutPromise]) as any;
+
+            if (error) {
+                console.error('[Auth] Supabase upsert error:', error);
+                // Still work offline — create an in-memory profile
+                const offline: DBUser = {
+                    id: profile.sub, google_sub: profile.sub,
+                    email: profile.email, display_name: profile.name,
+                    photo_url: profile.picture, peer_id: peerId,
+                    is_online: true, last_seen: new Date().toISOString(),
+                    created_at: new Date().toISOString(),
+                };
+                return { ...offline, displayName: profile.name, photoURL: profile.picture };
+            }
+
+            const up: UserProfile = {
+                ...data,
+                displayName: data.display_name,
+                photoURL: data.photo_url ?? profile.picture,
+            };
+            return up;
         } catch (e) {
-            console.error('[Auth] Google login error:', e);
-        } finally {
+            console.error('[Auth] syncUserToSupabase failed (Fallback mode):', e);
+            return null;
+        }
+    }, []);
+
+    // ── Online presence heartbeat ─────────────────────────────
+    const startPresence = useCallback((userId: string) => {
+        const ping = () => supabase
+            .from('users')
+            .update({ is_online: true, last_seen: new Date().toISOString() })
+            .eq('id', userId)
+            .then(() => {/* silent */ });
+
+        ping();
+        onlineInterval.current = setInterval(ping, 30_000);
+
+        const markOffline = () => {
+            supabase.from('users')
+                .update({ is_online: false, last_seen: new Date().toISOString() })
+                .eq('id', userId);
+        };
+
+        window.addEventListener('beforeunload', markOffline);
+        return () => {
+            clearInterval(onlineInterval.current!);
+            window.removeEventListener('beforeunload', markOffline);
+            markOffline();
+        };
+    }, []);
+
+    // ── Google login (implicit / token flow via popup) ────────
+    const loginWithGoogle = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            setIsLoading(true);
+            try {
+                // Fetch user info from Google
+                const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                    headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+                });
+                const profile: GoogleProfile = await res.json();
+
+                saveProfile(profile);
+                setGoogleProfile(profile);
+                sessionStorage.removeItem(GUEST_KEY);
+                setIsGuest(false);
+
+                const up = await syncUserToSupabase(profile);
+                setUserProfile(up);
+
+                if (up) startPresence(up.id);
+            } catch (e) {
+                console.error('[Auth] Google login error:', e);
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        onError: (err) => {
+            console.error('[Auth] Google OAuth error:', err);
             setIsLoading(false);
+        },
+        flow: 'implicit',
+    });
+
+    // ── Guest login ───────────────────────────────────────────
+    const loginAsGuest = useCallback(() => {
+        sessionStorage.setItem(GUEST_KEY, '1');
+        setIsGuest(true);
+        setGoogleProfile(null);
+        setUserProfile(null);
+        localStorage.removeItem(PROFILE_KEY);
+    }, []);
+
+    // ── Logout ────────────────────────────────────────────────
+    const logout = useCallback(() => {
+        if (onlineInterval.current) clearInterval(onlineInterval.current);
+        if (userProfile) {
+            supabase.from('users')
+                .update({ is_online: false })
+                .eq('id', userProfile.id);
         }
-    },
-    onError: (err) => {
-        console.error('[Auth] Google OAuth error:', err);
-        setIsLoading(false);
-    },
-    flow: 'implicit',
-});
+        googleLogout();
+        localStorage.removeItem(PROFILE_KEY);
+        sessionStorage.removeItem(GUEST_KEY);
+        setGoogleProfile(null);
+        setUserProfile(null);
+        setIsGuest(false);
+    }, [userProfile]);
 
-// ── Guest login ───────────────────────────────────────────
-const loginAsGuest = useCallback(() => {
-    sessionStorage.setItem(GUEST_KEY, '1');
-    setIsGuest(true);
-    setGoogleProfile(null);
-    setUserProfile(null);
-    localStorage.removeItem(PROFILE_KEY);
-}, []);
+    // ── Restore session on mount ──────────────────────────────
+    useEffect(() => {
+        const init = async () => {
+            if ((window as any).bootStep) (window as any).bootStep('Restoring Session...');
+            const saved = loadProfile();
+            if (saved) {
+                if ((window as any).bootStep) (window as any).bootStep('Syncing User...');
+                const up = await syncUserToSupabase(saved);
+                setUserProfile(up);
+                if (up) startPresence(up.id);
+            }
+            if ((window as any).bootStep) (window as any).bootStep('Auth Ready');
+            setIsLoading(false);
+        };
+        init();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-// ── Logout ────────────────────────────────────────────────
-const logout = useCallback(() => {
-    if (onlineInterval.current) clearInterval(onlineInterval.current);
-    if (userProfile) {
-        supabase.from('users')
-            .update({ is_online: false })
-            .eq('id', userProfile.id);
-    }
-    googleLogout();
-    localStorage.removeItem(PROFILE_KEY);
-    sessionStorage.removeItem(GUEST_KEY);
-    setGoogleProfile(null);
-    setUserProfile(null);
-    setIsGuest(false);
-}, [userProfile]);
+    const isAuthenticated = !!googleProfile || isGuest;
 
-// ── Restore session on mount ──────────────────────────────
-useEffect(() => {
-    const init = async () => {
-        if ((window as any).bootStep) (window as any).bootStep('Restoring Session...');
-        const saved = loadProfile();
-        if (saved) {
-            if ((window as any).bootStep) (window as any).bootStep('Syncing User...');
-            const up = await syncUserToSupabase(saved);
-            setUserProfile(up);
-            if (up) startPresence(up.id);
-        }
-        if ((window as any).bootStep) (window as any).bootStep('Auth Ready');
-        setIsLoading(false);
-    };
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
-
-const isAuthenticated = !!googleProfile || isGuest;
-
-return (
-    <AuthContext.Provider value={{
-        googleProfile, userProfile, isGuest, isLoading, isAuthenticated,
-        loginWithGoogle, loginAsGuest, logout, permanentPeerId,
-    }}>
-        {children}
-    </AuthContext.Provider>
-);
+    return (
+        <AuthContext.Provider value={{
+            googleProfile, userProfile, isGuest, isLoading, isAuthenticated,
+            loginWithGoogle, loginAsGuest, logout, permanentPeerId,
+        }}>
+            {children}
+        </AuthContext.Provider>
+    );
 };
 
 export const useAuth = () => {

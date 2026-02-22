@@ -38,4 +38,5 @@ if (!rootElement) {
         </ErrorBoundary>
     );
     bootStep('App Mounted');
+    if ((window as any).dismissFallback) (window as any).dismissFallback();
 }
