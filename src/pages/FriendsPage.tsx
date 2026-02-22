@@ -257,6 +257,18 @@ const FriendsPage = () => {
                             <div key={u.id} className="ios-card overflow-hidden">
                                 <UserCard user={u} action={
                                     <div className="flex gap-2">
+                                        {u.is_online && (
+                                            <button
+                                                onClick={() => {
+                                                    localStorage.setItem('peerIdToConnect', u.peer_id);
+                                                    navigate('/watch');
+                                                }}
+                                                className="px-3 h-9 rounded-xl flex items-center justify-center gap-1.5 bg-[#34C85A]/10 text-[#34C85A] border border-[#34C85A]/20 hover:bg-[#34C85A]/20 transition-colors text-[12px] font-bold"
+                                            >
+                                                <Wifi className="h-3.5 w-3.5" />
+                                                <span>Connect</span>
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => {
                                                 localStorage.setItem('peerIdToConnect', u.peer_id);
@@ -267,16 +279,18 @@ const FriendsPage = () => {
                                         >
                                             <MessageCircle className="h-4 w-4" />
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                localStorage.setItem('peerIdToConnect', u.peer_id);
-                                                navigate('/watch');
-                                            }}
-                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/20 transition-colors"
-                                            title="Call & Watch"
-                                        >
-                                            <Wifi className="h-4 w-4" />
-                                        </button>
+                                        {!u.is_online && (
+                                            <button
+                                                onClick={() => {
+                                                    localStorage.setItem('peerIdToConnect', u.peer_id);
+                                                    navigate('/watch');
+                                                }}
+                                                className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/20 transition-colors"
+                                                title="Call & Watch"
+                                            >
+                                                <Wifi className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 } />
                             </div>
