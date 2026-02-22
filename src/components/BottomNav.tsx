@@ -1,4 +1,4 @@
-import { Home, Monitor, Globe2, MessageCircle, Users } from 'lucide-react';
+import { Home, Monitor, Globe2, MessageCircle, Users, UserCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -14,6 +14,7 @@ const BASE_TABS = [
 ];
 
 const FRIENDS_TAB = { key: 'friends', label: 'Friends', icon: Users, to: '/friends' };
+const PROFILE_TAB = { key: 'profile', label: 'Profile', icon: UserCircle, to: '/profile' };
 
 const spring = { type: 'spring' as const, stiffness: 500, damping: 32, mass: 0.65 };
 
@@ -23,8 +24,8 @@ const BottomNav = () => {
   const { userProfile, isGuest } = useAuth();
   const [pendingCount, setPendingCount] = useState(0);
 
-  // Build tab list — include Friends only for registered users
-  const TABS = isGuest ? BASE_TABS : [...BASE_TABS, FRIENDS_TAB];
+  // Build tab list — include Friends and Profile only for registered users
+  const TABS = isGuest ? BASE_TABS : [...BASE_TABS, FRIENDS_TAB, PROFILE_TAB];
 
   // Poll for pending follow requests badge
   useEffect(() => {

@@ -1,9 +1,10 @@
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { AppContextType } from '@/layouts/AppLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Tv2, MessageCircle, MonitorUp, Zap, Users, ArrowRight, ChevronRight, Shield, Star } from 'lucide-react';
+import { Tv2, MessageCircle, MonitorUp, Zap, Users, ArrowRight, ChevronRight, Shield, Star, UserCircle } from 'lucide-react';
 import PeerConnection from '@/components/PeerConnection';
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 // ── Visual separator between the two sections ─────────────────────
 
@@ -30,33 +31,54 @@ const fadeUp = (d = 0) => ({
 const AppPage = () => {
   const context = useOutletContext<AppContextType>();
   const navigate = useNavigate();
+  const { userProfile } = useAuth();
   const [showConnect, setShowConnect] = useState(false);
+
+  const displayName = userProfile?.display_name || context.myNickname;
 
   return (
     <div className="min-h-full px-4 pt-2 pb-6 space-y-6 overflow-y-auto">
 
       {/* ── Greeting Header ── */}
       <motion.div {...fadeUp(0)} className="pt-2">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[13px] text-white/40 font-medium">Good to see you,</p>
-            <h1 className="text-[28px] font-bold text-white tracking-tight leading-tight">
-              {context.myNickname} 👋
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] text-white/40 font-medium truncate">Good to see you,</p>
+            <h1 className="text-[28px] font-bold text-white tracking-tight leading-tight truncate">
+              {displayName} 👋
             </h1>
           </div>
-          {/* Connection badge — tap to toggle connect panel */}
-          <motion.button
-            whileTap={{ scale: 0.94 }}
-            onClick={() => setShowConnect((v) => !v)}
-            className={`ios-pill px-3 py-1.5 flex items-center gap-1.5 tap-effect ${context.isConnected ? 'border-[#30D158]/30' : 'border-[#0A84FF]/30'
-              }`}
-          >
-            <span className={`h-2 w-2 rounded-full ${context.isConnected ? 'status-dot-online' : 'bg-[#0A84FF] animate-pulse'}`} />
-            <span className={`text-[12px] font-semibold ${context.isConnected ? 'text-[#30D158]' : 'text-[#0A84FF]'}`}>
-              {context.isConnected ? context.remoteNickname : 'Connect'}
-            </span>
-            {!context.isConnected && <ChevronRight className="h-3 w-3 text-[#0A84FF]" />}
-          </motion.button>
+
+          <div className="flex items-center gap-2">
+            {/* Connection badge */}
+            <motion.button
+              whileTap={{ scale: 0.94 }}
+              onClick={() => setShowConnect((v) => !v)}
+              className={`ios-pill px-3 py-1.5 flex items-center gap-1.5 tap-effect ${context.isConnected ? 'border-[#30D158]/30' : 'border-[#0A84FF]/30'
+                }`}
+            >
+              <span className={`h-2 w-2 rounded-full ${context.isConnected ? 'status-dot-online' : 'bg-[#0A84FF] animate-pulse'}`} />
+              <span className={`text-[12px] font-semibold ${context.isConnected ? 'text-[#30D158]' : 'text-[#0A84FF]'}`}>
+                {context.isConnected ? context.remoteNickname : 'Connect'}
+              </span>
+              {!context.isConnected && <ChevronRight className="h-3 w-3 text-[#0A84FF]" />}
+            </motion.button>
+
+            {/* Profile trigger (Avatar) */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate('/profile')}
+              className="h-10 w-10 rounded-xl overflow-hidden border border-white/10 bg-white/5 shrink-0"
+            >
+              {userProfile?.photo_url ? (
+                <img src={userProfile.photo_url} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center text-white/20">
+                  <UserCircle className="h-6 w-6" />
+                </div>
+              )}
+            </motion.button>
+          </div>
         </div>
       </motion.div>
 

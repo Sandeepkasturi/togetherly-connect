@@ -21,6 +21,7 @@ import BrowserPage from "./pages/BrowserPage";
 import ChatPage from "./pages/ChatPage";
 import TheaterPage from "./pages/TheaterPage";
 import FriendsPage from "./pages/FriendsPage";
+import ProfilePage from "./pages/ProfilePage";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string ?? '';
@@ -62,6 +63,7 @@ const AppRoutes = () => (
       <Route path="/browser" element={<BrowserPage />} />
       <Route path="/chat" element={<ChatPage />} />
       <Route path="/friends" element={<FriendsPage />} />
+      <Route path="/profile" element={<ProfilePage />} />
     </Route>
 
     <Route path="*" element={<NotFound />} />
