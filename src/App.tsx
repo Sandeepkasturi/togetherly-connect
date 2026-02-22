@@ -70,25 +70,42 @@ const AppRoutes = () => (
   </Routes>
 );
 
-const App = () => (
-  <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+const App = () => {
+  const isAuthReady = !!GOOGLE_CLIENT_ID;
+
+  if (typeof window !== 'undefined' && (window as any).bootStep) {
+    (window as any).bootStep('App Components Initializing...');
+  }
+
+  return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <UserProvider>
-          <PlaylistProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <AppRoutes />
-              </BrowserRouter>
-              <Analytics />
-            </TooltipProvider>
-          </PlaylistProvider>
-        </UserProvider>
-      </AuthProvider>
+      {isAuthReady ? (
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+          <AuthProvider>
+            <UserProvider>
+              <PlaylistProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  <Sonner />
+                  <BrowserRouter>
+                    <AppRoutes />
+                  </BrowserRouter>
+                  <Analytics />
+                </TooltipProvider>
+              </PlaylistProvider>
+            </UserProvider>
+          </AuthProvider>
+        </GoogleOAuthProvider>
+      ) : (
+        <div className="fixed inset-0 bg-black flex flex-col items-center justify-center p-6 text-center text-white">
+          <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-2xl max-w-md">
+            <h2 className="text-xl font-bold mb-2">Configuration Missing</h2>
+            <p className="opacity-70 text-sm">VITE_GOOGLE_CLIENT_ID is not set. Please add it to your environment variables to enable authentication.</p>
+          </div>
+        </div>
+      )}
     </QueryClientProvider>
-  </GoogleOAuthProvider>
-);
+  );
+};
 
 export default App;
