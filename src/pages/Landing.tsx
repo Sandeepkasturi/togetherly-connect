@@ -1,199 +1,129 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { motion } from 'framer-motion';
-import Header from '@/components/Header';
 import { useUser } from '@/contexts/UserContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
-import { Github, Linkedin, Instagram, Youtube, ShieldCheck, FileUp, Video, KeyRound, Share2, Link2 } from 'lucide-react';
-import ProductHuntBadge from '@/components/ProductHuntBadge';
+import { Input } from '@/components/ui/input';
+import { Sparkles, Tv2, MessageCircle, MonitorUp, Zap, Shield, Users } from 'lucide-react';
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 24 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.5, delay, ease: [0.32, 0.72, 0, 1] },
+});
+
+const FEATURES = [
+  { icon: Tv2, color: '#0A84FF', label: 'Watch Together', desc: 'YouTube sync across devices in real-time.' },
+  { icon: MessageCircle, color: '#BF5AF2', label: 'Live Chat', desc: 'iMessage-style chat with reactions & voice.' },
+  { icon: MonitorUp, color: '#30D158', label: 'Screen Share', desc: 'Share your screen instantly, no installs.' },
+  { icon: Shield, color: '#FF9F0A', label: 'P2P Encrypted', desc: 'Direct peer-to-peer, zero servers in the middle.' },
+];
 
 const Landing = () => {
-  const { nickname, setNickname } = useUser();
-  const [inputNickname, setInputNickname] = useState(nickname);
+  const { setNickname } = useUser();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [name, setName] = useState('');
+  const [shake, setShake] = useState(false);
 
-  const handleLaunch = () => {
-    if (inputNickname.trim().length < 3) {
-      toast({
-        title: 'Nickname too short',
-        description: 'Please enter a nickname with at least 3 characters.',
-        variant: 'destructive',
-      });
+  const launch = () => {
+    if (!name.trim()) {
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      toast({ title: 'Enter your name first', variant: 'destructive' });
       return;
     }
-    setNickname(inputNickname.trim());
-    navigate('/watch');
+    setNickname(name.trim());
+    navigate('/app');
   };
 
   return (
-    <div className="min-h-screen bg-gradient-hero text-foreground flex flex-col relative overflow-hidden">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-24 h-24 bg-accent/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-primary/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
+    <div className="min-h-screen flex flex-col px-4 pt-4 pb-6 overflow-y-auto">
+
+      {/* ── Hero ── */}
+      <div className="flex-none text-center pt-6 pb-8 space-y-4">
+        {/* Badge */}
+        <motion.div {...fadeUp(0)} className="inline-flex items-center gap-2 ios-pill px-4 py-2 mx-auto">
+          <Zap className="h-3.5 w-3.5 text-[#FFD60A]" />
+          <span className="text-[12px] font-semibold text-white/80">100% Peer-to-Peer · No Servers</span>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1 {...fadeUp(0.08)} className="text-[40px] sm:text-[52px] font-bold leading-[1.1] tracking-tight">
+          <span className="text-white">Watch.</span>{' '}
+          <span className="text-gradient-ios">Together.</span>
+        </motion.h1>
+
+        <motion.p {...fadeUp(0.14)} className="text-[16px] text-white/50 leading-relaxed max-w-xs mx-auto">
+          Sync YouTube, chat live, and share your screen — with anyone, anywhere.
+        </motion.p>
       </div>
-      <Header />
-      <main className="flex-grow relative z-10">
-        {/* Hero Section - Mobile First */}
-        <section className="text-center px-4 py-8 sm:py-12 md:py-20">
+
+      {/* ── Name Card ── */}
+      <motion.div {...fadeUp(0.22)} className="flex-none max-w-sm mx-auto w-full">
+        <AnimatePresence>
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-6xl mx-auto"
+            animate={shake ? { x: [0, -10, 10, -8, 8, 0] } : {}}
+            transition={{ duration: 0.4 }}
+            className="ios-card-strong p-5 space-y-4"
           >
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-gradient-primary mb-4 sm:mb-6 font-display leading-tight px-2">
-              Your Private Space for Real-Time Connection
-            </h1>
-            <p className="max-w-2xl mx-auto text-base sm:text-lg md:text-xl text-muted-foreground/90 mb-8 sm:mb-10 leading-relaxed px-2">
-              Watch videos together, chat securely, and share files—all peer-to-peer with no servers in between.
-            </p>
-            <div className="max-w-md mx-auto space-y-4 sm:space-y-5 px-2">
-              <div className="grid w-full items-center gap-2 text-left glass p-4 sm:p-6 rounded-2xl">
-                <Label htmlFor="nickname" className="text-sm sm:text-base font-medium">Choose your Nickname</Label>
-                <Input
-                  id="nickname"
-                  type="text"
-                  placeholder="Enter your name"
-                  value={inputNickname}
-                  onChange={(e) => setInputNickname(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleLaunch()}
-                  className="text-center text-base sm:text-lg h-12 sm:h-14 rounded-xl"
-                />
-              </div>
-              <Button
-                size="lg"
-                onClick={handleLaunch}
-                className="w-full animated-gradient hover:glow-primary transition-all duration-300 hover:scale-105 active:scale-95 font-semibold text-base sm:text-lg h-14 sm:h-16 rounded-xl shadow-lg"
-              >
-                Launch App ✨
-              </Button>
+            <div className="space-y-1">
+              <label className="text-[13px] font-semibold text-white/60 uppercase tracking-widest">Your Name</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && launch()}
+                placeholder="e.g. Alex"
+                maxLength={24}
+                className="ios-input h-12 text-[17px] bg-white/5 border-white/10 focus-visible:ring-[#0A84FF]/40 placeholder:text-white/25"
+              />
+            </div>
+
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={launch}
+              className="w-full h-12 rounded-xl ios-btn-primary flex items-center justify-center gap-2 text-[17px] font-semibold shadow-lg shadow-[#0A84FF]/20"
+            >
+              <Sparkles className="h-5 w-5" />
+              Get Started
+            </motion.button>
+
+            <p className="text-center text-[12px] text-white/30">Free forever · No account needed</p>
+          </motion.div>
+        </AnimatePresence>
+      </motion.div>
+
+      {/* ── Feature Cards ── */}
+      <motion.div {...fadeUp(0.3)} className="flex-none mt-8 max-w-sm mx-auto w-full space-y-3">
+        <p className="text-[12px] font-semibold text-white/40 uppercase tracking-widest text-center mb-4">What's inside</p>
+        {FEATURES.map(({ icon: Icon, color, label, desc }, i) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.32 + i * 0.07, ease: [0.32, 0.72, 0, 1], duration: 0.4 }}
+            className="ios-card flex items-center gap-4 px-4 py-4 hover-lift"
+            style={{ '--card-glow': color + '20' } as React.CSSProperties}
+          >
+            <div
+              className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: color + '20', border: `1px solid ${color}40` }}
+            >
+              <Icon className="h-5 w-5" style={{ color }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[15px] font-semibold text-white">{label}</p>
+              <p className="text-[13px] text-white/45 leading-snug">{desc}</p>
             </div>
           </motion.div>
-        </section>
+        ))}
+      </motion.div>
 
-        {/* Features Section - Mobile Optimized */}
-        <section id="features" className="py-10 sm:py-12 md:py-20 bg-gradient-surface/50 backdrop-blur-sm">
-          <div className="max-w-6xl mx-auto px-4">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-8 sm:mb-12 md:mb-16 text-gradient-accent font-display">Core Features</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-center p-6 sm:p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-primary text-primary-foreground mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Youtube className="w-7 h-7 sm:w-8 sm:h-8" />
-                </div>
-                <h3 className="font-semibold text-lg sm:text-xl mb-2 sm:mb-3 text-foreground">Synchronized YouTube</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">Watch videos together in perfect sync.</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-center p-6 sm:p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-accent text-accent-foreground mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <ShieldCheck className="w-7 h-7 sm:w-8 sm:h-8" />
-                </div>
-                <h3 className="font-semibold text-lg sm:text-xl mb-2 sm:mb-3 text-foreground">Secure Chat</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">Chat securely with end-to-end encryption.</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-center p-6 sm:p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-primary text-primary-foreground mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <FileUp className="w-7 h-7 sm:w-8 sm:h-8" />
-                </div>
-                <h3 className="font-semibold text-lg sm:text-xl mb-2 sm:mb-3 text-foreground">P2P File Sharing</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">Share files directly and privately with your peer.</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-center p-6 sm:p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-accent text-accent-foreground mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Video className="w-7 h-7 sm:w-8 sm:h-8" />
-                </div>
-                <h3 className="font-semibold text-lg sm:text-xl mb-2 sm:mb-3 text-foreground">Video Calls</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">Connect face-to-face with high-quality video calls.</p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
+      {/* ── Footer ── */}
+      <motion.p {...fadeUp(0.6)} className="flex-none text-center text-[11px] text-white/20 mt-8">
+        © {new Date().getFullYear()} Togetherly · Made with ♥
+      </motion.p>
 
-        {/* How it Works Section - Mobile Optimized */}
-        <section id="how-it-works" className="py-10 sm:py-12 md:py-20">
-          <div className="max-w-6xl mx-auto px-4">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8 sm:mb-12">How It Works</h2>
-            <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-8 sm:gap-10 text-center">
-              <div className="flex flex-col items-center p-4">
-                <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground mb-4">
-                  <KeyRound className="h-7 w-7 sm:h-8 sm:w-8" />
-                </div>
-                <h3 className="font-semibold text-base sm:text-lg mb-2">1. Get Your ID</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">Launch the app to get your unique, private Peer ID.</p>
-              </div>
-              <div className="flex flex-col items-center p-4">
-                <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground mb-4">
-                  <Share2 className="h-7 w-7 sm:h-8 sm:w-8" />
-                </div>
-                <h3 className="font-semibold text-base sm:text-lg mb-2">2. Share Securely</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">Share your ID with a friend you want to connect with.</p>
-              </div>
-              <div className="flex flex-col items-center p-4">
-                <div className="flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground mb-4">
-                  <Link2 className="h-7 w-7 sm:h-8 sm:w-8" />
-                </div>
-                <h3 className="font-semibold text-base sm:text-lg mb-2">3. Connect & Collaborate</h3>
-                <p className="text-sm sm:text-base text-muted-foreground">Your friend uses your ID to establish a secure P2P connection.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-      </main>
-      <footer className="bg-secondary/30 border-t border-border text-sm">
-        <div className="max-w-6xl mx-auto px-4 py-6 sm:py-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
-            <div className="space-y-2 text-center sm:text-left">
-              <h3 className="text-base sm:text-lg font-bold text-primary">Togetherly</h3>
-              <p className="text-xs sm:text-sm text-muted-foreground">A project by <a href="https://skavtechs.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">SKAV TECH</a></p>
-              <p className="text-xs sm:text-sm text-muted-foreground">Developed by Sandeep Kasturi.</p>
-              <p className="text-xs text-muted-foreground pt-2">
-                All my inspiration and love goes to 'S' — thank you for being my strength and continuous supporter ❤️.
-              </p>
-            </div>
-            <div className="text-center sm:text-left lg:mx-auto">
-              <h3 className="text-base sm:text-lg font-semibold text-primary mb-3">Connect with the developer</h3>
-              <div className="flex gap-4 justify-center sm:justify-start">
-                <a href="https://instagram.com/sandeep_kasturi_" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Instagram className="h-5 w-5" />
-                </a>
-                <a href="https://github.com/sandeepkasturi" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Github className="h-5 w-5" />
-                </a>
-                <a href="https://www.linkedin.com/in/sandeepkasturi9/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Linkedin className="h-5 w-5" />
-                </a>
-              </div>
-            </div>
-            <ProductHuntBadge />
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

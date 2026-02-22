@@ -1,133 +1,147 @@
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { AppContextType } from '@/layouts/AppLayout';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
-import { ArrowLeft, Users, MessageCircle, Search, Link as LinkIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ArrowLeft, MessageCircle, Search, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Chat from '@/components/Chat';
 import YouTubeSearch from '@/components/YouTubeSearch';
 import PeerConnection from '@/components/PeerConnection';
 import { Badge } from '@/components/ui/badge';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
+
+const spring = { type: 'spring' as const, stiffness: 420, damping: 32 };
 
 const TheaterPage = () => {
   const context = useOutletContext<AppContextType>();
   const navigate = useNavigate();
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeTab, setActiveTab] = useState('chat');
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Redirect back if no video is selected
   useEffect(() => {
-    if (!context.selectedVideoId) {
-      navigate('/watch');
-    }
+    if (!context.selectedVideoId) navigate('/watch');
   }, [context.selectedVideoId, navigate]);
 
-  // Show notification for new messages when video is playing
   useEffect(() => {
-    const lastMessage = context.messages[context.messages.length - 1];
-    if (lastMessage && lastMessage.sender === 'them') {
-      if (activeTab !== 'chat') {
-        setUnreadCount(prev => prev + 1);
-      }
+    const lastMsg = context.messages[context.messages.length - 1];
+    if (lastMsg?.sender === 'them' && activeTab !== 'chat') {
+      setUnreadCount((n) => n + 1);
     }
-  }, [context.messages, isVideoPlaying, activeTab]);
+  }, [context.messages, activeTab]);
 
-  // Reset unread count when switching to chat tab
   useEffect(() => {
-    if (activeTab === 'chat') {
-      setUnreadCount(0);
-    }
+    if (activeTab === 'chat') setUnreadCount(0);
   }, [activeTab]);
 
-  const handleVideoPlayingChange = (playing: boolean) => {
-    setIsVideoPlaying(playing);
-  };
-
-  const handleBack = () => {
-    navigate('/watch');
-  };
-
-  if (!context.selectedVideoId) {
-    return null;
-  }
+  if (!context.selectedVideoId) return null;
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="fixed inset-0 flex flex-col bg-black" style={{ top: 0, bottom: 0 }}>
 
+      {/* ── Video player (sticky top) ── */}
+      <div className="shrink-0 relative bg-black w-full">
+        {/* Back button */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => navigate('/watch')}
+          className="absolute top-14 left-3 z-50 h-8 w-8 rounded-full bg-black/60 backdrop-blur-md border border-white/10 flex items-center justify-center"
+        >
+          <ArrowLeft className="h-4 w-4 text-white" />
+        </motion.button>
 
-      {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col h-screen">
-        {/* Sticky Video Player */}
-        <div className="sticky top-0 z-50 bg-black w-full">
-          <div className="relative aspect-video w-full">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleBack}
-              className="absolute top-2 left-2 z-50 text-white bg-black/50 hover:bg-black/70 rounded-full h-8 w-8"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-            <EnhancedVideoPlayer
-              videoId={context.selectedVideoId}
-              sendData={context.sendData}
-              playerData={context.playerSyncData}
-              isConnected={context.isConnected}
-              onPlayingStateChange={handleVideoPlayingChange}
-              playerId="youtube-player-mobile"
-            />
-          </div>
+        {/* Connected badge */}
+        {context.isConnected && (
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="absolute top-14 right-3 z-50"
+          >
+            <div className="flex items-center gap-1.5 bg-black/70 backdrop-blur-md border border-[#30D158]/30 px-2.5 py-1.5 rounded-full">
+              <span className="h-1.5 w-1.5 rounded-full status-dot-online" />
+              <Users className="h-3 w-3 text-[#30D158]" />
+              <span className="text-[11px] text-[#30D158] font-semibold">{context.remoteNickname}</span>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Video */}
+        <div className="aspect-video w-full">
+          <EnhancedVideoPlayer
+            videoId={context.selectedVideoId}
+            sendData={context.sendData}
+            playerData={context.playerSyncData}
+            isConnected={context.isConnected}
+            onPlayingStateChange={() => { }}
+            playerId="theater-player"
+          />
         </div>
+      </div>
 
-        {/* Tabbed Content Area */}
-        <div className="flex-1 bg-background overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
-            <TabsList className="grid w-full grid-cols-3 bg-muted/20 p-1 rounded-none border-b border-white/10">
-              <TabsTrigger value="chat" className="relative data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                <MessageCircle className="h-4 w-4 mr-2" />
-                Chat
-                {unreadCount > 0 && (
-                  <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+      {/* ── Tabbed panel below video ── */}
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#0a0a0e]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+          {/* iOS segmented tab bar */}
+          <TabsList className="shrink-0 flex rounded-none px-3 py-2 bg-black/90 backdrop-blur-xl border-b border-white/[0.07] gap-2 h-auto">
+            {[
+              { value: 'chat', icon: MessageCircle, label: 'Chat' },
+              { value: 'discover', icon: Search, label: 'Discover' },
+              { value: 'connect', icon: Users, label: 'Connect' },
+            ].map(({ value, icon: Icon, label }) => (
+              <TabsTrigger
+                key={value}
+                value={value}
+                className={cn(
+                  'relative flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-[13px] font-semibold',
+                  'data-[state=active]:text-white data-[state=inactive]:text-white/35',
+                  'transition-colors duration-150'
+                )}
+              >
+                {activeTab === value && (
+                  <motion.span
+                    layoutId="theater-pill"
+                    className="absolute inset-0 rounded-xl bg-[#0A84FF]/15 border border-[#0A84FF]/25"
+                    transition={spring}
+                  />
+                )}
+                <Icon className="h-3.5 w-3.5 relative z-10" />
+                <span className="relative z-10">{label}</span>
+                {value === 'chat' && unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[9px] z-20 rounded-full bg-[#FF453A] border-0"
+                  >
                     {unreadCount}
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="discover" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                <Search className="h-4 w-4 mr-2" />
-                Discover
-              </TabsTrigger>
-              <TabsTrigger value="connection" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-                <LinkIcon className="h-4 w-4 mr-2" />
-                Connect
-              </TabsTrigger>
-            </TabsList>
+            ))}
+          </TabsList>
 
-            <TabsContent value="chat" className="flex-1 mt-0 h-full overflow-hidden">
-              <Chat
-                messages={context.messages}
-                sendMessage={context.sendMessage}
-                isConnected={context.isConnected}
-                handleSendReaction={context.handleSendReaction}
-                handleSendFile={context.handleSendFile}
-                handleSendVoice={context.handleSendVoice}
-                handleEditMessage={context.handleEditMessage}
-                handleDeleteMessage={context.handleDeleteMessage}
-                clearChat={context.clearChat}
-              />
-            </TabsContent>
+          {/* Tab content */}
+          <TabsContent value="chat" className="flex-1 mt-0 overflow-hidden">
+            <Chat
+              messages={context.messages}
+              sendMessage={context.sendMessage}
+              isConnected={context.isConnected}
+              handleSendReaction={context.handleSendReaction}
+              handleSendFile={context.handleSendFile}
+              handleSendVoice={context.handleSendVoice}
+              handleEditMessage={context.handleEditMessage}
+              handleDeleteMessage={context.handleDeleteMessage}
+              clearChat={context.clearChat}
+            />
+          </TabsContent>
 
-            <TabsContent value="discover" className="flex-1 mt-0 overflow-y-auto p-4 pb-20">
-              <YouTubeSearch
-                onVideoSelect={context.handleVideoSelect}
-                isConnected={context.isConnected}
-              />
-            </TabsContent>
+          <TabsContent value="discover" className="flex-1 mt-0 overflow-y-auto p-4">
+            <YouTubeSearch
+              onVideoSelect={context.handleVideoSelect}
+              isConnected={context.isConnected}
+            />
+          </TabsContent>
 
-            <TabsContent value="connection" className="flex-1 mt-0 overflow-y-auto p-4 pb-20">
+          <TabsContent value="connect" className="flex-1 mt-0 overflow-y-auto p-4">
+            <div className="ios-card p-4">
               <PeerConnection
                 peerId={context.peerId}
                 connectToPeer={context.connectToPeer}
@@ -140,102 +154,9 @@ const TheaterPage = () => {
                 connectionState={context.connectionState}
                 onManualReconnect={context.onManualReconnect}
               />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-
-      {/* Desktop Layout (Preserved) */}
-      <div className="hidden lg:flex flex-col min-h-screen">
-        {/* Minimal Top Bar - Auto-hide on scroll */}
-        <motion.div
-          initial={{ y: 0 }}
-          className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent p-4 pointer-events-none"
-        >
-          <div className="flex items-center justify-between pointer-events-auto">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleBack}
-              className="text-white hover:bg-white/10"
-            >
-              <ArrowLeft className="h-5 w-5 mr-2" />
-              Back
-            </Button>
-
-            <div className="flex items-center gap-2">
-              {context.isConnected && (
-                <div className="flex items-center gap-2 bg-green-500/20 backdrop-blur-sm border border-green-500/30 px-3 py-1.5 rounded-full">
-                  <Users className="h-4 w-4 text-green-400" />
-                  <span className="text-sm text-green-300 font-medium">
-                    {context.remoteNickname || 'Friend'}
-                  </span>
-                </div>
-              )}
-
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-white hover:bg-white/10 relative">
-                    <MessageCircle className="h-5 w-5 mr-2" />
-                    Chat
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0 border-l border-white/10 bg-black/90 backdrop-blur-xl">
-                  <div className="h-full pt-6">
-                    <Chat
-                      messages={context.messages}
-                      sendMessage={context.sendMessage}
-                      isConnected={context.isConnected}
-                      handleSendReaction={context.handleSendReaction}
-                      handleSendFile={context.handleSendFile}
-                      handleSendVoice={context.handleSendVoice}
-                      handleEditMessage={context.handleEditMessage}
-                      handleDeleteMessage={context.handleDeleteMessage}
-                      clearChat={context.clearChat}
-                    />
-                  </div>
-                </SheetContent>
-              </Sheet>
             </div>
-          </div>
-        </motion.div>
-
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="min-h-screen flex flex-col">
-            {/* Video Player Section */}
-            <div className="flex-none h-[50vh] md:h-[80vh] bg-black flex items-center justify-center relative">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5 }}
-                className="w-full h-full max-w-7xl mx-auto"
-              >
-                <EnhancedVideoPlayer
-                  videoId={context.selectedVideoId}
-                  sendData={context.sendData}
-                  playerData={context.playerSyncData}
-                  isConnected={context.isConnected}
-                  onPlayingStateChange={handleVideoPlayingChange}
-                  playerId="youtube-player-desktop"
-                />
-              </motion.div>
-            </div>
-
-            {/* Discovery Section */}
-            <div className="flex-1 bg-background/95 backdrop-blur-xl p-6 md:p-8">
-              <div className="max-w-7xl mx-auto space-y-6">
-                <div className="flex items-center gap-2 text-primary">
-                  <h2 className="text-2xl font-bold tracking-tight">Discover More</h2>
-                </div>
-                <YouTubeSearch
-                  onVideoSelect={context.handleVideoSelect}
-                  isConnected={context.isConnected}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

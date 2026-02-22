@@ -1,4 +1,3 @@
-
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from './Logo';
 
@@ -6,94 +5,141 @@ interface SplashScreenProps {
   isVisible: boolean;
 }
 
-const SplashScreen = ({ isVisible }: SplashScreenProps) => {
-  return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-50 bg-black flex items-center justify-center"
-        >
-          {/* Background gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-blue-900/20 to-pink-900/30" />
+// ── Floating orb ─────────────────────────────────────────────
+const Orb = ({
+  x, y, size, color, delay,
+}: { x: string; y: string; size: number; color: string; delay: number }) => (
+  <motion.div
+    className="absolute rounded-full pointer-events-none"
+    style={{
+      left: x, top: y,
+      width: size, height: size,
+      background: color,
+      filter: 'blur(80px)',
+    }}
+    animate={{
+      scale: [1, 1.18, 1],
+      opacity: [0.18, 0.35, 0.18],
+    }}
+    transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay }}
+  />
+);
 
-          {/* Animated background particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
-            <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-            <div className="absolute top-3/4 left-1/2 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }} />
-          </div>
+// ── Loading bar ───────────────────────────────────────────────
+const LoadingBar = () => (
+  <div className="relative w-40 h-[2px] rounded-full overflow-hidden bg-white/8">
+    <motion.div
+      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#0A84FF] to-[#BF5AF2]"
+      initial={{ x: '-100%' }}
+      animate={{ x: '100%' }}
+      transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+      style={{ width: '60%' }}
+    />
+  </div>
+);
 
-          {/* Main content */}
-          <div className="relative z-10 flex flex-col items-center space-y-8">
-            {/* Logo */}
+// ── Main splash ───────────────────────────────────────────────
+const SplashScreen = ({ isVisible }: SplashScreenProps) => (
+  <AnimatePresence>
+    {isVisible && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0, scale: 1.04 }}
+        transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+        className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden"
+        style={{ background: '#000000' }}
+      >
+        {/* ── Ambient orbs ── */}
+        <Orb x="-10%" y="5%" size={420} color="rgba(10,132,255,1)" delay={0} />
+        <Orb x="55%" y="55%" size={380} color="rgba(191,90,242,1)" delay={2} />
+        <Orb x="20%" y="65%" size={280} color="rgba(48,209,88,0.7)" delay={4} />
+
+        {/* ── Vignette ── */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.85) 100%)' }}
+        />
+
+        {/* ── Content ── */}
+        <div className="relative z-10 flex flex-col items-center gap-8 select-none">
+
+          {/* Logo ring */}
+          <motion.div
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.7, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
+            className="relative"
+          >
+            {/* Outer glow ring */}
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{
-                duration: 0.8,
-                ease: "easeOut"
+              className="absolute inset-[-14px] rounded-full"
+              style={{ border: '1px solid rgba(10,132,255,0.25)', boxShadow: '0 0 40px rgba(10,132,255,0.15)' }}
+              animate={{ rotate: 360 }}
+              transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
+            />
+            {/* Inner glass card */}
+            <div
+              className="w-28 h-28 rounded-[36px] flex items-center justify-center"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 8px 40px rgba(10,132,255,0.2), inset 0 1px 0 rgba(255,255,255,0.1)',
               }}
-              className="w-32 h-32 md:w-40 md:h-40 relative"
             >
-              <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full animate-pulse" />
-              <Logo className="w-full h-full drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" animate={true} />
-            </motion.div>
+              <Logo className="w-16 h-16" animate />
+            </div>
+          </motion.div>
 
-            {/* Brand text */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-              className="text-center space-y-2"
+          {/* Wordmark */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, delay: 0.4, ease: [0.32, 0.72, 0, 1] }}
+            className="text-center space-y-2"
+          >
+            <h1
+              className="text-[36px] font-bold tracking-[-0.04em] leading-none"
+              style={{
+                fontFamily: "'Outfit', sans-serif",
+                background: 'linear-gradient(135deg, #ffffff 0%, rgba(255,255,255,0.55) 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
             >
-              <div className="flex items-center justify-center gap-3 mb-4">
-                <span className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white via-gray-200 to-gray-400 bg-clip-text text-transparent tracking-wider">
-                  TOGETHERLY
-                </span>
-              </div>
+              Togetherly
+            </h1>
+            <p
+              className="text-[14px] font-medium tracking-[0.08em] uppercase"
+              style={{ color: 'rgba(255,255,255,0.28)', fontFamily: "'Outfit', sans-serif" }}
+            >
+              Connect · Watch · Share
+            </p>
+          </motion.div>
 
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 1, delay: 1 }}
-                className="text-lg md:text-xl text-gray-400 font-light"
-              >
-                Watch Together, Share the Moment
-              </motion.p>
-
-              {/* Loading animation */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 2 }}
-                className="flex items-center justify-center space-x-1 mt-6"
-              >
-                <div className="flex space-x-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{
-                        duration: 0.6,
-                        repeat: Infinity,
-                        delay: i * 0.2
-                      }}
-                      className="w-2 h-2 bg-white rounded-full"
-                    />
-                  ))}
-                </div>
-                <span className="ml-3 text-sm text-gray-500">Connecting...</span>
-              </motion.div>
-            </motion.div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
-};
+          {/* Loading bar */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.9 }}
+            className="flex flex-col items-center gap-3"
+          >
+            <LoadingBar />
+            <motion.p
+              animate={{ opacity: [0.3, 0.7, 0.3] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              className="text-[12px] tracking-wider"
+              style={{ color: 'rgba(255,255,255,0.25)', fontFamily: "'Outfit', sans-serif" }}
+            >
+              Initialising…
+            </motion.p>
+          </motion.div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
 
 export default SplashScreen;
+

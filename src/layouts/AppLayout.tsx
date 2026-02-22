@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import CallManager from '@/components/CallManager';
-import AppHeader from '@/components/AppHeader';
 import SplashScreen from '@/components/SplashScreen';
 import BottomNav from '@/components/BottomNav';
 import {
@@ -52,6 +53,7 @@ export interface AppContextType {
 
 const AppLayout = () => {
   const { nickname } = useUser();
+  const { permanentPeerId } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -60,7 +62,7 @@ const AppLayout = () => {
     screenStream, remoteScreenStream, isScreenSharing, startScreenShare, stopScreenShare,
     incomingConn, acceptConnection, rejectConnection,
     connectionState, onManualReconnect
-  } = usePeer();
+  } = usePeer(permanentPeerId);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
   const [remoteNickname, setRemoteNickname] = useState('Friend');
@@ -72,11 +74,7 @@ const AppLayout = () => {
   const [showSplashScreen, setShowSplashScreen] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  useEffect(() => {
-    if (!nickname) {
-      navigate('/');
-    }
-  }, [nickname, navigate]);
+  // Auth guard is handled by ProtectedRoute in App.tsx — no redirect needed here
 
   // Manage BMC Widget Visibility
   useEffect(() => {
@@ -659,19 +657,34 @@ const AppLayout = () => {
   return (
     <>
       <SplashScreen isVisible={showSplashScreen || isConnecting} />
-      <div className="min-h-screen bg-transparent text-foreground flex flex-col relative overflow-hidden">
-        {/* Animated Background Orbs */}
+
+
+      <div className="min-h-screen bg-background text-foreground flex flex-col relative overflow-hidden">
+        {/* Global iOS orb decorations */}
         <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-          <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] animate-float" />
-          <div className="absolute top-[20%] right-[-10%] w-[400px] h-[400px] bg-blue-600/20 rounded-full blur-[100px] animate-float" style={{ animationDelay: '2s' }} />
-          <div className="absolute bottom-[-10%] left-[20%] w-[600px] h-[600px] bg-pink-600/10 rounded-full blur-[100px] animate-float" style={{ animationDelay: '4s' }} />
+          <div className="orb w-[420px] h-[420px] bg-[#0A84FF] top-[-10%] left-[-15%]" style={{ opacity: 0.12 }} />
+          <div className="orb w-[360px] h-[360px] bg-[#BF5AF2] top-[30%] right-[-10%]" style={{ opacity: 0.10, animationDelay: '2s' }} />
+          <div className="orb w-[500px] h-[500px] bg-[#30D158] bottom-[-15%] left-[10%]" style={{ opacity: 0.06, animationDelay: '4s' }} />
         </div>
 
-        <AppHeader />
-        <main className="flex-grow relative z-10 pb-20">
-          <Outlet context={context} />
+        {/* Animated page outlet */}
+        <main className="flex-grow relative z-10 pb-[83px] pt-3 overflow-y-auto h-screen" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.99 }}
+              transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
+              className="h-full"
+            >
+              <Outlet context={context} />
+            </motion.div>
+          </AnimatePresence>
         </main>
+
         <BottomNav />
+
         <CallManager
           localStream={localStream}
           remoteStream={remoteStream}
@@ -680,17 +693,29 @@ const AppLayout = () => {
           toggleMedia={toggleMedia}
           remoteNickname={remoteNickname}
         />
+
+        {/* iOS-style connection request dialog */}
         <AlertDialog open={!!incomingConn}>
-          <AlertDialogContent className="glass-panel">
+          <AlertDialogContent className="ios-card mx-4 border border-white/10">
             <AlertDialogHeader>
-              <AlertDialogTitle>Incoming Connection Request</AlertDialogTitle>
-              <AlertDialogDescription>
-                <strong>{incomingPeerInfo?.nickname}</strong> wants to connect. Do you want to accept?
+              <AlertDialogTitle className="text-white">Incoming Request</AlertDialogTitle>
+              <AlertDialogDescription className="text-white/60">
+                <strong className="text-white">{incomingPeerInfo?.nickname}</strong> wants to connect with you.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel onClick={rejectConnection} className="glass-panel hover:bg-white/10">Reject</AlertDialogCancel>
-              <AlertDialogAction onClick={acceptConnection} className="bg-primary hover:bg-primary/90">Accept</AlertDialogAction>
+            <AlertDialogFooter className="gap-2">
+              <AlertDialogCancel
+                onClick={rejectConnection}
+                className="ios-card border-white/10 text-white/70 hover:bg-white/10 rounded-xl"
+              >
+                Decline
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={acceptConnection}
+                className="bg-[#0A84FF] hover:bg-[#0A84FF]/90 rounded-xl text-white font-semibold"
+              >
+                Accept
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -700,3 +725,4 @@ const AppLayout = () => {
 };
 
 export default AppLayout;
+

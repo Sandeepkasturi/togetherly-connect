@@ -1,164 +1,184 @@
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { Github, Linkedin, Instagram, Youtube, ShieldCheck, FileUp, Video, KeyRound, Share2, Link2 } from 'lucide-react';
-import ProductHuntBadge from '@/components/ProductHuntBadge';
+import { useOutletContext, useNavigate } from 'react-router-dom';
+import { AppContextType } from '@/layouts/AppLayout';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Tv2, MessageCircle, MonitorUp, Zap, Users, ArrowRight, ChevronRight, Shield, Star } from 'lucide-react';
+import PeerConnection from '@/components/PeerConnection';
+import { useState } from 'react';
+
+// ── Visual separator between the two sections ─────────────────────
+
+// Quick actions: these are NAVIGATION buttons — large, prominent, tappable
+const QUICK_ACTIONS = [
+  { icon: Tv2, color: '#0A84FF', label: 'Watch', sub: 'Start a session', to: '/watch' },
+  { icon: MessageCircle, color: '#BF5AF2', label: 'Chat', sub: 'Message your peer', to: '/chat' },
+  { icon: MonitorUp, color: '#30D158', label: 'Share', sub: 'Share your screen', to: '/browser' },
+];
+
+// Feature highlights: purely INFORMATIONAL — different visual style
+const FEATURES = [
+  { icon: Zap, color: '#FFD60A', label: 'Zero Latency', desc: 'Direct P2P — no relay servers' },
+  { icon: Shield, color: '#30D158', label: 'End-to-End', desc: 'Encrypted WebRTC connection' },
+  { icon: Star, color: '#FF9F0A', label: 'Free Forever', desc: 'No accounts, no subscriptions' },
+];
+
+const fadeUp = (d = 0) => ({
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.45, delay: d, ease: [0.32, 0.72, 0, 1] },
+});
 
 const AppPage = () => {
+  const context = useOutletContext<AppContextType>();
   const navigate = useNavigate();
+  const [showConnect, setShowConnect] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gradient-hero text-foreground flex flex-col relative overflow-hidden pb-20">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-24 h-24 bg-accent/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
-        <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-primary/5 rounded-full blur-3xl animate-pulse delay-2000"></div>
-      </div>
+    <div className="min-h-full px-4 pt-2 pb-6 space-y-6 overflow-y-auto">
 
-      <main className="flex-grow relative z-10">
-        {/* Hero Section */}
-        <section className="text-center py-12 md:py-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="container mx-auto px-4"
-          >
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold tracking-tight text-gradient-primary mb-6 font-display">
-              Your Private Space for Real-Time Connection.
+      {/* ── Greeting Header ── */}
+      <motion.div {...fadeUp(0)} className="pt-2">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[13px] text-white/40 font-medium">Good to see you,</p>
+            <h1 className="text-[28px] font-bold text-white tracking-tight leading-tight">
+              {context.myNickname} 👋
             </h1>
-            <p className="max-w-3xl mx-auto text-lg md:text-xl text-muted-foreground/90 mb-10 leading-relaxed">
-              Togetherly offers a suite of private, real-time collaboration tools. All interactions are peer-to-peer, ensuring your data stays between you and your connections, with no servers in the middle.
-            </p>
-            <Button
-              size="lg"
-              onClick={() => navigate('/watch')}
-              className="glass hover:glass-strong hover:glow-primary transition-all duration-300 hover:scale-105 font-semibold text-lg py-6 rounded-xl"
-            >
-              Get Started ✨
-            </Button>
-          </motion.div>
-        </section>
-
-        {/* Features Section */}
-        <section id="features" className="py-12 md:py-20 bg-gradient-surface/50 backdrop-blur-sm">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl md:text-5xl font-bold text-center mb-16 text-gradient-accent font-display">Core Features</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary text-primary-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Youtube className="w-8 h-8" />
-                </div>
-                <h3 className="font-semibold text-xl mb-3 text-foreground">Synchronized YouTube</h3>
-                <p className="text-muted-foreground">Watch videos together in perfect sync.</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-accent text-accent-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <ShieldCheck className="w-8 h-8" />
-                </div>
-                <h3 className="font-semibold text-xl mb-3 text-foreground">Secure Chat</h3>
-                <p className="text-muted-foreground">Chat securely with end-to-end encryption.</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-primary text-primary-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <FileUp className="w-8 h-8" />
-                </div>
-                <h3 className="font-semibold text-xl mb-3 text-foreground">P2P File Sharing</h3>
-                <p className="text-muted-foreground">Share files directly and privately with your peer.</p>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-center p-8 glass rounded-2xl hover:glow-card hover:scale-105 transition-all duration-500 group"
-              >
-                <div className="flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-accent text-accent-foreground mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Video className="w-8 h-8" />
-                </div>
-                <h3 className="font-semibold text-xl mb-3 text-foreground">Video Calls</h3>
-                <p className="text-muted-foreground">Connect face-to-face with high-quality video calls.</p>
-              </motion.div>
-            </div>
           </div>
-        </section>
-
-        {/* How it Works Section */}
-        <section id="how-it-works" className="py-12 md:py-20">
-          <div className="container mx-auto px-4">
-            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">How It Works</h2>
-            <div className="max-w-4xl mx-auto grid md:grid-cols-3 gap-10 text-center">
-              <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground mb-4">
-                  <KeyRound className="h-8 w-8" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">1. Get Your ID</h3>
-                <p className="text-muted-foreground">Launch the app to get your unique, private Peer ID.</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground mb-4">
-                  <Share2 className="h-8 w-8" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">2. Share Securely</h3>
-                <p className="text-muted-foreground">Share your ID with a friend you want to connect with.</p>
-              </div>
-              <div className="flex flex-col items-center">
-                <div className="flex items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground mb-4">
-                  <Link2 className="h-8 w-8" />
-                </div>
-                <h3 className="font-semibold text-lg mb-2">3. Connect & Collaborate</h3>
-                <p className="text-muted-foreground">Your friend uses your ID to establish a secure P2P connection.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-      </main>
-
-      <footer className="bg-secondary/30 border-t border-border text-sm relative z-10">
-        <div className="container mx-auto px-4 py-8">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
-            <div className="space-y-2">
-              <h3 className="text-lg font-bold text-primary">Togetherly</h3>
-              <p className="text-muted-foreground">A project by <a href="https://skavtechs.vercel.app" target="_blank" rel="noopener noreferrer" className="font-semibold text-primary hover:underline">SKAV TECH</a></p>
-              <p className="text-muted-foreground">Developed by Sandeep Kasturi.</p>
-              <p className="text-xs text-muted-foreground pt-2">
-                All my inspiration and love goes to 'S' — thank you for being my strength and continuous supporter ❤️.
-              </p>
-            </div>
-            <div className="lg:mx-auto">
-              <h3 className="text-lg font-semibold text-primary mb-2">Connect with the developer</h3>
-              <div className="flex gap-4">
-                <a href="https://instagram.com/sandeep_kasturi_" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Instagram className="h-5 w-5" />
-                </a>
-                <a href="https://github.com/sandeepkasturi" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Github className="h-5 w-5" />
-                </a>
-                <a href="https://www.linkedin.com/in/sandeepkasturi9/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-muted-foreground hover:text-primary transition-colors">
-                  <Linkedin className="h-5 w-5" />
-                </a>
-              </div>
-            </div>
-            <ProductHuntBadge />
-          </div>
+          {/* Connection badge — tap to toggle connect panel */}
+          <motion.button
+            whileTap={{ scale: 0.94 }}
+            onClick={() => setShowConnect((v) => !v)}
+            className={`ios-pill px-3 py-1.5 flex items-center gap-1.5 tap-effect ${context.isConnected ? 'border-[#30D158]/30' : 'border-[#0A84FF]/30'
+              }`}
+          >
+            <span className={`h-2 w-2 rounded-full ${context.isConnected ? 'status-dot-online' : 'bg-[#0A84FF] animate-pulse'}`} />
+            <span className={`text-[12px] font-semibold ${context.isConnected ? 'text-[#30D158]' : 'text-[#0A84FF]'}`}>
+              {context.isConnected ? context.remoteNickname : 'Connect'}
+            </span>
+            {!context.isConnected && <ChevronRight className="h-3 w-3 text-[#0A84FF]" />}
+          </motion.button>
         </div>
-      </footer>
+      </motion.div>
+
+      {/* ── Expandable connect panel ── */}
+      <AnimatePresence>
+        {showConnect && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            className="overflow-hidden"
+          >
+            <div className="ios-card p-4">
+              <PeerConnection
+                peerId={context.peerId}
+                connectToPeer={context.connectToPeer}
+                isConnected={context.isConnected}
+                myNickname={context.myNickname}
+                remoteNickname={context.remoteNickname}
+                sendData={context.sendData}
+                startCall={context.startCall}
+                isCallActive={context.isCallActive}
+                connectionState={context.connectionState}
+                onManualReconnect={context.onManualReconnect}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 1: QUICK ACTIONS — clearly interactive navigation
+          Large full-width rows with arrow indicators
+      ══════════════════════════════════════════════════════════ */}
+      <motion.div {...fadeUp(0.08)}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-1 w-4 rounded-full bg-[#0A84FF]" />
+          <h2 className="text-[13px] font-bold text-white/50 uppercase tracking-widest">Jump In</h2>
+        </div>
+
+        {/* Full-width list rows — very clearly tappable */}
+        <div className="ios-card overflow-hidden divide-y divide-white/[0.06]">
+          {QUICK_ACTIONS.map(({ icon: Icon, color, label, sub, to }, i) => (
+            <motion.button
+              key={label}
+              whileTap={{ scale: 0.98, backgroundColor: 'rgba(255,255,255,0.04)' }}
+              onClick={() => navigate(to)}
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.10 + i * 0.06, ease: [0.32, 0.72, 0, 1], duration: 0.35 }}
+              className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+            >
+              {/* Icon badge */}
+              <div
+                className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0"
+                style={{ background: color + '1A', border: `1.5px solid ${color}35` }}
+              >
+                <Icon className="h-5 w-5" style={{ color }} />
+              </div>
+
+              {/* Text */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[16px] font-semibold text-white">{label}</p>
+                <p className="text-[12px] text-white/40">{sub}</p>
+              </div>
+
+              {/* Arrow — strong navigation affordance */}
+              <ChevronRight className="h-4 w-4 text-white/25 shrink-0" />
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 2: FEATURE HIGHLIGHTS — informational only
+          Completely different visual: horizontal badge pills,
+          NO arrow, NO tap ripple, greyed-out label "About"
+      ══════════════════════════════════════════════════════════ */}
+      <motion.div {...fadeUp(0.22)}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className="h-1 w-4 rounded-full bg-white/20" />
+          <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">About Togetherly</h2>
+        </div>
+
+        {/* Badge-pill list — clearly NOT tappable (no arrow, no bg change) */}
+        <div className="space-y-2">
+          {FEATURES.map(({ icon: Icon, color, label, desc }) => (
+            <div
+              key={label}
+              className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              {/* Tiny dot badge */}
+              <div
+                className="h-7 w-7 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: color + '15' }}
+              >
+                <Icon className="h-3.5 w-3.5" style={{ color, opacity: 0.8 }} />
+              </div>
+              <div className="min-w-0">
+                <span className="text-[13px] font-semibold text-white/60">{label}</span>
+                <span className="text-[12px] text-white/30 ml-2">{desc}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ── Full-width CTA ── */}
+      <motion.div {...fadeUp(0.35)}>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => navigate('/watch')}
+          className="w-full h-14 rounded-2xl animated-gradient flex items-center justify-center gap-3 font-bold text-[17px] shadow-lg shadow-[#0A84FF]/20"
+        >
+          <Tv2 className="h-5 w-5" />
+          Start Watching Together
+          <ArrowRight className="h-4 w-4 ml-auto opacity-70" />
+        </motion.button>
+      </motion.div>
+
     </div>
   );
 };

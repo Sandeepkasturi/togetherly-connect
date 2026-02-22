@@ -147,7 +147,7 @@ const generateFallbackPeerId = (): string => {
   return `togetherly${timestamp}${randomPart}`;
 };
 
-export const usePeer = () => {
+export const usePeer = (initialPeerId?: string | null) => {
   const [peer, setPeer] = useState<Peer | null>(null);
   const [peerId, setPeerId] = useState('');
   const [conn, setConn] = useState<DataConnection | null>(null);
@@ -360,7 +360,8 @@ export const usePeer = () => {
           const config = serverConfigs[configIndex];
           console.log(`Initializing peer with config ${configIndex + 1}/${serverConfigs.length}:`, config.host);
 
-          const newPeer = new Peer(undefined, {
+          // Use permanent ID for registered users, undefined = PeerJS auto-generates
+          const newPeer = new Peer(initialPeerId ?? undefined, {
             ...config,
             config: {
               iceServers: [

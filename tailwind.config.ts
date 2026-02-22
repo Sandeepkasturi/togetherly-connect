@@ -19,12 +19,23 @@ export default {
 			}
 		},
 		extend: {
-            fontFamily: {
-                sans: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
-                mono: ['JetBrains Mono', 'monospace'],
-                display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
-            },
+			fontFamily: {
+				sans: ['-apple-system', 'Space Grotesk', 'BlinkMacSystemFont', 'SF Pro Display', 'Inter', 'system-ui', 'sans-serif'],
+				mono: ['JetBrains Mono', 'monospace'],
+				display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
+			},
+			screens: { xs: '390px' },
 			colors: {
+				ios: {
+					blue: '#0A84FF',
+					purple: '#BF5AF2',
+					green: '#30D158',
+					red: '#FF453A',
+					orange: '#FF9F0A',
+					yellow: '#FFD60A',
+					teal: '#5AC8FA',
+					pink: '#FF375F',
+				},
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -70,13 +81,16 @@ export default {
 				'gradient-surface': 'var(--gradient-surface)',
 				'gradient-card': 'var(--gradient-card)',
 				'gradient-hero': 'var(--gradient-hero)',
+				'gradient-glass': 'var(--gradient-glass)',
 			},
 			boxShadow: {
 				'glow-primary': 'var(--glow-primary)',
 				'glow-accent': 'var(--glow-accent)',
+				'glow-green': 'var(--glow-green)',
 				'glow-card': 'var(--glow-card)',
-				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-				'glass-strong': '0 8px 32px 0 rgba(31, 38, 135, 0.5)',
+				'ios': 'var(--shadow-ios)',
+				'glass': '0 8px 32px 0 rgba(0,0,0,0.5)',
+				'glass-strong': '0 20px 60px 0 rgba(0,0,0,0.6)',
 			},
 			backdropBlur: {
 				'xs': '2px',
@@ -113,7 +127,8 @@ export default {
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'float': 'float 7s ease-in-out infinite',
 			}
 		}
 	},
