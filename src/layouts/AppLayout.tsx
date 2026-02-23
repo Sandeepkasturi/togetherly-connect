@@ -53,8 +53,8 @@ export interface AppContextType {
 }
 
 const AppLayout = () => {
-  const { nickname } = useUser();
-  const { permanentPeerId, userProfile } = useAuth();
+  const { nickname, setNickname } = useUser();
+  const { permanentPeerId, userProfile, isGuest } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -78,10 +78,9 @@ const AppLayout = () => {
   useEffect(() => {
     if (userProfile?.displayName && !nickname) {
       console.log("[AppLayout] Syncing nickname from profile:", userProfile.displayName);
-      const { setNickname } = useUser();
       setNickname(userProfile.displayName);
     }
-  }, [userProfile, nickname]);
+  }, [userProfile, nickname, setNickname]);
 
   useEffect(() => {
     // Helper for safe storage access

@@ -8,23 +8,27 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
+// Safe storage helper — never throws in private/strict-mode browsers
+function safeLocalGet(key: string): string | null {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+function safeLocalSet(key: string, value: string) {
+  try { localStorage.setItem(key, value); } catch (e) { console.warn('[UserContext] Storage blocked:', e); }
+}
+
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [nickname, setNicknameState] = useState(() => {
-    return localStorage.getItem('nickname') || '';
+    return safeLocalGet('nickname') || '';
   });
 
   const setNickname = (name: string) => {
     if (!name) return;
-    try {
-      localStorage.setItem('nickname', name);
-    } catch (e) {
-      console.warn("Storage blocked:", e);
-    }
+    safeLocalSet('nickname', name);
     setNicknameState(name);
   };
 
   useEffect(() => {
-    const storedNickname = localStorage.getItem('nickname');
+    const storedNickname = safeLocalGet('nickname');
     if (storedNickname) {
       setNicknameState(storedNickname);
     }
