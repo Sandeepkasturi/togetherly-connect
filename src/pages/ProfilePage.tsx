@@ -17,7 +17,7 @@ const fadeUp = (d = 0) => ({
 });
 
 const ProfilePage = () => {
-    const { userProfile, logout, isGuest } = useAuth();
+    const { userProfile, logout, isGuest, updateProfile } = useAuth();
     const { setNickname } = useUser();
     const navigate = useNavigate();
     const [recentConnections, setRecentConnections] = useState<any[]>([]);
@@ -29,7 +29,12 @@ const ProfilePage = () => {
 
     // Photo upload state
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+    const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+    const [photoError, setPhotoError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Name save success flash
+    const [nameSaved, setNameSaved] = useState(false);
 
     // Delete account dialog
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -64,14 +69,21 @@ const ProfilePage = () => {
 
     const handleSaveName = async () => {
         if (!editedName.trim() || !userProfile) return;
+        if (editedName.trim() === userProfile.display_name) {
+            setIsEditingName(false);
+            return;
+        }
         setIsSavingName(true);
         try {
-            await supabase.from('users')
+            const { error } = await supabase.from('users')
                 .update({ display_name: editedName.trim() })
                 .eq('id', userProfile.id);
+            if (error) throw error;
+            // Update both contexts so name reflects everywhere immediately
+            updateProfile({ display_name: editedName.trim() });
             setNickname(editedName.trim());
-            // Force page refresh of userProfile by triggering a re-auth is complex,
-            // so we rely on UserContext for nickname and the display is read from there.
+            setNameSaved(true);
+            setTimeout(() => setNameSaved(false), 2500);
         } catch (e) {
             console.error('[Profile] Failed to save name:', e);
         } finally {
@@ -82,23 +94,45 @@ const ProfilePage = () => {
 
     const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        // Reset input so same file can be re-selected
+        e.target.value = '';
         if (!file || !userProfile) return;
-        if (file.size > 5 * 1024 * 1024) { alert('Photo must be under 5MB'); return; }
+        if (file.size > 5 * 1024 * 1024) { setPhotoError('Photo must be under 5 MB'); return; }
+        setPhotoError(null);
+
+        // Show instant local preview while uploading
+        const objectUrl = URL.createObjectURL(file);
+        setPhotoPreview(objectUrl);
         setIsUploadingPhoto(true);
+
         try {
-            const ext = file.name.split('.').pop();
-            const path = `avatars/${userProfile.id}.${ext}`;
-            const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+            const ext = file.name.split('.').pop() ?? 'jpg';
+            // Always use same filename per user so old one is replaced automatically
+            const path = `${userProfile.id}/avatar.${ext}`;
+            const { error: upErr } = await supabase.storage
+                .from('avatars')
+                .upload(path, file, { upsert: true, contentType: file.type });
             if (upErr) throw upErr;
+
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-            const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
-            await supabase.from('users').update({ photo_url: publicUrl }).eq('id', userProfile.id);
-            // Force browser to reload the image
-            window.location.reload();
-        } catch (e) {
+            // Add cache-buster so browser picks up the new image
+            const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+            const { error: dbErr } = await supabase
+                .from('users')
+                .update({ photo_url: publicUrl })
+                .eq('id', userProfile.id);
+            if (dbErr) throw dbErr;
+
+            // Update in-memory profile (no reload!)
+            updateProfile({ photo_url: publicUrl });
+            setPhotoPreview(null); // the profile image now reads from userProfile
+        } catch (e: any) {
             console.error('[Profile] Photo upload failed:', e);
-            alert('Upload failed. Please try again.');
+            setPhotoError(e?.message ?? 'Upload failed. Please try again.');
+            setPhotoPreview(null);
         } finally {
+            URL.revokeObjectURL(objectUrl);
             setIsUploadingPhoto(false);
         }
     };
@@ -167,7 +201,7 @@ const ProfilePage = () => {
                             </div>
                         ) : (
                             <img
-                                src={userProfile.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.email}`}
+                                src={photoPreview ?? userProfile.photo_url ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.email}`}
                                 alt={userProfile.display_name}
                                 className="h-full w-full object-cover rounded-[32px]"
                             />
@@ -231,6 +265,28 @@ const ProfilePage = () => {
                     <p className="text-[14px] text-white/40 font-medium tracking-wide flex items-center justify-center gap-1.5">
                         <ShieldCheck className="h-4 w-4 text-[#30D158]" /> Verified Member
                     </p>
+                    {/* Name saved flash */}
+                    <AnimatePresence>
+                        {nameSaved && (
+                            <motion.p
+                                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="text-[12px] text-[#30D158] font-semibold flex items-center gap-1"
+                            >
+                                <Check className="h-3 w-3" /> Name updated!
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
+                    {/* Photo error */}
+                    <AnimatePresence>
+                        {photoError && (
+                            <motion.p
+                                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                className="text-[12px] text-[#FF453A] font-semibold flex items-center gap-1"
+                            >
+                                <X className="h-3 w-3" /> {photoError}
+                            </motion.p>
+                        )}
+                    </AnimatePresence>
                 </div>
             </motion.div>
 

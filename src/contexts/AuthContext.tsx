@@ -35,6 +35,8 @@ interface AuthContextType {
     loginWithGoogle: () => void;
     loginAsGuest: () => void;
     logout: () => void;
+    /** Patch the in-memory userProfile without a full reload */
+    updateProfile: (patch: Partial<UserProfile>) => void;
 
     // derived
     permanentPeerId: string | null; // set only for registered users
@@ -100,15 +102,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // ── Derived state ─────────────────────────────────────────
     const permanentPeerId = userProfile?.peer_id ?? null;
 
-    // ── Sync user to Supabase after Google login (Fixed Syntax) ──
+    // ── Sync user to Supabase after Google login ──────────────
     const syncUserToSupabase = useCallback(async (profile: GoogleProfile): Promise<UserProfile | null> => {
         try {
             const peerId = generatePermanentPeerId(profile.sub);
 
-            // ── Race against a timeout to prevent hanging the whole app ──
-            const syncPromise = supabase
+            // Step 1: Insert-only if new user (ignoreDuplicates prevents overwriting
+            // user-customized display_name / photo_url on subsequent sign-ins)
+            const insertPromise = supabase
                 .from('users')
-                .upsert({
+                .insert({
                     google_sub: profile.sub,
                     email: profile.email,
                     display_name: profile.name,
@@ -116,19 +119,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     peer_id: peerId,
                     is_online: true,
                     last_seen: new Date().toISOString(),
-                }, { onConflict: 'google_sub' })
+                })
                 .select()
                 .single();
 
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Supabase sync timeout')), 4000)
+                setTimeout(() => reject(new Error('Supabase sync timeout')), 5000)
             );
 
-            const { data, error } = await Promise.race([syncPromise, timeoutPromise]) as any;
+            // Step 2: On duplicate (existing user), just update presence fields only
+            let { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
+
+            if (error?.code === '23505' || (error && error.message?.includes('duplicate'))) {
+                // User already exists — fetch their current row (keeps custom name/photo)
+                const { data: existing, error: fetchError } = await supabase
+                    .from('users')
+                    .select('*')
+                    .eq('google_sub', profile.sub)
+                    .single();
+                if (!fetchError && existing) {
+                    // Just update presence
+                    await supabase.from('users')
+                        .update({ is_online: true, last_seen: new Date().toISOString() })
+                        .eq('id', existing.id);
+                    data = existing;
+                    error = null;
+                }
+            }
 
             if (error) {
-                console.error('[Auth] Supabase upsert error:', error);
-                // Still work offline — create an in-memory profile
+                console.error('[Auth] Supabase sync error:', error);
+                // Offline fallback
                 const offline: DBUser = {
                     id: profile.sub, google_sub: profile.sub,
                     email: profile.email, display_name: profile.name,
@@ -234,6 +255,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsGuest(false);
     }, [userProfile]);
 
+    // ── Update profile in-memory (no full reload needed) ──────
+    const updateProfile = useCallback((patch: Partial<UserProfile>) => {
+        setUserProfile(prev => {
+            if (!prev) return prev;
+            const next = { ...prev, ...patch };
+            // Keep convenience aliases in sync
+            if (patch.display_name) next.displayName = patch.display_name;
+            if (patch.photo_url) next.photoURL = patch.photo_url;
+            return next;
+        });
+    }, []);
+
     // ── Restore session on mount ──────────────────────────────
     useEffect(() => {
         const init = async () => {
@@ -257,7 +290,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return (
         <AuthContext.Provider value={{
             googleProfile, userProfile, isGuest, isLoading, isAuthenticated,
-            loginWithGoogle, loginAsGuest, logout, permanentPeerId,
+            loginWithGoogle, loginAsGuest, logout, updateProfile, permanentPeerId,
         }}>
             {children}
         </AuthContext.Provider>
