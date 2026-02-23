@@ -59,6 +59,7 @@ const AppRoutes = () => (
       <Route path="/theater" element={<TheaterPage />} />
       <Route path="/browser" element={<BrowserPage />} />
       <Route path="/chat" element={<ChatPage />} />
+      <Route path="/chat/:friendId" element={<ChatPage />} />
       <Route path="/friends" element={<FriendsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
     </Route>

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle } from 'lucide-react';
+import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle, Phone, Video } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, DBUser, DBFollow } from '@/lib/supabase';
+import { useCallSignaling } from '@/hooks/useCallSignaling';
 
 // ── Tab type ─────────────────────────────────────────────────
 type Tab = 'friends' | 'requests' | 'discover';
@@ -54,7 +55,7 @@ const UserCard = ({
 
 // ── FriendsPage ───────────────────────────────────────────────
 const FriendsPage = () => {
-    const { userProfile, isGuest } = useAuth();
+    const { userProfile, isGuest, permanentPeerId } = useAuth();
     const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState<Tab>('friends');
     const [searchQuery, setSearchQuery] = useState('');
@@ -63,6 +64,14 @@ const FriendsPage = () => {
     const [discoverUsers, setDiscoverUsers] = useState<DBUser[]>([]);
     const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
+
+    const { initiateCall } = useCallSignaling({
+        currentUserId: userProfile?.id ?? '',
+        currentPeerId: permanentPeerId ?? '',
+        onIncomingCall: () => { },
+        onCallAccepted: () => { },
+        onCallEnded: () => { },
+    });
 
     // Guests can't use this page
     useEffect(() => {
@@ -257,6 +266,34 @@ const FriendsPage = () => {
                             <div key={u.id} className="ios-card overflow-hidden">
                                 <UserCard user={u} action={
                                     <div className="flex gap-2">
+                                        {/* Chat — always available */}
+                                        <button
+                                            onClick={() => navigate(`/chat/${u.id}`)}
+                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#BF5AF2]/10 text-[#BF5AF2] border border-[#BF5AF2]/20 hover:bg-[#BF5AF2]/20 transition-colors"
+                                            title="Message"
+                                        >
+                                            <MessageCircle className="h-4 w-4" />
+                                        </button>
+
+                                        {/* Audio call */}
+                                        <button
+                                            onClick={() => initiateCall(u.id, 'audio')}
+                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20 hover:bg-[#30D158]/20 transition-colors"
+                                            title="Voice Call"
+                                        >
+                                            <Phone className="h-4 w-4" />
+                                        </button>
+
+                                        {/* Video call */}
+                                        <button
+                                            onClick={() => initiateCall(u.id, 'video')}
+                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/20 transition-colors"
+                                            title="Video Call"
+                                        >
+                                            <Video className="h-4 w-4" />
+                                        </button>
+
+                                        {/* Watch party — only when online */}
                                         {u.is_online && (
                                             <button
                                                 onClick={() => {
@@ -266,29 +303,7 @@ const FriendsPage = () => {
                                                 className="px-3 h-9 rounded-xl flex items-center justify-center gap-1.5 bg-[#34C85A]/10 text-[#34C85A] border border-[#34C85A]/20 hover:bg-[#34C85A]/20 transition-colors text-[12px] font-bold"
                                             >
                                                 <Wifi className="h-3.5 w-3.5" />
-                                                <span>Connect</span>
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => {
-                                                localStorage.setItem('peerIdToConnect', u.peer_id);
-                                                navigate('/chat');
-                                            }}
-                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#BF5AF2]/10 text-[#BF5AF2] border border-[#BF5AF2]/20 hover:bg-[#BF5AF2]/20 transition-colors"
-                                            title="Direct Chat"
-                                        >
-                                            <MessageCircle className="h-4 w-4" />
-                                        </button>
-                                        {!u.is_online && (
-                                            <button
-                                                onClick={() => {
-                                                    localStorage.setItem('peerIdToConnect', u.peer_id);
-                                                    navigate('/watch');
-                                                }}
-                                                className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/20 transition-colors"
-                                                title="Call & Watch"
-                                            >
-                                                <Wifi className="h-4 w-4" />
+                                                <span>Watch</span>
                                             </button>
                                         )}
                                     </div>
@@ -338,7 +353,7 @@ const FriendsPage = () => {
                         ))
                 )}
             </div>
-        </div>
+        </div >
     );
 };
 

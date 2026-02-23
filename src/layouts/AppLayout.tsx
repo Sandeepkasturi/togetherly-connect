@@ -11,6 +11,9 @@ import SplashScreen from '@/components/SplashScreen';
 import BottomNav from '@/components/BottomNav';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import IncomingCallModal from '@/components/IncomingCallModal';
+import { useCallSignaling, CallRecord } from '@/hooks/useCallSignaling';
+import { useRingtone } from '@/hooks/useRingtone';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,7 +66,7 @@ const AppLayout = () => {
   const location = useLocation();
   const {
     peerId, connectToPeer, sendData, data, isConnected, conn,
-    localStream, remoteStream, isCallActive, startCall, endCall, toggleMedia,
+    localStream, remoteStream, isCallActive, startCall, startDirectCall, endCall, toggleMedia,
     screenStream, remoteScreenStream, isScreenSharing, startScreenShare, stopScreenShare,
     incomingConn, acceptConnection, rejectConnection,
     connectionState, onManualReconnect
@@ -77,6 +80,55 @@ const AppLayout = () => {
 
   // Show splash screen only when manually connecting to a peer
   const [isConnecting, setIsConnecting] = useState(false);
+
+  // ── Global call signaling + ringtone ──────────────────────────────
+  const [incomingSignalCall, setIncomingSignalCall] = useState<CallRecord | null>(null);
+  const [incomingCaller, setIncomingCaller] = useState<any | null>(null);
+  const { startRingtone, stopRingtone } = useRingtone();
+
+  const { acceptCall, declineCall } = useCallSignaling({
+    currentUserId: userProfile?.id ?? '',
+    currentPeerId: permanentPeerId ?? '',
+    onIncomingCall: async (call) => {
+      setIncomingSignalCall(call);
+      startRingtone(); // 🔔 play ringtone
+      const { data: callerData } = await supabase
+        .from('users').select('*').eq('id', call.caller_id).single();
+      if (callerData) setIncomingCaller(callerData);
+    },
+    onCallAccepted: (call) => {
+      // CALLER side: callee accepted → start media call to callee's peer ID
+      stopRingtone();
+      if (call.callee_peer_id) {
+        startDirectCall(call.callee_peer_id, call.type);
+      }
+    },
+    onCallEnded: () => {
+      stopRingtone();
+      setIncomingSignalCall(null);
+      setIncomingCaller(null);
+    },
+  });
+
+  const handleAcceptSignalCall = async () => {
+    if (!incomingSignalCall) return;
+    stopRingtone();
+    const call = await acceptCall(incomingSignalCall.id);
+    setIncomingSignalCall(null);
+    setIncomingCaller(null);
+    // CALLEE side: start media call back to caller's peer ID
+    if (call?.caller_peer_id) {
+      startDirectCall(call.caller_peer_id, call.type);
+    }
+  };
+
+  const handleDeclineSignalCall = async () => {
+    if (!incomingSignalCall) return;
+    stopRingtone();
+    await declineCall(incomingSignalCall.id);
+    setIncomingSignalCall(null);
+    setIncomingCaller(null);
+  };
 
   // Synchronize nickname from user profile if missing
   useEffect(() => {
@@ -720,6 +772,14 @@ const AppLayout = () => {
 
         {/* PWA install prompt — shows on Android & iOS */}
         <PWAInstallPrompt />
+
+        {/* Global friend call modal — fires when anyone calls you via Supabase signaling */}
+        <IncomingCallModal
+          call={incomingSignalCall}
+          caller={incomingCaller}
+          onAccept={handleAcceptSignalCall}
+          onDecline={handleDeclineSignalCall}
+        />
 
         <CallManager
           localStream={localStream}

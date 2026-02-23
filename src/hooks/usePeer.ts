@@ -721,6 +721,45 @@ export const usePeer = (initialPeerId?: string | null) => {
       });
   }, [peer, conn, endCall]);
 
+  /**
+   * startDirectCall — initiates a media call to a peer ID directly,
+   * WITHOUT needing an existing data connection (conn).
+   * Used for friend calls via Supabase signaling where peer IDs are
+   * exchanged through the DB, not through a manual data channel.
+   */
+  const startDirectCall = useCallback((remotePeerId: string, type: 'audio' | 'video') => {
+    if (!peer) {
+      console.error('[startDirectCall] Peer not initialized');
+      return;
+    }
+
+    const setupCallListeners = (call: import('peerjs').MediaConnection) => {
+      call.on('stream', (stream) => { setRemoteStream(stream); });
+      call.on('close', () => { endCall(); });
+      call.on('error', (err) => {
+        console.error('Direct call error:', err);
+        endCall();
+      });
+      mediaCallInstance.current = call;
+      setIsCallActive(true);
+    };
+
+    const constraints = { video: type === 'video', audio: true };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(stream => {
+        setLocalStream(stream);
+        const outgoingCall = peer.call(remotePeerId, stream, {
+          metadata: { callType: type }
+        });
+        setupCallListeners(outgoingCall);
+      })
+      .catch(err => {
+        console.error('[startDirectCall] getUserMedia failed:', err);
+        setData({ type: 'system', payload: 'Could not access camera/mic. Check permissions.' });
+      });
+  }, [peer, endCall]);
+
   const toggleMedia = useCallback((type: 'audio' | 'video') => {
     if (localStream) {
       const tracks = type === 'audio' ? localStream.getAudioTracks() : localStream.getVideoTracks();
@@ -834,6 +873,7 @@ export const usePeer = (initialPeerId?: string | null) => {
     remoteStream,
     isCallActive,
     startCall,
+    startDirectCall,
     endCall,
     toggleMedia,
     screenStream,
