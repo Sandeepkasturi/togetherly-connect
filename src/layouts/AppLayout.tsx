@@ -9,6 +9,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import CallManager from '@/components/CallManager';
 import SplashScreen from '@/components/SplashScreen';
 import BottomNav from '@/components/BottomNav';
+import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -715,6 +717,9 @@ const AppLayout = () => {
         </main>
 
         <BottomNav />
+
+        {/* PWA install prompt — shows on Android & iOS */}
+        <PWAInstallPrompt />
 
         <CallManager
           localStream={localStream}
