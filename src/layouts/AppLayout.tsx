@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { usePeer, Message, DataType, Reaction } from '@/hooks/usePeer';
 import { useUser } from '@/contexts/UserContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { UserCircle, ShieldCheck } from 'lucide-react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import CallManager from '@/components/CallManager';
@@ -67,7 +69,7 @@ const AppLayout = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedVideoId, setSelectedVideoId] = useState('');
   const [remoteNickname, setRemoteNickname] = useState('Friend');
-  const [incomingPeerInfo, setIncomingPeerInfo] = useState<{ nickname: string, peerId: string } | null>(null);
+  const [incomingPeerInfo, setIncomingPeerInfo] = useState<{ nickname: string; peerId: string; photo?: string | null; displayName?: string | null } | null>(null);
   const { toast } = useToast();
   const { setSendDataRef, handleReceivedPlaylist } = usePlaylist();
 
@@ -107,7 +109,23 @@ const AppLayout = () => {
   useEffect(() => {
     if (incomingConn) {
       const nickname = incomingConn.metadata?.nickname || 'A friend';
-      setIncomingPeerInfo({ nickname, peerId: incomingConn.peer });
+      const peerId = incomingConn.peer;
+      // Optimistically set with just the nickname
+      setIncomingPeerInfo({ nickname, peerId });
+      // Then try to enrich with Supabase profile
+      supabase
+        .from('users')
+        .select('display_name, photo_url, peer_id')
+        .eq('peer_id', peerId)
+        .maybeSingle()
+        .then(({ data }) => {
+          setIncomingPeerInfo({
+            nickname: data?.display_name ?? nickname,
+            peerId,
+            photo: data?.photo_url ?? null,
+            displayName: data?.display_name ?? null,
+          });
+        });
     } else {
       setIncomingPeerInfo(null);
     }
@@ -707,25 +725,63 @@ const AppLayout = () => {
           remoteNickname={remoteNickname}
         />
 
-        {/* iOS-style connection request dialog */}
+        {/* Enriched connection request dialog */}
         <AlertDialog open={!!incomingConn}>
           <AlertDialogContent className="ios-card mx-4 border border-white/10">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-white">Incoming Request</AlertDialogTitle>
-              <AlertDialogDescription className="text-white/60">
-                <strong className="text-white">{incomingPeerInfo?.nickname}</strong> wants to connect with you.
-              </AlertDialogDescription>
+              <AlertDialogTitle className="text-white text-[17px] font-bold">Incoming Connection</AlertDialogTitle>
             </AlertDialogHeader>
-            <AlertDialogFooter className="gap-2">
+
+            {/* Requester card */}
+            <div
+              className="flex items-center gap-4 px-4 py-4 rounded-2xl my-2"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              {/* Avatar */}
+              <div className="relative shrink-0">
+                {incomingPeerInfo?.photo ? (
+                  <img
+                    src={incomingPeerInfo.photo}
+                    alt={incomingPeerInfo.nickname}
+                    className="h-14 w-14 rounded-2xl object-cover"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#0A84FF] to-[#BF5AF2] flex items-center justify-center">
+                    <UserCircle className="h-8 w-8 text-white" />
+                  </div>
+                )}
+                <span className="absolute -bottom-1 -right-1 h-4 w-4 rounded-full bg-[#30D158] border-2 border-black" />
+              </div>
+
+              {/* Identity */}
+              <div className="flex-1 min-w-0">
+                <p className="text-[16px] font-bold text-white truncate">
+                  {incomingPeerInfo?.nickname ?? 'A friend'}
+                </p>
+                <p className="text-[11px] font-mono text-white/35 truncate uppercase tracking-wide">
+                  {incomingPeerInfo?.peerId}
+                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  <ShieldCheck className="h-3 w-3 text-[#30D158]" />
+                  <span className="text-[10px] text-[#30D158] font-semibold">Verified Peer ID</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[13px] text-white/50 text-center">
+              <strong className="text-white/80">{incomingPeerInfo?.nickname}</strong> wants to connect with you.
+            </p>
+
+            <AlertDialogFooter className="gap-2 mt-2">
               <AlertDialogCancel
                 onClick={rejectConnection}
-                className="ios-card border-white/10 text-white/70 hover:bg-white/10 rounded-xl"
+                className="ios-card border-white/10 text-white/70 hover:bg-white/10 rounded-xl flex-1"
               >
                 Decline
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={acceptConnection}
-                className="bg-[#0A84FF] hover:bg-[#0A84FF]/90 rounded-xl text-white font-semibold"
+                className="bg-[#0A84FF] hover:bg-[#0A84FF]/90 rounded-xl text-white font-semibold flex-1"
               >
                 Accept
               </AlertDialogAction>

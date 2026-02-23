@@ -1,19 +1,14 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUser } from '@/contexts/UserContext';
 import { useOutletContext, useNavigate } from 'react-router-dom';
 import { AppContextType } from '@/layouts/AppLayout';
 import {
-    LogOut,
-    Mail,
-    Fingerprint,
-    Calendar,
-    User,
-    ExternalLink,
-    ChevronRight,
-    ShieldCheck
+    LogOut, Mail, Fingerprint, Calendar, User, ExternalLink,
+    ChevronRight, ShieldCheck, Pencil, Camera, Trash2, X, Check, Loader2, Copy
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 const fadeUp = (d = 0) => ({
     initial: { opacity: 0, y: 20 },
@@ -23,19 +18,29 @@ const fadeUp = (d = 0) => ({
 
 const ProfilePage = () => {
     const { userProfile, logout, isGuest } = useAuth();
-    const context = useOutletContext<AppContextType>();
+    const { setNickname } = useUser();
     const navigate = useNavigate();
     const [recentConnections, setRecentConnections] = useState<any[]>([]);
-    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
-    const handleLogout = () => {
-        logout();
-        navigate('/auth');
-    };
+    // Edit name state
+    const [isEditingName, setIsEditingName] = useState(false);
+    const [editedName, setEditedName] = useState('');
+    const [isSavingName, setIsSavingName] = useState(false);
+
+    // Photo upload state
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Delete account dialog
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState('');
+
+    // Copy peer ID feedback
+    const [copiedPeerId, setCopiedPeerId] = useState(false);
 
     useEffect(() => {
         if (userProfile?.id) {
-            setIsLoadingHistory(true);
             import('@/lib/supabase').then(({ supabase }) => {
                 supabase
                     .from('recent_connections')
@@ -43,16 +48,85 @@ const ProfilePage = () => {
                     .eq('user_id', userProfile.id)
                     .order('last_connected_at', { ascending: false })
                     .limit(5)
-                    .then(({ data }) => {
-                        if (data) setRecentConnections(data);
-                        setIsLoadingHistory(false);
-                    });
+                    .then(({ data }) => { if (data) setRecentConnections(data); });
             });
         }
     }, [userProfile?.id]);
 
+    // ── Actions ──
+
+    const handleLogout = () => { logout(); navigate('/auth'); };
+
+    const handleStartEditName = () => {
+        setEditedName(userProfile?.display_name ?? '');
+        setIsEditingName(true);
+    };
+
+    const handleSaveName = async () => {
+        if (!editedName.trim() || !userProfile) return;
+        setIsSavingName(true);
+        try {
+            await supabase.from('users')
+                .update({ display_name: editedName.trim() })
+                .eq('id', userProfile.id);
+            setNickname(editedName.trim());
+            // Force page refresh of userProfile by triggering a re-auth is complex,
+            // so we rely on UserContext for nickname and the display is read from there.
+        } catch (e) {
+            console.error('[Profile] Failed to save name:', e);
+        } finally {
+            setIsSavingName(false);
+            setIsEditingName(false);
+        }
+    };
+
+    const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !userProfile) return;
+        if (file.size > 5 * 1024 * 1024) { alert('Photo must be under 5MB'); return; }
+        setIsUploadingPhoto(true);
+        try {
+            const ext = file.name.split('.').pop();
+            const path = `avatars/${userProfile.id}.${ext}`;
+            const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true });
+            if (upErr) throw upErr;
+            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+            const publicUrl = urlData.publicUrl + `?t=${Date.now()}`;
+            await supabase.from('users').update({ photo_url: publicUrl }).eq('id', userProfile.id);
+            // Force browser to reload the image
+            window.location.reload();
+        } catch (e) {
+            console.error('[Profile] Photo upload failed:', e);
+            alert('Upload failed. Please try again.');
+        } finally {
+            setIsUploadingPhoto(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!userProfile || deleteConfirmText !== 'DELETE') return;
+        setIsDeletingAccount(true);
+        try {
+            await supabase.from('follows').delete().or(`follower_id.eq.${userProfile.id},following_id.eq.${userProfile.id}`);
+            await supabase.from('recent_connections').delete().eq('user_id', userProfile.id);
+            await supabase.from('users').delete().eq('id', userProfile.id);
+            logout();
+            navigate('/auth');
+        } catch (e) {
+            console.error('[Profile] Delete account failed:', e);
+        } finally {
+            setIsDeletingAccount(false);
+        }
+    };
+
+    const handleCopyPeerId = () => {
+        navigator.clipboard.writeText(userProfile?.peer_id ?? '');
+        setCopiedPeerId(true);
+        setTimeout(() => setCopiedPeerId(false), 2000);
+    };
+
+    // ── Guest UI ──
     if (isGuest) {
-        // ... return guest UI (unchanged)
         return (
             <div className="min-h-full px-4 pt-6 pb-20 flex flex-col items-center justify-center text-center space-y-6">
                 <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-2">
@@ -67,7 +141,7 @@ const ProfilePage = () => {
                 <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => navigate('/auth')}
-                    className="px-8 h-12 rounded-2xl bg-white text-black font-bold text-[15px] tap-effect"
+                    className="px-8 h-12 rounded-2xl bg-white text-black font-bold text-[15px]"
                 >
                     Sign In Now
                 </motion.button>
@@ -77,52 +151,96 @@ const ProfilePage = () => {
 
     if (!userProfile) return null;
 
-    const joinDate = new Date(userProfile.created_at).toLocaleDateString('en-US', {
-        month: 'long',
-        year: 'numeric'
-    });
-
-    const handleReconnect = (peerId: string) => {
-        localStorage.setItem('peerIdToConnect', peerId);
-        navigate('/app');
-    };
+    const joinDate = new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="min-h-full px-4 pt-4 pb-20 space-y-6 overflow-y-auto">
+        <div className="min-h-full px-4 pt-4 pb-24 space-y-6 overflow-y-auto">
 
-            {/* ── Header Area ── */}
+            {/* ── Header / Avatar ── */}
             <motion.div {...fadeUp(0)} className="flex flex-col items-center text-center space-y-4 pt-4">
                 <div className="relative group">
                     <div className="absolute -inset-1 bg-gradient-to-tr from-[#0A84FF] to-[#BF5AF2] rounded-[40px] blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
-                    <div className="relative h-28 w-28 rounded-[38px] overflow-hidden border-2 border-white/10 p-1 bg-black">
-                        <img
-                            src={userProfile.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.email}`}
-                            alt={userProfile.display_name}
-                            className="h-full w-full object-cover rounded-[32px]"
-                        />
+                    <div className="relative h-28 w-28 rounded-[38px] overflow-hidden border-2 border-white/10 bg-black">
+                        {isUploadingPhoto ? (
+                            <div className="h-full w-full flex items-center justify-center bg-black/60">
+                                <Loader2 className="h-8 w-8 text-white/60 animate-spin" />
+                            </div>
+                        ) : (
+                            <img
+                                src={userProfile.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.email}`}
+                                alt={userProfile.display_name}
+                                className="h-full w-full object-cover rounded-[32px]"
+                            />
+                        )}
+                        {/* Camera overlay */}
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="absolute inset-0 flex items-center justify-center rounded-[32px] opacity-0 group-hover:opacity-100 transition-opacity"
+                            style={{ background: 'rgba(0,0,0,0.55)' }}
+                        >
+                            <Camera className="h-7 w-7 text-white" />
+                        </button>
                     </div>
+                    {/* Hidden file input */}
+                    <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+
+                    {/* Edit photo button (always visible on mobile) */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full flex items-center justify-center shadow-lg"
+                        style={{ background: '#0A84FF', border: '2px solid black' }}
+                    >
+                        <Camera className="h-3.5 w-3.5 text-white" />
+                    </button>
                 </div>
 
                 <div className="space-y-1">
-                    <h1 className="text-[26px] font-bold text-white tracking-tight">
-                        {userProfile.display_name}
-                    </h1>
+                    {isEditingName ? (
+                        <div className="flex items-center gap-2">
+                            <input
+                                autoFocus
+                                value={editedName}
+                                onChange={e => setEditedName(e.target.value)}
+                                onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setIsEditingName(false); }}
+                                maxLength={32}
+                                className="text-[22px] font-bold text-white text-center bg-white/10 rounded-xl px-3 py-1 outline-none border border-[#0A84FF]/40 focus:border-[#0A84FF] transition-colors w-48"
+                                style={{ fontFamily: "'Outfit', sans-serif" }}
+                            />
+                            <button onClick={handleSaveName} disabled={isSavingName}
+                                className="h-8 w-8 rounded-full bg-[#30D158]/20 text-[#30D158] flex items-center justify-center">
+                                {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                            </button>
+                            <button onClick={() => setIsEditingName(false)}
+                                className="h-8 w-8 rounded-full bg-white/10 text-white/50 flex items-center justify-center">
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex items-center justify-center gap-2">
+                            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                                {userProfile.display_name}
+                            </h1>
+                            <button
+                                onClick={handleStartEditName}
+                                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors text-white/30 hover:text-white"
+                            >
+                                <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                        </div>
+                    )}
                     <p className="text-[14px] text-white/40 font-medium tracking-wide flex items-center justify-center gap-1.5">
                         <ShieldCheck className="h-4 w-4 text-[#30D158]" /> Verified Member
                     </p>
                 </div>
             </motion.div>
 
-            {/* ── Recent Connections Section ── */}
+            {/* ── Recent Connections ── */}
             <motion.div {...fadeUp(0.1)} className="space-y-3">
-                <div className="flex items-center gap-2 px-2">
-                    <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">Recent Connections</h2>
-                </div>
-
+                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">Recent Connections</h2>
                 <div className="ios-card divide-y divide-white/[0.06]">
                     {recentConnections.length > 0 ? (
                         recentConnections.map((conn) => (
-                            <div key={conn.id} className="flex items-center gap-4 px-4 py-3 group">
+                            <div key={conn.id} className="flex items-center gap-4 px-4 py-3">
                                 <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
                                     <User className="h-5 w-5 text-white/30" />
                                 </div>
@@ -132,28 +250,25 @@ const ProfilePage = () => {
                                 </div>
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
-                                    onClick={() => handleReconnect(conn.peer_id)}
-                                    className="px-3 py-1.5 rounded-lg bg-[#0A84FF]/10 text-[#0A84FF] text-[12px] font-bold border border-[#0A84FF]/20"
+                                    onClick={() => { localStorage.setItem('peerIdToConnect', conn.peer_id); navigate('/app'); }}
+                                    className="px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[#0A84FF]/20"
+                                    style={{ background: 'rgba(10,132,255,0.10)', color: '#0A84FF' }}
                                 >
                                     Connect
                                 </motion.button>
                             </div>
                         ))
                     ) : (
-                        <div className="px-4 py-8 text-center space-y-2">
-                            <p className="text-[14px] text-white/30 italic">No recent connections found.</p>
-                            <p className="text-[11px] text-white/20">Go to Jump In to connect with peers!</p>
+                        <div className="px-4 py-8 text-center">
+                            <p className="text-[14px] text-white/30 italic">No recent connections yet.</p>
                         </div>
                     )}
                 </div>
             </motion.div>
 
-            {/* ── Account Details Card ── */}
+            {/* ── Account Info ── */}
             <motion.div {...fadeUp(0.15)} className="space-y-3">
-                <div className="flex items-center gap-2 px-2">
-                    <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">Account Info</h2>
-                </div>
-
+                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">Account Info</h2>
                 <div className="ios-card divide-y divide-white/[0.06]">
                     {/* Email */}
                     <div className="flex items-center gap-4 px-4 py-4">
@@ -172,18 +287,16 @@ const ProfilePage = () => {
                             <Fingerprint className="h-5 w-5 text-[#BF5AF2]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[15px] font-mono font-bold text-white tracking-wider uppercase select-all">
+                            <p className="text-[14px] font-mono font-bold text-white tracking-wider uppercase select-all truncate">
                                 {userProfile.peer_id}
                             </p>
                             <p className="text-[12px] text-white/40">Permanent Peer ID</p>
                         </div>
                         <button
-                            onClick={() => {
-                                navigator.clipboard.writeText(userProfile.peer_id);
-                            }}
+                            onClick={handleCopyPeerId}
                             className="p-2 text-white/30 hover:text-white/60 transition-colors"
                         >
-                            <ExternalLink className="h-4 w-4" />
+                            {copiedPeerId ? <Check className="h-4 w-4 text-[#30D158]" /> : <Copy className="h-4 w-4" />}
                         </button>
                     </div>
 
@@ -200,16 +313,44 @@ const ProfilePage = () => {
                 </div>
             </motion.div>
 
-            {/* ── Actions ── */}
+            {/* ── System Actions ── */}
             <motion.div {...fadeUp(0.25)} className="space-y-3">
-                <div className="flex items-center gap-2 px-2">
-                    <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest">System</h2>
-                </div>
-
+                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">Account</h2>
                 <div className="ios-card overflow-hidden divide-y divide-white/[0.06]">
+                    {/* Edit Name */}
+                    <button
+                        onClick={handleStartEditName}
+                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+                    >
+                        <div className="h-10 w-10 rounded-xl bg-[#0A84FF]/10 flex items-center justify-center shrink-0">
+                            <Pencil className="h-5 w-5 text-[#0A84FF]" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[15px] font-semibold text-white">Edit Display Name</p>
+                            <p className="text-[12px] text-white/40">Change how others see you</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-white/20" />
+                    </button>
+
+                    {/* Edit Photo */}
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+                    >
+                        <div className="h-10 w-10 rounded-xl bg-[#BF5AF2]/10 flex items-center justify-center shrink-0">
+                            <Camera className="h-5 w-5 text-[#BF5AF2]" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[15px] font-semibold text-white">Change Profile Photo</p>
+                            <p className="text-[12px] text-white/40">Upload a new photo (max 5MB)</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-white/20" />
+                    </button>
+
+                    {/* Sign Out */}
                     <button
                         onClick={handleLogout}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-[#FF453A]/5 transition-colors group"
+                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-[#FF453A]/5 transition-colors"
                     >
                         <div className="h-10 w-10 rounded-xl bg-[#FF453A]/10 flex items-center justify-center shrink-0">
                             <LogOut className="h-5 w-5 text-[#FF453A]" />
@@ -220,13 +361,91 @@ const ProfilePage = () => {
                         </div>
                         <ChevronRight className="h-4 w-4 text-[#FF453A]/20" />
                     </button>
+
+                    {/* Delete Account */}
+                    <button
+                        onClick={() => setShowDeleteDialog(true)}
+                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-[#FF453A]/5 transition-colors"
+                    >
+                        <div className="h-10 w-10 rounded-xl bg-[#FF453A]/10 flex items-center justify-center shrink-0">
+                            <Trash2 className="h-5 w-5 text-[#FF453A]" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[15px] font-semibold text-[#FF453A]">Delete Account</p>
+                            <p className="text-[12px] text-[#FF453A]/40">Permanently remove your account</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-[#FF453A]/20" />
+                    </button>
                 </div>
             </motion.div>
 
-            <motion.p {...fadeUp(0.35)} className="text-center text-[12px] text-white/20 pt-4">
-                Togetherly Connect v1.0.0
+            <motion.p {...fadeUp(0.35)} className="text-center text-[12px] text-white/20 pt-2">
+                Togetherly Connect v2.0.0
             </motion.p>
 
+            {/* ── Delete Account Dialog ── */}
+            <AnimatePresence>
+                {showDeleteDialog && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setShowDeleteDialog(false)}
+                            className="fixed inset-0 z-[200] bg-black/75 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ y: '100%', opacity: 0.5 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: '100%', opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 35 }}
+                            className="fixed bottom-0 left-0 right-0 z-[201] rounded-t-[28px] p-6 space-y-5"
+                            style={{ background: 'rgba(20,10,10,0.98)', border: '1px solid rgba(255,69,58,0.2)', paddingBottom: 'env(safe-area-inset-bottom, 28px)' }}
+                        >
+                            <div className="flex justify-center">
+                                <div className="h-1 w-10 rounded-full bg-white/15" />
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <div className="h-12 w-12 rounded-2xl bg-[#FF453A]/15 flex items-center justify-center">
+                                    <Trash2 className="h-6 w-6 text-[#FF453A]" />
+                                </div>
+                                <div>
+                                    <h3 className="text-[18px] font-bold text-white">Delete Account</h3>
+                                    <p className="text-[12px] text-white/40">This action is irreversible</p>
+                                </div>
+                            </div>
+                            <p className="text-[14px] text-white/50 leading-relaxed">
+                                Your profile, friends list, and all connection history will be permanently deleted. Type <span className="text-[#FF453A] font-bold">DELETE</span> to confirm.
+                            </p>
+                            <input
+                                value={deleteConfirmText}
+                                onChange={e => setDeleteConfirmText(e.target.value)}
+                                placeholder="Type DELETE to confirm"
+                                className="w-full rounded-xl px-4 py-3 text-white text-[15px] outline-none bg-white/5 border border-white/10 focus:border-[#FF453A]/50 transition-colors"
+                                style={{ fontFamily: "'Outfit', sans-serif" }}
+                            />
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => { setShowDeleteDialog(false); setDeleteConfirmText(''); }}
+                                    className="flex-1 h-12 rounded-2xl bg-white/10 text-white font-semibold text-[15px]"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleDeleteAccount}
+                                    disabled={deleteConfirmText !== 'DELETE' || isDeletingAccount}
+                                    className="flex-1 h-12 rounded-2xl font-semibold text-[15px] transition-all flex items-center justify-center gap-2"
+                                    style={{
+                                        background: deleteConfirmText === 'DELETE' ? '#FF453A' : 'rgba(255,69,58,0.15)',
+                                        color: deleteConfirmText === 'DELETE' ? 'white' : 'rgba(255,69,58,0.4)',
+                                    }}
+                                >
+                                    {isDeletingAccount ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                    Delete Forever
+                                </button>
+                            </div>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

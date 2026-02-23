@@ -50,19 +50,22 @@ const AppPage = () => {
     <div className="min-h-full px-4 pt-2 pb-6 space-y-6 overflow-y-auto">
 
       {/* ── Polished iOS Header ── */}
-      <motion.div {...fadeUp(0)} className="flex items-center justify-between pt-2">
-        <div className="space-y-0.5 min-w-0">
-          <p className="text-[14px] font-semibold text-white/40 tracking-tight">
+      <motion.div {...fadeUp(0)} className="flex items-center justify-between pt-2 gap-3">
+        <div className="space-y-0.5 min-w-0 flex-1">
+          <p className="text-[13px] font-semibold text-white/40 tracking-tight">
             Good to see you,
           </p>
           <div className="flex items-center gap-2">
-            <h1 className="text-[32px] font-black text-white tracking-[-0.03em] leading-tight truncate">
+            <h1
+              className="font-black text-white tracking-[-0.03em] leading-tight"
+              style={{ fontSize: 'clamp(20px, 6.5vw, 32px)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+            >
               {displayName}
             </h1>
             <motion.span
               animate={{ rotate: [0, 20, 0, 20, 0] }}
               transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 3 }}
-              className="text-3xl shrink-0"
+              className="text-2xl shrink-0"
             >
               👋
             </motion.span>
