@@ -47,7 +47,7 @@ const AppPage = () => {
   const displayName = userProfile?.display_name || myNickname;
 
   return (
-    <div className="min-h-full px-4 pt-2 pb-6 space-y-6 overflow-y-auto">
+    <div className="min-h-full px-4 pt-2 pb-[110px] space-y-6 overflow-y-auto">
 
       {/* ── Polished iOS Header ── */}
       <motion.div {...fadeUp(0)} className="flex items-center justify-between pt-2 gap-3">

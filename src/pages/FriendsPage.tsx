@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle, Phone, Video } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, DBUser, DBFollow } from '@/lib/supabase';
-import { useCallSignaling } from '@/hooks/useCallSignaling';
+import { AppContextType } from '@/layouts/AppLayout';
 
 // ── Tab type ─────────────────────────────────────────────────
 type Tab = 'friends' | 'requests' | 'discover';
@@ -65,13 +65,7 @@ const FriendsPage = () => {
     const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(false);
 
-    const { initiateCall } = useCallSignaling({
-        currentUserId: userProfile?.id ?? '',
-        currentPeerId: permanentPeerId ?? '',
-        onIncomingCall: () => { },
-        onCallAccepted: () => { },
-        onCallEnded: () => { },
-    });
+    const { initiateCall } = useOutletContext<AppContextType>();
 
     // Guests can't use this page
     useEffect(() => {
@@ -251,7 +245,7 @@ const FriendsPage = () => {
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto space-y-2">
+            <div className="flex-1 overflow-y-auto space-y-2 pb-32">
                 {loading && (
                     <p className="text-center text-white/30 text-[13px] pt-8" style={{ fontFamily: "'Outfit', sans-serif" }}>
                         Loading…

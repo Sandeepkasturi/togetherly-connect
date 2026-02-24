@@ -6,9 +6,10 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { AppContextType } from '@/layouts/AppLayout';
 import {
     LogOut, Mail, Fingerprint, Calendar, User, ExternalLink,
-    ChevronRight, ShieldCheck, Pencil, Camera, Trash2, X, Check, Loader2, Copy
+    ChevronRight, ShieldCheck, Pencil, Camera, Trash2, X, Check, Loader2, Copy, Download, Bell, BellRing
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 const fadeUp = (d = 0) => ({
     initial: { opacity: 0, y: 20 },
@@ -21,6 +22,7 @@ const ProfilePage = () => {
     const { setNickname } = useUser();
     const navigate = useNavigate();
     const [recentConnections, setRecentConnections] = useState<any[]>([]);
+    const { permission, requestPermission, subscribeToPush } = usePushNotifications();
 
     // Edit name state
     const [isEditingName, setIsEditingName] = useState(false);
@@ -157,6 +159,23 @@ const ProfilePage = () => {
         navigator.clipboard.writeText(userProfile?.peer_id ?? '');
         setCopiedPeerId(true);
         setTimeout(() => setCopiedPeerId(false), 2000);
+    };
+
+    const handleEnablePush = async () => {
+        const granted = await requestPermission();
+        if (granted && userProfile) {
+            await subscribeToPush(userProfile.id);
+        }
+    };
+
+    const handleDownloadApp = async () => {
+        const prompt = (window as any).deferredPWAInstallPrompt;
+        if (prompt) {
+            await prompt.prompt();
+            (window as any).deferredPWAInstallPrompt = null;
+        } else {
+            alert("App is either already installed, or your browser doesn't support automatic installation. On iOS, use the Share button to 'Add to Home Screen'.");
+        }
     };
 
     // ── Guest UI ──
@@ -366,6 +385,49 @@ const ProfilePage = () => {
                             <p className="text-[12px] text-white/40">Member Since</p>
                         </div>
                     </div>
+                </div>
+            </motion.div>
+
+            {/* ── App Settings ── */}
+            <motion.div {...fadeUp(0.20)} className="space-y-3">
+                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">App Settings</h2>
+                <div className="ios-card overflow-hidden divide-y divide-white/[0.06]">
+                    {/* Push Notifications */}
+                    <button
+                        onClick={permission !== 'granted' ? handleEnablePush : undefined}
+                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+                    >
+                        <div className="h-10 w-10 rounded-xl bg-[#0A84FF]/10 flex items-center justify-center shrink-0">
+                            {permission === 'granted' ? <BellRing className="h-5 w-5 text-[#0A84FF]" /> : <Bell className="h-5 w-5 text-[#0A84FF] opacity-50" />}
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[15px] font-semibold text-white">Push Notifications</p>
+                            <p className="text-[12px] text-white/40">
+                                {permission === 'granted' ? 'Enabled' : permission === 'denied' ? 'Blocked in browser' : 'Tap to enable'}
+                            </p>
+                        </div>
+                        {permission !== 'granted' && permission !== 'denied' && (
+                            <ChevronRight className="h-4 w-4 text-white/20" />
+                        )}
+                        {permission === 'granted' && (
+                            <Check className="h-4 w-4 text-[#30D158]" />
+                        )}
+                    </button>
+
+                    {/* Download App */}
+                    <button
+                        onClick={handleDownloadApp}
+                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+                    >
+                        <div className="h-10 w-10 rounded-xl bg-[#BF5AF2]/10 flex items-center justify-center shrink-0">
+                            <Download className="h-5 w-5 text-[#BF5AF2]" />
+                        </div>
+                        <div className="flex-1">
+                            <p className="text-[15px] font-semibold text-white">Download App</p>
+                            <p className="text-[12px] text-white/40">Install Togetherly on your device</p>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-white/20" />
+                    </button>
                 </div>
             </motion.div>
 

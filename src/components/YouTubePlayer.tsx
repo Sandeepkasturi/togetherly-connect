@@ -22,7 +22,10 @@ interface YouTubePlayerProps {
 const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 'youtube-player' }: YouTubePlayerProps) => {
   const { toast } = useToast();
   const playerRef = useRef<any>(null);
-  const isUpdatingFromPeer = useRef(false);
+
+  // Track the last received remote command to prevent echoing it back
+  const lastReceived = useRef<{ event: string, time: number, timestamp: number } | null>(null);
+
   const [isApiReady, setIsApiReady] = useState(!!(window.YT && window.YT.Player));
   const [isPlayerReady, setIsPlayerReady] = useState(false);
 
@@ -50,26 +53,41 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
   };
 
   const onPlayerStateChange = (event: any) => {
-    if (isUpdatingFromPeer.current || !isConnected) {
-      return;
-    }
+    if (!isConnected) return;
 
     const player = event.target;
-    if (typeof player.getCurrentTime !== 'function') {
-      return;
-    }
-    const time = player.getCurrentTime();
+    if (typeof player.getCurrentTime !== 'function') return;
 
-    // States: 1 (playing), 2 (paused)
-    if (event.data === 1 || event.data === 2) {
-      sendData({
-        type: 'player_state',
-        payload: {
-          event: event.data === 1 ? 'play' : 'pause',
-          currentTime: time,
-        },
-      });
+    const time = player.getCurrentTime();
+    const eventStr = event.data === 1 ? 'play' : event.data === 2 ? 'pause' : null;
+
+    if (!eventStr) return; // Ignore buffering, unstarted, ended etc.
+
+    // Echo cancellation: If this state change matches what the remote peer just ordered
+    // us to do within the last 2 seconds, do NOT broadcast it back.
+    if (lastReceived.current) {
+      const timeSinceReceive = Date.now() - lastReceived.current.timestamp;
+      const sameState = lastReceived.current.event === eventStr;
+      // For pause, times should be very close. For play, time might have advanced a bit.
+      const timeDiff = Math.abs(time - lastReceived.current.time);
+
+      if (timeSinceReceive < 2500 && sameState) {
+        // If it's a pause, time shouldn't have drifted much. If play, it can drift forward.
+        if ((eventStr === 'pause' && timeDiff < 2.0) || (eventStr === 'play' && timeDiff < 4.0)) {
+          // Ignore echoing the peer's command
+          return;
+        }
+      }
     }
+
+    // It represents a genuine local user interaction, broadcast it
+    sendData({
+      type: 'player_state',
+      payload: {
+        event: eventStr,
+        currentTime: time,
+      },
+    });
   };
 
   // Initialize player
@@ -108,17 +126,15 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
 
   // Handle incoming peer data to sync players
   useEffect(() => {
-    if (!playerRef.current || !isPlayerReady || !playerData || !isConnected) {
-      return;
-    }
+    if (!playerRef.current || !isPlayerReady || !playerData || !isConnected) return;
 
-    // Handle Sync Request from Peer
+    // Handle Sync Request from Peer (Late Joiner)
     if (playerData.type === 'request_sync') {
       const player = playerRef.current;
       if (typeof player.getCurrentTime === 'function' && typeof player.getPlayerState === 'function') {
         const currentTime = player.getCurrentTime();
         const state = player.getPlayerState();
-        // Only send state if playing (1) or paused (2)
+        // Only broadcast if explicitly playing or paused
         if (state === 1 || state === 2) {
           sendData({
             type: 'player_state',
@@ -134,24 +150,22 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
 
     // Handle Player State Update from Peer
     if (playerData.type === 'player_state') {
-      isUpdatingFromPeer.current = true;
-
       const { event, currentTime } = playerData.payload;
       const player = playerRef.current;
 
-      // Defensive check for player methods
-      if (typeof player.getCurrentTime !== 'function' || typeof player.getPlayerState !== 'function') {
-        isUpdatingFromPeer.current = false;
-        return;
-      }
+      if (typeof player.getCurrentTime !== 'function' || typeof player.getPlayerState !== 'function') return;
+
+      const clientTime = player.getCurrentTime();
+      const clientState = player.getPlayerState();
+
+      // Update our echo cancellation record
+      lastReceived.current = { event, time: currentTime, timestamp: Date.now() };
 
       if (event === 'play') {
-        const clientTime = player.getCurrentTime();
         if (Math.abs(clientTime - currentTime) > 1.5) {
           player.seekTo(currentTime, true);
         }
-        // seekTo might start playback, but playVideo() ensures it.
-        if (player.getPlayerState() !== 1) {
+        if (clientState !== 1) {
           player.playVideo();
           toast({
             title: '▶️ Playing',
@@ -160,8 +174,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
           });
         }
       } else if (event === 'pause') {
-        // It's safer to pause first, then seek.
-        if (player.getPlayerState() !== 2) {
+        if (clientState !== 2) {
           player.pauseVideo();
           toast({
             title: '⏸️ Paused',
@@ -169,16 +182,11 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
             duration: 2000,
           });
         }
-        const clientTime = player.getCurrentTime();
         if (Math.abs(clientTime - currentTime) > 1.5) {
           player.seekTo(currentTime, true);
         }
       }
-
-      // Increased timeout to allow player state to settle
-      setTimeout(() => { isUpdatingFromPeer.current = false; }, 300);
     }
-
   }, [playerData, isConnected, isPlayerReady, sendData]);
 
   // Request sync when player becomes ready and connected

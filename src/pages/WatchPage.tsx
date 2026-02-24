@@ -129,7 +129,7 @@ const WatchPage = () => {
       </div>
 
       {/* ── Tab Content ── */}
-      <div className="flex-1 px-4 pb-4">
+      <div className="flex-1 px-4 pb-32">
         <AnimatePresence mode="wait">
 
           {tab === 'watch' && (

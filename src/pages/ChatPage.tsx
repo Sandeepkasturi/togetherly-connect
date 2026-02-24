@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Phone, Video, Send, Check, CheckCheck, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { useChat, ChatMessage } from '@/hooks/useChat';
-import { useCallSignaling } from '@/hooks/useCallSignaling';
+import { AppContextType } from '@/layouts/AppLayout';
 import { DBUser } from '@/lib/supabase';
 
 const fadeUp = (delay = 0) => ({
@@ -28,13 +28,7 @@ const ChatPage = () => {
     friendId: friendId ?? '',
   });
 
-  const { initiateCall } = useCallSignaling({
-    currentUserId: userProfile?.id ?? '',
-    currentPeerId: permanentPeerId ?? '',
-    onIncomingCall: () => { },
-    onCallAccepted: () => { },
-    onCallEnded: () => { },
-  });
+  const { initiateCall } = useOutletContext<AppContextType>();
 
   useEffect(() => {
     if (!friendId) return;

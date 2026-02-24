@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => ({
         enabled: false, // keep dev fast; service worker only active in prod build
       },
       workbox: {
+        importScripts: ['/push-sw.js'],
         // Cache all key assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         // Don't cache Supabase or Google API calls

@@ -104,7 +104,7 @@ export function useCallSignaling({
         if (error || !data) return null;
         setActiveCall(data as CallRecord);
 
-        // Notify callee
+        // Notify callee via DB record
         await supabase.from('notifications').insert({
             user_id: calleeId,
             type: 'call',
@@ -112,6 +112,16 @@ export function useCallSignaling({
             body: 'Tap to answer',
             data: { call_id: data.id, caller_id: currentUserId },
             read: false,
+        });
+
+        // Trigger remote push notification
+        import('@/lib/push').then(({ sendPushNotification }) => {
+            sendPushNotification({
+                userId: calleeId,
+                title: type === 'video' ? '📹 Incoming Video Call' : '📞 Incoming Call',
+                body: 'Incoming call from Togetherly',
+                url: `/`
+            });
         });
 
         // Auto-mark as missed after 45s if not answered

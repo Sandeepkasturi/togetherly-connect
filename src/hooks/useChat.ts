@@ -88,7 +88,7 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
         if (!error && data) {
             setMessages(prev => [...prev, data as ChatMessage]);
 
-            // Create notification for recipient
+            // Create notification record in DB
             await supabase.from('notifications').insert({
                 user_id: friendId,
                 type: 'chat',
@@ -96,6 +96,16 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
                 body: content.trim().slice(0, 100),
                 data: { sender_id: currentUserId },
                 read: false,
+            });
+
+            // Trigger remote push notification
+            import('@/lib/push').then(({ sendPushNotification }) => {
+                sendPushNotification({
+                    userId: friendId,
+                    title: 'New Message',
+                    body: content.trim().slice(0, 100),
+                    url: `/chat/${currentUserId}`
+                });
             });
         }
         setSending(false);

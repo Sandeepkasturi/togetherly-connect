@@ -105,13 +105,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // ── Sync user to Supabase after Google login ──────────────
     const syncUserToSupabase = useCallback(async (profile: GoogleProfile): Promise<UserProfile | null> => {
         try {
-            const peerId = generatePermanentPeerId(profile.sub);
+            // Randomize peerId per session to allow multi-device support
+            const peerId = `tg-${Math.random().toString(36).substring(2, 10)}`;
 
-            // Step 1: Insert-only if new user (ignoreDuplicates prevents overwriting
-            // user-customized display_name / photo_url on subsequent sign-ins)
-            const insertPromise = supabase
+            // Use upsert to handle existing users and update their current session's peerId
+            let { data, error } = await supabase
                 .from('users')
-                .insert({
+                .upsert({
                     google_sub: profile.sub,
                     email: profile.email,
                     display_name: profile.name,
@@ -119,45 +119,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     peer_id: peerId,
                     is_online: true,
                     last_seen: new Date().toISOString(),
-                })
+                }, { onConflict: 'google_sub' })
                 .select()
-                .single();
+                .maybeSingle();
 
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Supabase sync timeout')), 5000)
-            );
-
-            // Step 2: On duplicate (existing user), just update presence fields only
-            let { data, error } = await Promise.race([insertPromise, timeoutPromise]) as any;
-
-            if (error?.code === '23505' || (error && error.message?.includes('duplicate'))) {
-                // User already exists — fetch their current row (keeps custom name/photo)
-                const { data: existing, error: fetchError } = await supabase
+            // If upsert fails or doesn't return data (due to RLS or other issues), 
+            // fallback to finding the user
+            if (error || !data) {
+                console.warn('[Auth] Upsert failed, attempting fallback fetch:', error);
+                const { data: existing } = await supabase
                     .from('users')
                     .select('*')
                     .eq('google_sub', profile.sub)
-                    .single();
-                if (!fetchError && existing) {
-                    // Just update presence
-                    await supabase.from('users')
-                        .update({ is_online: true, last_seen: new Date().toISOString() })
-                        .eq('id', existing.id);
+                    .maybeSingle();
+
+                if (existing) {
                     data = existing;
                     error = null;
                 }
             }
 
-            if (error) {
-                console.error('[Auth] Supabase sync error:', error);
-                // Offline fallback
-                const offline: DBUser = {
-                    id: profile.sub, google_sub: profile.sub,
-                    email: profile.email, display_name: profile.name,
-                    photo_url: profile.picture, peer_id: peerId,
-                    is_online: true, last_seen: new Date().toISOString(),
-                    created_at: new Date().toISOString(),
-                };
-                return { ...offline, displayName: profile.name, photoURL: profile.picture };
+            if (error || !data) {
+                console.error('[Auth] Supabase sync failed. No UUID available.', error);
+                return null;
             }
 
             const up: UserProfile = {
@@ -167,16 +151,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             };
             return up;
         } catch (e) {
-            console.error('[Auth] syncUserToSupabase failed (Fallback mode):', e);
+            console.error('[Auth] syncUserToSupabase critical failure:', e);
             return null;
         }
     }, []);
 
     // ── Online presence heartbeat ─────────────────────────────
-    const startPresence = useCallback((userId: string) => {
+    const startPresence = useCallback((userId: string, peerId: string) => {
         const ping = () => supabase
             .from('users')
-            .update({ is_online: true, last_seen: new Date().toISOString() })
+            .update({
+                is_online: true,
+                last_seen: new Date().toISOString(),
+                peer_id: peerId
+            })
             .eq('id', userId)
             .then(() => {/* silent */ });
 
@@ -216,7 +204,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const up = await syncUserToSupabase(profile);
                 setUserProfile(up);
 
-                if (up) startPresence(up.id);
+                if (up) startPresence(up.id, up.peer_id);
             } catch (e) {
                 console.error('[Auth] Google login error:', e);
             } finally {
@@ -276,7 +264,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 if ((window as any).bootStep) (window as any).bootStep('Syncing User...');
                 const up = await syncUserToSupabase(saved);
                 setUserProfile(up);
-                if (up) startPresence(up.id);
+                if (up) startPresence(up.id, up.peer_id);
             }
             if ((window as any).bootStep) (window as any).bootStep('Auth Ready');
             setIsLoading(false);

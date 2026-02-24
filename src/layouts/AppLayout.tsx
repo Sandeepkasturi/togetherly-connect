@@ -11,7 +11,9 @@ import SplashScreen from '@/components/SplashScreen';
 import BottomNav from '@/components/BottomNav';
 import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useAutoConnect } from '@/hooks/useAutoConnect';
 import IncomingCallModal from '@/components/IncomingCallModal';
+import OutgoingCallModal from '@/components/OutgoingCallModal';
 import { useCallSignaling, CallRecord } from '@/hooks/useCallSignaling';
 import { useRingtone } from '@/hooks/useRingtone';
 import {
@@ -57,6 +59,8 @@ export interface AppContextType {
   startScreenShare: () => Promise<void>;
   stopScreenShare: () => void;
   remoteScreenStream: MediaStream | null;
+  initiateCall: (calleeId: string, type: "audio" | "video") => Promise<CallRecord | null>;
+  endSignalCall: (callId: string) => Promise<void>;
 }
 
 const AppLayout = () => {
@@ -81,12 +85,28 @@ const AppLayout = () => {
   // Show splash screen only when manually connecting to a peer
   const [isConnecting, setIsConnecting] = useState(false);
 
+  // Request push notification permission and subscribe after login
+  const { requestPermission, subscribeToPush } = usePushNotifications();
+  useEffect(() => {
+    if (userProfile?.id && !isGuest) {
+      // Delay to not interrupt initial load/login flow
+      const timer = setTimeout(async () => {
+        const granted = await requestPermission();
+        if (granted) {
+          await subscribeToPush(userProfile.id);
+        }
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [userProfile?.id, isGuest, requestPermission, subscribeToPush]);
+
   // ── Global call signaling + ringtone ──────────────────────────────
   const [incomingSignalCall, setIncomingSignalCall] = useState<CallRecord | null>(null);
   const [incomingCaller, setIncomingCaller] = useState<any | null>(null);
+  const [outgoingCallee, setOutgoingCallee] = useState<any | null>(null);
   const { startRingtone, stopRingtone } = useRingtone();
 
-  const { acceptCall, declineCall } = useCallSignaling({
+  const { activeCall, acceptCall, declineCall, initiateCall, endCall: endSignalCall } = useCallSignaling({
     currentUserId: userProfile?.id ?? '',
     currentPeerId: permanentPeerId ?? '',
     onIncomingCall: async (call) => {
@@ -130,13 +150,30 @@ const AppLayout = () => {
     setIncomingCaller(null);
   };
 
-  // Synchronize nickname from user profile if missing
+  const handleCancelOutgoingCall = async () => {
+    if (activeCall && activeCall.caller_id === userProfile?.id) {
+      await endSignalCall(activeCall.id);
+    }
+  };
+
+  useEffect(() => {
+    if (activeCall && activeCall.caller_id === userProfile?.id && activeCall.status === 'ringing') {
+      supabase.from('users').select('*').eq('id', activeCall.callee_id).single().then(({ data }) => {
+        if (data) setOutgoingCallee(data);
+      });
+    } else {
+      setOutgoingCallee(null);
+    }
+  }, [activeCall, userProfile?.id]);
+
   useEffect(() => {
     if (userProfile?.displayName && !nickname) {
       console.log("[AppLayout] Syncing nickname from profile:", userProfile.displayName);
       setNickname(userProfile.displayName);
     }
   }, [userProfile, nickname, setNickname]);
+
+  useAutoConnect(connectToPeer, conn, nickname);
 
   useEffect(() => {
     // Helper for safe storage access
@@ -736,7 +773,9 @@ const AppLayout = () => {
     isScreenSharing,
     startScreenShare,
     stopScreenShare,
-    remoteScreenStream
+    remoteScreenStream,
+    initiateCall,
+    endSignalCall
   };
 
   return (
@@ -779,6 +818,13 @@ const AppLayout = () => {
           caller={incomingCaller}
           onAccept={handleAcceptSignalCall}
           onDecline={handleDeclineSignalCall}
+        />
+
+        {/* Global outgoing call modal — fires when you call someone */}
+        <OutgoingCallModal
+          call={activeCall?.caller_id === userProfile?.id && activeCall?.status === 'ringing' ? activeCall : null}
+          callee={outgoingCallee}
+          onCancel={handleCancelOutgoingCall}
         />
 
         <CallManager

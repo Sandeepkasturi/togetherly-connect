@@ -39,6 +39,7 @@ const PWAInstallPrompt = () => {
         // Android / Chrome / Edge: listen for native install prompt
         const handler = (e: Event) => {
             e.preventDefault();
+            (window as any).deferredPWAInstallPrompt = e;
             setDeferredPrompt(e as BeforeInstallPromptEvent);
             setTimeout(() => setShowPrompt(true), 3500); // small delay so it's not jarring
         };

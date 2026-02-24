@@ -37,7 +37,7 @@ const TheaterPage = () => {
   if (!context.selectedVideoId) return null;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-black" style={{ top: 0, bottom: 0 }}>
+    <div className="fixed inset-0 flex flex-col bg-black z-[60]" style={{ top: 0, bottom: 0 }}>
 
       {/* ── Video player (sticky top) ── */}
       <div className="shrink-0 relative bg-black w-full">
