@@ -143,7 +143,6 @@ const ProfilePage = () => {
         if (!userProfile || deleteConfirmText !== 'DELETE') return;
         setIsDeletingAccount(true);
         try {
-            await supabase.from('follows').delete().or(`follower_id.eq.${userProfile.id},following_id.eq.${userProfile.id}`);
             await supabase.from('recent_connections').delete().eq('user_id', userProfile.id);
             await supabase.from('users').delete().eq('id', userProfile.id);
             logout();

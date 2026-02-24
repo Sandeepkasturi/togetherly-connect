@@ -11,8 +11,16 @@ import {
   Shield,
   Star,
   UserCircle,
-  Power
+  Power,
+  LogOut
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import PeerConnection from '@/components/PeerConnection';
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,7 +48,7 @@ const fadeUp = (d = 0) => ({
 const AppPage = () => {
   const context = useOutletContext<AppContextType>();
   const navigate = useNavigate();
-  const { userProfile } = useAuth();
+  const { userProfile, logout } = useAuth();
   const [showConnect, setShowConnect] = useState(false);
 
   const { isConnected, disconnectPeer, remoteNickname, myNickname } = context;
@@ -74,36 +82,63 @@ const AppPage = () => {
 
         <div className="flex items-center gap-3 shrink-0">
           {/* Connection Status Pill */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => isConnected ? disconnectPeer() : setShowConnect(!showConnect)}
-            className={cn(
-              "h-[38px] px-5 rounded-full flex items-center gap-2.5 transition-all duration-300",
-              "border border-white/10 shadow-lg backdrop-blur-md",
-              isConnected
-                ? "bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20"
-                : "bg-white/5 text-[#0A84FF] border-[#0A84FF]/20"
-            )}
-          >
-            <div className={cn(
-              "h-2 w-2 rounded-full",
-              isConnected ? "bg-[#30D158] animate-pulse" : "bg-[#0A84FF]"
-            )} />
-            <span className="text-[14px] font-bold tracking-tight max-w-[80px] truncate">
-              {isConnected ? remoteNickname : 'Connect'}
-            </span>
-            {isConnected ? (
-              <div
-                onClick={(e) => { e.stopPropagation(); disconnectPeer(); }}
-                className="ml-1 p-1 hover:bg-white/20 rounded-full transition-colors"
+          {isConnected ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="h-[38px] px-5 rounded-full flex items-center gap-2.5 transition-all duration-300 border border-white/10 shadow-lg backdrop-blur-md bg-[#30D158]/10 text-[#30D158] border-[#30D158]/20"
+                >
+                  <div className="h-2 w-2 rounded-full bg-[#30D158] animate-pulse" />
+                  <span className="text-[14px] font-bold tracking-tight max-w-[80px] truncate">
+                    {remoteNickname}
+                  </span>
+                  <div className="ml-1 p-1 hover:bg-white/20 rounded-full transition-colors flex items-center justify-center">
+                    <Power className="h-3 w-3" />
+                  </div>
+                </motion.button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-48 overflow-hidden rounded-2xl border-white/10 shadow-2xl"
+                style={{
+                  background: 'rgba(25, 25, 30, 0.75)',
+                  backdropFilter: 'blur(20px) saturate(180%)',
+                  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+                }}
               >
-                <Power className="h-3 w-3" />
-              </div>
-            ) : (
+                <DropdownMenuItem
+                  onClick={() => disconnectPeer()}
+                  className="gap-2 cursor-pointer py-3 px-4 focus:bg-white/10 focus:text-white group"
+                >
+                  <Power className="h-4 w-4 text-white/50 group-hover:text-white transition-colors" />
+                  <span className="font-semibold text-white/80 group-hover:text-white transition-colors">Disconnect Peer</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-white/10 mx-2" />
+                <DropdownMenuItem
+                  onClick={() => { logout(); navigate('/auth'); }}
+                  className="gap-2 cursor-pointer py-3 px-4 focus:bg-[#FF453A]/20 focus:text-[#FF453A] group"
+                >
+                  <LogOut className="h-4 w-4 text-[#FF453A]/80 group-hover:text-[#FF453A] transition-colors" />
+                  <span className="font-semibold text-[#FF453A]/80 group-hover:text-[#FF453A] transition-colors">Log Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowConnect(!showConnect)}
+              className="h-[38px] px-5 rounded-full flex items-center gap-2.5 transition-all duration-300 border border-white/10 shadow-lg backdrop-blur-md bg-white/5 text-[#0A84FF] border-[#0A84FF]/20"
+            >
+              <div className="h-2 w-2 rounded-full bg-[#0A84FF]" />
+              <span className="text-[14px] font-bold tracking-tight max-w-[80px] truncate">
+                Connect
+              </span>
               <ArrowRight className="h-3.5 w-3.5 opacity-50" />
-            )}
-          </motion.button>
+            </motion.button>
+          )}
 
           {/* User Profile Avatar */}
           <motion.button

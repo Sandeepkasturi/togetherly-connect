@@ -78,15 +78,33 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
     const sendMessage = useCallback(async (content: string): Promise<boolean> => {
         if (!content.trim()) return false;
         setSending(true);
-        const msg: Partial<ChatMessage> = {
+
+        const tempId = `temp-${Date.now()}`;
+        const tempMsg: ChatMessage = {
+            id: tempId,
+            sender_id: currentUserId,
+            receiver_id: friendId,
+            content: content.trim(),
+            type: 'text',
+            read_at: null,
+            created_at: new Date().toISOString(),
+        };
+
+        // Optimistically add to UI immediately so it doesn't "vanish" 
+        setMessages(prev => [...prev, tempMsg]);
+
+        const dbMsg: Partial<ChatMessage> = {
             sender_id: currentUserId,
             receiver_id: friendId,
             content: content.trim(),
             type: 'text',
         };
-        const { data, error } = await supabase.from('messages').insert(msg).select().single();
+
+        const { data, error } = await supabase.from('messages').insert(dbMsg).select().single();
+
         if (!error && data) {
-            setMessages(prev => [...prev, data as ChatMessage]);
+            // Replace temporary message with the real one from DB
+            setMessages(prev => prev.map(m => m.id === tempId ? data as ChatMessage : m));
 
             // Create notification record in DB
             await supabase.from('notifications').insert({
@@ -107,7 +125,11 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
                     url: `/chat/${currentUserId}`
                 });
             });
+        } else {
+            // Remove the temporary message if the insert failed
+            setMessages(prev => prev.filter(m => m.id !== tempId));
         }
+
         setSending(false);
         return !error;
     }, [currentUserId, friendId]);

@@ -787,6 +787,8 @@ const AppLayout = () => {
     endSignalCall
   };
 
+  const isDeepChat = location.pathname.match(/^\/chat\/[^/]+$/);
+
   return (
     <>
       {isConnecting && <SplashScreen isVisible={true} />}
@@ -801,7 +803,7 @@ const AppLayout = () => {
         </div>
 
         {/* Animated page outlet */}
-        <main ref={mainRef} className="flex-grow relative z-10 pb-[83px] pt-3 overflow-y-auto h-screen" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <main ref={mainRef} className={`flex-grow relative z-10 pt-3 overflow-y-auto h-screen ${!isDeepChat ? 'pb-[83px]' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
@@ -816,7 +818,7 @@ const AppLayout = () => {
           </AnimatePresence>
         </main>
 
-        <BottomNav />
+        {!isDeepChat && <BottomNav />}
 
         {/* PWA install prompt — shows on Android & iOS */}
         <PWAInstallPrompt />
