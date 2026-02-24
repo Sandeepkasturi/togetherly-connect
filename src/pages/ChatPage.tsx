@@ -57,13 +57,35 @@ const ChatPage = () => {
 
   const isMe = (msg: ChatMessage) => msg.sender_id === userProfile?.id;
 
+  if (!friendId) {
+    return (
+      <div className="flex flex-col h-screen bg-[#0A0A0F] items-center justify-center p-6 text-center">
+        <motion.div {...fadeUp(0)} className="w-20 h-20 rounded-full bg-[#0A84FF]/10 flex items-center justify-center mb-6">
+          <MessageCircle className="h-10 w-10 text-[#0A84FF]/80" />
+        </motion.div>
+        <motion.h2 {...fadeUp(0.1)} className="text-xl font-bold text-white mb-2">Your Messages</motion.h2>
+        <motion.p {...fadeUp(0.2)} className="text-[14px] text-white/50 max-w-[260px] leading-relaxed mb-8">
+          To start a conversation, head over to your Friends list and select someone to chat with.
+        </motion.p>
+        <motion.button
+          {...fadeUp(0.3)}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => navigate('/friends')}
+          className="ios-btn bg-white text-black px-6 py-3 rounded-full font-bold shadow-lg"
+        >
+          View Friends
+        </motion.button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0F]">
 
       {/* Header */}
       <motion.div
         {...fadeUp(0)}
-        className="flex items-center gap-3 px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)]"
+        className="flex items-center gap-3 px-4 py-3 pt-[calc(env(safe-area-inset-top)+12px)] shrink-0 z-10"
         style={{
           background: 'rgba(10,10,18,0.90)',
           backdropFilter: 'blur(20px)',
@@ -79,7 +101,7 @@ const ChatPage = () => {
           <div className="h-9 w-9 rounded-full overflow-hidden bg-white/10">
             <img
               src={friend?.photo_url ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendId}`}
-              alt={friend?.display_name} className="h-full w-full object-cover"
+              alt={friend?.display_name ?? 'Friend'} className="h-full w-full object-cover"
             />
           </div>
           {friend?.is_online && (

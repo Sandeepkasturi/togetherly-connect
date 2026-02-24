@@ -22,6 +22,7 @@ interface YouTubePlayerProps {
 const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 'youtube-player' }: YouTubePlayerProps) => {
   const { toast } = useToast();
   const playerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Track the last received remote command to prevent echoing it back
   const lastReceived = useRef<{ event: string, time: number, timestamp: number } | null>(null);
@@ -33,9 +34,11 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
   useEffect(() => {
     if (isApiReady) return;
 
-    const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    document.head.appendChild(tag);
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      document.head.appendChild(tag);
+    }
 
     window.onYouTubeIframeAPIReady = () => {
       setIsApiReady(true);
@@ -68,19 +71,16 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
     if (lastReceived.current) {
       const timeSinceReceive = Date.now() - lastReceived.current.timestamp;
       const sameState = lastReceived.current.event === eventStr;
-      // For pause, times should be very close. For play, time might have advanced a bit.
+
       const timeDiff = Math.abs(time - lastReceived.current.time);
 
       if (timeSinceReceive < 2500 && sameState) {
-        // If it's a pause, time shouldn't have drifted much. If play, it can drift forward.
         if ((eventStr === 'pause' && timeDiff < 2.0) || (eventStr === 'play' && timeDiff < 4.0)) {
-          // Ignore echoing the peer's command
           return;
         }
       }
     }
 
-    // It represents a genuine local user interaction, broadcast it
     sendData({
       type: 'player_state',
       payload: {
@@ -92,15 +92,20 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
 
   // Initialize player
   useEffect(() => {
-    if (!isApiReady || !videoId) return;
+    if (!isApiReady || !videoId || !containerRef.current) return;
 
     setIsPlayerReady(false);
 
-    // Ensure element exists before initializing
-    const element = document.getElementById(playerId);
-    if (!element) return;
+    // React 18 Strict Mode resilient setup:
+    // Create a pristine div for the YT API to replace with an iframe.
+    // If it gets destroyed, the wrapper container is still managed by React!
+    const wrapper = containerRef.current;
+    wrapper.innerHTML = '';
+    const targetDiv = document.createElement('div');
+    targetDiv.className = "w-full h-full rounded-xl";
+    wrapper.appendChild(targetDiv);
 
-    const player = new window.YT.Player(playerId, {
+    const player = new window.YT.Player(targetDiv, {
       videoId,
       playerVars: {
         'playsinline': 1,
@@ -118,13 +123,13 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
 
     return () => {
       if (playerRef.current) {
-        playerRef.current.destroy();
+        if (typeof playerRef.current.destroy === 'function') {
+          playerRef.current.destroy();
+        }
         playerRef.current = null;
       }
     };
-  }, [isApiReady, videoId, playerId]);
-
-  // Handle incoming peer data to sync players
+  }, [isApiReady, videoId]);
   useEffect(() => {
     if (!playerRef.current || !isPlayerReady || !playerData || !isConnected) return;
 
@@ -229,7 +234,11 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="aspect-video w-full relative overflow-hidden rounded-xl"
     >
-      <div id={playerId} className="w-full h-full rounded-xl" />
+      {/* 
+        This div is managed by React. We never let YouTube API touch it.
+        We dynamically create a child div inside it for YouTube to consume.
+      */}
+      <div ref={containerRef} className="w-full h-full rounded-xl" />
 
       {/* Connection status indicator */}
       {isConnected && (
