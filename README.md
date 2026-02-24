@@ -24,7 +24,7 @@ Togetherly Connect is a modern, real-time social platform designed for shared ex
 ## 📱 How to Use
 
 ### Visiting the Site
-You can visit the live application at [lovable.dev/projects/bdd5d075-721e-4260-8686-f13794fab0ea](https://lovable.dev/projects/bdd5d075-721e-4260-8686-f13794fab0ea).
+You can visit the live application at [togetherly-share.vercel.app](https://togetherly-share.vercel.app).
 
 ### Getting Started
 1. **Sign In**: Use your Google account for the best experience, or continue as a guest.
