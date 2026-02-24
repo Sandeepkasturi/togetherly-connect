@@ -388,6 +388,34 @@ const ProfilePage = () => {
                 </div>
             </motion.div>
 
+            {/* ── Install App Banner (Only shown if NOT installed) ── */}
+            {!window.matchMedia('(display-mode: standalone)').matches && (
+                <motion.div {...fadeUp(0.18)} className="space-y-3 pt-2">
+                    <button
+                        onClick={handleDownloadApp}
+                        className="w-full relative overflow-hidden rounded-[24px] p-5 text-left group transition-all duration-300 transform active:scale-[0.98] border border-white/10"
+                        style={{
+                            background: 'linear-gradient(135deg, rgba(10,132,255,0.15) 0%, rgba(191,90,242,0.15) 100%)',
+                            boxShadow: '0 8px 32px rgba(10,132,255,0.1)'
+                        }}
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-r from-[#0A84FF]/20 to-[#BF5AF2]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="relative z-10 flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-full flex items-center justify-center shrink-0 border border-white/20 shadow-inner" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                                <Download className="h-6 w-6 text-white drop-shadow-md" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-[16px] font-bold text-white tracking-tight drop-shadow-md">Get the App</h3>
+                                <p className="text-[13px] text-white/70 font-medium mt-0.5 leading-snug">Install Togetherly on your home screen</p>
+                            </div>
+                            <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                                <ChevronRight className="h-4 w-4 text-white" />
+                            </div>
+                        </div>
+                    </button>
+                </motion.div>
+            )}
+
             {/* ── App Settings ── */}
             <motion.div {...fadeUp(0.20)} className="space-y-3">
                 <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">App Settings</h2>
@@ -414,20 +442,6 @@ const ProfilePage = () => {
                         )}
                     </button>
 
-                    {/* Download App */}
-                    <button
-                        onClick={handleDownloadApp}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
-                    >
-                        <div className="h-10 w-10 rounded-xl bg-[#BF5AF2]/10 flex items-center justify-center shrink-0">
-                            <Download className="h-5 w-5 text-[#BF5AF2]" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[15px] font-semibold text-white">Download App</p>
-                            <p className="text-[12px] text-white/40">Install Togetherly on your device</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-white/20" />
-                    </button>
                 </div>
             </motion.div>
 

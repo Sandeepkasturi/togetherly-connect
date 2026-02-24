@@ -108,7 +108,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             // Randomize peerId per session to allow multi-device support
             const peerId = `tg-${Math.random().toString(36).substring(2, 10)}`;
 
-            // Use upsert to handle existing users and update their current session's peerId
+            // 1. Check if user already exists
+            const { data: existing } = await supabase
+                .from('users')
+                .select('*')
+                .eq('google_sub', profile.sub)
+                .maybeSingle();
+
+            if (!existing) {
+                // First-time registration!
+                localStorage.setItem('tg_new_registration', 'true');
+            }
+
+            // 2. Use upsert to handle new users and update current session's peerId
             let { data, error } = await supabase
                 .from('users')
                 .upsert({

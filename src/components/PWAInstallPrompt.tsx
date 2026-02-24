@@ -30,9 +30,16 @@ const PWAInstallPrompt = () => {
         // Don't show if user already dismissed this session
         if (sessionStorage.getItem('pwa-dismissed')) return;
 
+        const isNewUser = localStorage.getItem('tg_new_registration') === 'true';
+        const delay = isNewUser ? 500 : 3500;
+
+        if (isNewUser) {
+            localStorage.removeItem('tg_new_registration');
+        }
+
         if (isIOS()) {
             // On iOS: show the guide after a delay (no native prompt available)
-            const timer = setTimeout(() => setShowIOSGuide(true), 3500);
+            const timer = setTimeout(() => setShowIOSGuide(true), delay);
             return () => clearTimeout(timer);
         }
 
@@ -41,7 +48,7 @@ const PWAInstallPrompt = () => {
             e.preventDefault();
             (window as any).deferredPWAInstallPrompt = e;
             setDeferredPrompt(e as BeforeInstallPromptEvent);
-            setTimeout(() => setShowPrompt(true), 3500); // small delay so it's not jarring
+            setTimeout(() => setShowPrompt(true), delay);
         };
         window.addEventListener('beforeinstallprompt', handler);
         return () => window.removeEventListener('beforeinstallprompt', handler);

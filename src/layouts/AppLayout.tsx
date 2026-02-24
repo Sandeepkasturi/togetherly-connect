@@ -175,6 +175,15 @@ const AppLayout = () => {
 
   useAutoConnect(connectToPeer, conn, nickname);
 
+  // Scroll restoration for main content on route changes
+  const mainRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [location.pathname]);
+
+  // Check for incoming connections from PeerJS (secondary to Signaling)
   useEffect(() => {
     // Helper for safe storage access
     const safeGet = (key: string) => {
@@ -792,7 +801,7 @@ const AppLayout = () => {
         </div>
 
         {/* Animated page outlet */}
-        <main className="flex-grow relative z-10 pb-[83px] pt-3 overflow-y-auto h-screen" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <main ref={mainRef} className="flex-grow relative z-10 pb-[83px] pt-3 overflow-y-auto h-screen" style={{ WebkitOverflowScrolling: 'touch' }}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}

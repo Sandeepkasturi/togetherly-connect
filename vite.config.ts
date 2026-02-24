@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo.png', 'icons/*.png'],
       devOptions: {
-        enabled: false, // keep dev fast; service worker only active in prod build
+        enabled: true, // Enable in dev so the install prompt works for testing
       },
       workbox: {
         importScripts: ['/push-sw.js'],
