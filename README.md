@@ -1,73 +1,59 @@
-# Welcome to your Lovable project
+# Togetherly Connect
 
-## Project info
+Togetherly Connect is a modern, real-time social platform designed for shared experiences, instant communication, and community building. From synchronized YouTube watch parties to high-quality draggable video calls, Togetherly brings people together seamlessly.
 
-**URL**: https://lovable.dev/projects/bdd5d075-721e-4260-8686-f13794fab0ea
+## 🚀 Key Features
 
-## How can I edit this code?
+- **Draggable PiP Calls**: High-quality audio and video calls that float in a Picture-in-Picture window, allowing you to multitask and chat while talking.
+- **Synchronized Watch Parties**: Watch YouTube videos in perfect sync with friends in the Theater.
+- **Optimistic Chat**: Snappy, real-time messaging with instantaneous UI updates and Supabase-backed persistence.
+- **PWA Support**: Fully installable Progressive Web App with native push notifications and an "Add to Home Screen" experience.
+- **Auto-Connect**: Intelligent background peer discovery for seamless synchronization in shared spaces.
+- **Google Authentication**: Quick and secure sign-in with Google or guest access for immediate exploration.
 
-There are several ways of editing your application.
+## 🛠️ Technology Stack
 
-**Use Lovable**
+- **Framework**: [React](https://reactjs.org/) + [Vite](https://vitejs.dev/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Database & Auth**: [Supabase](https://supabase.com/) (PostgreSQL, Real-time, Auth, Storage)
+- **Communication**: [PeerJS](https://peerjs.com/) (WebRTC for Voice/Video/Data sync)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/bdd5d075-721e-4260-8686-f13794fab0ea) and start prompting.
+## 📱 How to Use
 
-Changes made via Lovable will be committed automatically to this repo.
+### Visiting the Site
+You can visit the live application at [lovable.dev/projects/bdd5d075-721e-4260-8686-f13794fab0ea](https://lovable.dev/projects/bdd5d075-721e-4260-8686-f13794fab0ea).
 
-**Use your preferred IDE**
+### Getting Started
+1. **Sign In**: Use your Google account for the best experience, or continue as a guest.
+2. **Install the App**: Navigate to your **Profile** and tap the **"Get the App"** banner to install Togetherly on your Home Screen for a native app feel.
+3. **Connect with Friends**: Use the **Community** tab to discover other users, send friend requests, and grow your circle.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Communication
+- **Chat**: Tap on any friend in your list to start a real-time conversation.
+- **Call**: Tap the **Phone** or **Video** icon in a chat to initiate a call. You can drag the call window anywhere while you continue to browse the app.
+- **Watch Together**: Visit the **Theater** page to host or join a synchronized YouTube session. Use the **Discover** tab to find videos and share them with your connected peer.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 💻 Local Development
 
-Follow these steps:
+1. **Clone the repo**:
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd togetherly-connect
+   ```
+2. **Install dependencies**:
+   ```sh
+   npm install
+   ```
+3. **Setup Environment**:
+   Ensure you have your Supabase credentials configured if you are using your own instance.
+4. **Start the dev server**:
+   ```sh
+   npm run dev
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 📄 License
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/bdd5d075-721e-4260-8686-f13794fab0ea) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+MIT © [Togetherly Team]
