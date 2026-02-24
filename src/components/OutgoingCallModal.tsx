@@ -13,6 +13,9 @@ const OutgoingCallModal = ({ call, callee, onCancel }: OutgoingCallModalProps) =
     <AnimatePresence>
         {call && (
             <>
+                {/* Ringtone */}
+                <audio autoPlay loop src="/ringing.mp3" className="hidden" />
+
                 {/* Backdrop */}
                 <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

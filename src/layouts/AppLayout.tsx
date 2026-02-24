@@ -803,7 +803,7 @@ const AppLayout = () => {
         </div>
 
         {/* Animated page outlet */}
-        <main ref={mainRef} className={`flex-grow relative z-10 pt-3 overflow-y-auto h-screen ${!isDeepChat ? 'pb-[83px]' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <main ref={mainRef} className={`flex-1 min-h-0 relative z-10 pt-3 overflow-y-auto ${!isDeepChat ? 'pb-[83px]' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}

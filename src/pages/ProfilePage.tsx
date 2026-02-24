@@ -143,6 +143,7 @@ const ProfilePage = () => {
         if (!userProfile || deleteConfirmText !== 'DELETE') return;
         setIsDeletingAccount(true);
         try {
+            await supabase.from('follows').delete().or(`follower_id.eq.${userProfile.id},following_id.eq.${userProfile.id}`);
             await supabase.from('recent_connections').delete().eq('user_id', userProfile.id);
             await supabase.from('users').delete().eq('id', userProfile.id);
             logout();
@@ -387,33 +388,31 @@ const ProfilePage = () => {
                 </div>
             </motion.div>
 
-            {/* ── Install App Banner (Only shown if NOT installed) ── */}
-            {!window.matchMedia('(display-mode: standalone)').matches && (
-                <motion.div {...fadeUp(0.18)} className="space-y-3 pt-2">
-                    <button
-                        onClick={handleDownloadApp}
-                        className="w-full relative overflow-hidden rounded-[24px] p-5 text-left group transition-all duration-300 transform active:scale-[0.98] border border-white/10"
-                        style={{
-                            background: 'linear-gradient(135deg, rgba(10,132,255,0.15) 0%, rgba(191,90,242,0.15) 100%)',
-                            boxShadow: '0 8px 32px rgba(10,132,255,0.1)'
-                        }}
-                    >
-                        <div className="absolute inset-0 bg-gradient-to-r from-[#0A84FF]/20 to-[#BF5AF2]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                        <div className="relative z-10 flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-full flex items-center justify-center shrink-0 border border-white/20 shadow-inner" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                                <Download className="h-6 w-6 text-white drop-shadow-md" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-[16px] font-bold text-white tracking-tight drop-shadow-md">Get the App</h3>
-                                <p className="text-[13px] text-white/70 font-medium mt-0.5 leading-snug">Install Togetherly on your home screen</p>
-                            </div>
-                            <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                                <ChevronRight className="h-4 w-4 text-white" />
-                            </div>
+            {/* ── Install App Banner (Always rendered to allow fallback alert) ── */}
+            <motion.div {...fadeUp(0.18)} className="space-y-3 pt-2">
+                <button
+                    onClick={handleDownloadApp}
+                    className="w-full relative overflow-hidden rounded-[24px] p-5 text-left group transition-all duration-300 transform active:scale-[0.98] border border-white/10"
+                    style={{
+                        background: 'linear-gradient(135deg, rgba(10,132,255,0.15) 0%, rgba(191,90,242,0.15) 100%)',
+                        boxShadow: '0 8px 32px rgba(10,132,255,0.1)'
+                    }}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#0A84FF]/20 to-[#BF5AF2]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="relative z-10 flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-full flex items-center justify-center shrink-0 border border-white/20 shadow-inner" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                            <Download className="h-6 w-6 text-white drop-shadow-md" />
                         </div>
-                    </button>
-                </motion.div>
-            )}
+                        <div className="flex-1">
+                            <h3 className="text-[16px] font-bold text-white tracking-tight drop-shadow-md">Get the App</h3>
+                            <p className="text-[13px] text-white/70 font-medium mt-0.5 leading-snug">Install Togetherly on your home screen</p>
+                        </div>
+                        <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
+                            <ChevronRight className="h-4 w-4 text-white" />
+                        </div>
+                    </div>
+                </button>
+            </motion.div>
 
             {/* ── App Settings ── */}
             <motion.div {...fadeUp(0.20)} className="space-y-3">

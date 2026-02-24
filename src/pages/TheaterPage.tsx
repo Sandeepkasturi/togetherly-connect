@@ -5,7 +5,6 @@ import EnhancedVideoPlayer from '@/components/EnhancedVideoPlayer';
 import { ArrowLeft, MessageCircle, Search, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import Chat from '@/components/Chat';
 import YouTubeSearch from '@/components/YouTubeSearch';
 import PeerConnection from '@/components/PeerConnection';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +15,7 @@ const spring = { type: 'spring' as const, stiffness: 420, damping: 32 };
 const TheaterPage = () => {
   const context = useOutletContext<AppContextType>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('chat');
+  const [activeTab, setActiveTab] = useState('discover');
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -31,7 +30,7 @@ const TheaterPage = () => {
   }, [context.messages, activeTab]);
 
   useEffect(() => {
-    if (activeTab === 'chat') setUnreadCount(0);
+    if (activeTab === 'discover') setUnreadCount(0);
   }, [activeTab]);
 
   if (!context.selectedVideoId) return null;
@@ -84,7 +83,6 @@ const TheaterPage = () => {
           {/* iOS segmented tab bar */}
           <TabsList className="shrink-0 flex rounded-none px-3 py-2 bg-black/90 backdrop-blur-xl border-b border-white/[0.07] gap-2 h-auto">
             {[
-              { value: 'chat', icon: MessageCircle, label: 'Chat' },
               { value: 'discover', icon: Search, label: 'Discover' },
               { value: 'connect', icon: Users, label: 'Connect' },
             ].map(({ value, icon: Icon, label }) => (
@@ -106,7 +104,7 @@ const TheaterPage = () => {
                 )}
                 <Icon className="h-3.5 w-3.5 relative z-10" />
                 <span className="relative z-10">{label}</span>
-                {value === 'chat' && unreadCount > 0 && (
+                {value === 'discover' && unreadCount > 0 && (
                   <Badge
                     variant="destructive"
                     className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[9px] z-20 rounded-full bg-[#FF453A] border-0"
@@ -119,20 +117,6 @@ const TheaterPage = () => {
           </TabsList>
 
           {/* Tab content */}
-          <TabsContent value="chat" className="flex-1 mt-0 overflow-hidden">
-            <Chat
-              messages={context.messages}
-              sendMessage={context.sendMessage}
-              isConnected={context.isConnected}
-              handleSendReaction={context.handleSendReaction}
-              handleSendFile={context.handleSendFile}
-              handleSendVoice={context.handleSendVoice}
-              handleEditMessage={context.handleEditMessage}
-              handleDeleteMessage={context.handleDeleteMessage}
-              clearChat={context.clearChat}
-            />
-          </TabsContent>
-
           <TabsContent value="discover" className="flex-1 mt-0 overflow-y-auto p-4">
             <YouTubeSearch
               onVideoSelect={context.handleVideoSelect}

@@ -14,6 +14,9 @@ const IncomingCallModal = ({ call, caller, onAccept, onDecline }: IncomingCallMo
     <AnimatePresence>
         {call && (
             <>
+                {/* Ringtone */}
+                <audio autoPlay loop src="/iphone_ringtone.mp3" className="hidden" />
+
                 {/* Backdrop */}
                 <motion.div
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}

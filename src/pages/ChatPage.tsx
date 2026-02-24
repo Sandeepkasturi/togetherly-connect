@@ -65,7 +65,7 @@ const ChatPage = () => {
         </motion.div>
         <motion.h2 {...fadeUp(0.1)} className="text-xl font-bold text-white mb-2">Your Messages</motion.h2>
         <motion.p {...fadeUp(0.2)} className="text-[14px] text-white/50 max-w-[260px] leading-relaxed mb-8">
-          To start a conversation, head over to the Community directory and select someone to chat with.
+          To start a conversation, head over to your Friends list and select someone to chat with.
         </motion.p>
         <motion.button
           {...fadeUp(0.3)}
@@ -73,14 +73,14 @@ const ChatPage = () => {
           onClick={() => navigate('/friends')}
           className="ios-btn bg-white text-black px-6 py-3 rounded-full font-bold shadow-lg"
         >
-          View Community
+          View Friends
         </motion.button>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0A0A0F]">
+    <div className="flex flex-col flex-1 min-h-0 bg-[#0A0A0F]">
 
       {/* Header */}
       <motion.div

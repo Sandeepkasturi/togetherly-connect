@@ -22,7 +22,25 @@ const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { userProfile, isGuest } = useAuth();
+  const [pendingCount, setPendingCount] = useState(0);
+
   const TABS = isGuest ? BASE_TABS : [...BASE_TABS, FRIENDS_TAB, PROFILE_TAB];
+
+  // Poll pending follow-request badge
+  useEffect(() => {
+    if (!userProfile) return;
+    const loadBadge = async () => {
+      const { count } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', userProfile.id)
+        .eq('status', 'pending');
+      setPendingCount(count ?? 0);
+    };
+    loadBadge();
+    const interval = setInterval(loadBadge, 30_000);
+    return () => clearInterval(interval);
+  }, [userProfile]);
 
   return (
     <nav
@@ -113,6 +131,13 @@ const BottomNav = () => {
                     fill={isActive ? 'currentColor' : 'none'}
                     fillOpacity={isActive ? 0.15 : 0}
                   />
+                )}
+
+                {/* Pending badge on Friends */}
+                {isFriends && pendingCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-[#FF453A] text-white text-[9px] font-bold flex items-center justify-center px-0.5 z-20">
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </span>
                 )}
               </motion.span>
 

@@ -1,0 +1,10 @@
+976fd1a feat: implement optimistic UI for chat and global Community automatic connections
+3c5ea79 fix(youtube): resilient strict mode div wrapper to prevent black screen & add chat inbox placeholder
+6576a2d fix: app scroll persistence, profile pwa banner, onboarding install prompt
+3b64fba feat: complete pwa, global calls, auto-connect and watch sync
+fc4cf6e feat: realtime chat + auto-connect calls with ringtone
+6b25e48 feat: PWA support ΓÇö installable app + push notifications
+35a5f95 fix: profile management - photo upload & rename now work without page reload
+d4c2976 feat: 7-part app improvements
+f7f279a fix: resolve React error #321 cross-browser crash
+c4c2f75 fix: Chrome/New Device blank screen (Sync nickname from AuthProfile and fix null-render bug)
