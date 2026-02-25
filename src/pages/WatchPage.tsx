@@ -126,6 +126,7 @@ const WatchPage = () => {
                 isCallActive={context.isCallActive}
                 connectionState={context.connectionState}
                 onManualReconnect={context.onManualReconnect}
+                disconnectPeer={context.disconnectPeer}
               />
             </div>
           </motion.div>
