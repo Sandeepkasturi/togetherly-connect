@@ -8,7 +8,7 @@ const corsHeaders = {
     "Access-Control-Max-Age": "86400",
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
     if (req.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
     }
@@ -67,7 +67,7 @@ serve(async (req) => {
                 try {
                     await WebPush.sendNotification(sub.subscription, payload);
                     return { status: "success" };
-                } catch (err) {
+                } catch (err: any) {
                     console.error("Error sending push:", err);
                     if (err.statusCode === 404 || err.statusCode === 410) {
                         await supabase.from("push_subscriptions").delete().eq("subscription", sub.subscription);
@@ -81,7 +81,7 @@ serve(async (req) => {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 200,
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Edge Function Exception:", error);
         return new Response(JSON.stringify({ error: error.message }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
