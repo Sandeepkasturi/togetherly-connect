@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Props {
     children: ReactNode;
@@ -29,36 +29,75 @@ class ErrorBoundary extends Component<Props, State> {
         window.location.reload();
     };
 
+    private handleGoHome = () => {
+        window.location.href = '/';
+    };
+
     public render() {
         if (this.state.hasError) {
             return (
-                <div className="min-h-screen bg-black text-white flex items-center justify-center p-4">
-                    <div className="max-w-md w-full bg-zinc-900 border border-white/10 rounded-xl p-8 text-center space-y-6 shadow-2xl">
-                        <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
-                            <AlertTriangle className="w-8 h-8 text-red-500" />
-                        </div>
+                <div className="min-h-screen bg-[#0A0A0F] text-white flex items-center justify-center p-6 relative overflow-hidden">
+                    {/* Background glow effects */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#FF375F]/10 rounded-full blur-[120px] pointer-events-none" />
 
-                        <div className="space-y-2">
-                            <h1 className="text-2xl font-bold">Something went wrong</h1>
-                            <p className="text-gray-400">
-                                We encountered an unexpected error. Don't worry, you can try reloading the page to fix it.
-                            </p>
-                        </div>
+                    <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        className="max-w-md w-full relative z-10"
+                    >
+                        <div className="bg-white/[0.03] border border-white/[0.08] rounded-[32px] p-8 text-center shadow-2xl backdrop-blur-3xl overflow-hidden relative">
+                            {/* Inner highlight */}
+                            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-                        {this.state.error && (
-                            <div className="bg-black/50 p-4 rounded-lg text-left overflow-auto max-h-32 text-xs font-mono text-red-400 border border-red-500/20">
-                                {this.state.error.toString()}
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: 'spring', delay: 0.1, bounce: 0.5 }}
+                                className="w-20 h-20 bg-gradient-to-br from-[#FF375F] to-[#FF9F0A] rounded-[24px] flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(255,55,95,0.4)] border border-white/20 mb-8"
+                            >
+                                <AlertTriangle className="w-10 h-10 text-white" />
+                            </motion.div>
+
+                            <div className="space-y-3 mb-8">
+                                <h1 className="text-[28px] font-black tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                                    System Interruption
+                                </h1>
+                                <p className="text-[14px] text-white/50 leading-relaxed max-w-[280px] mx-auto">
+                                    A temporary anomaly occurred in the neural link. Our diagnostics suggest a quick reboot will clear this up.
+                                </p>
                             </div>
-                        )}
 
-                        <Button
-                            onClick={this.handleReload}
-                            className="w-full bg-white text-black hover:bg-gray-200 font-semibold h-12"
-                        >
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Reload Page
-                        </Button>
-                    </div>
+                            {this.state.error && (
+                                <motion.div
+                                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+                                    className="bg-black/40 p-4 rounded-[20px] text-left overflow-auto max-h-32 text-[11px] font-mono text-[#FF375F] border border-[#FF375F]/20 mb-8 w-full shadow-inner"
+                                >
+                                    {this.state.error.message}
+                                </motion.div>
+                            )}
+
+                            <div className="flex flex-col gap-3">
+                                <motion.button
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={this.handleReload}
+                                    className="w-full h-14 bg-white text-black rounded-[20px] font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors shadow-xl"
+                                >
+                                    <RefreshCw className="w-5 h-5" />
+                                    Reboot Protocol
+                                </motion.button>
+
+                                <motion.button
+                                    whileTap={{ scale: 0.97 }}
+                                    onClick={this.handleGoHome}
+                                    className="w-full h-14 bg-white/5 border border-white/10 text-white rounded-[20px] font-bold text-[15px] flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+                                >
+                                    <Home className="w-5 h-5 opacity-70" />
+                                    Return to Core
+                                </motion.button>
+                            </div>
+                        </div>
+                    </motion.div>
                 </div>
             );
         }

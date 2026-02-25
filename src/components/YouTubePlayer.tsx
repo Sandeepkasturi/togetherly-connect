@@ -27,6 +27,18 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
   // Track the last received remote command to prevent echoing it back
   const lastReceived = useRef<{ event: string, time: number, timestamp: number } | null>(null);
 
+  // Refs to avoid stale closures in YouTube event handlers
+  const isConnectedRef = useRef(isConnected);
+  const sendDataRef = useRef(sendData);
+
+  useEffect(() => {
+    isConnectedRef.current = isConnected;
+  }, [isConnected]);
+
+  useEffect(() => {
+    sendDataRef.current = sendData;
+  }, [sendData]);
+
   const [isApiReady, setIsApiReady] = useState(!!(window.YT && window.YT.Player));
   const [isPlayerReady, setIsPlayerReady] = useState(false);
 
@@ -56,7 +68,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
   };
 
   const onPlayerStateChange = (event: any) => {
-    if (!isConnected) return;
+    if (!isConnectedRef.current) return;
 
     const player = event.target;
     if (typeof player.getCurrentTime !== 'function') return;
@@ -81,7 +93,7 @@ const YouTubePlayer = ({ videoId, sendData, playerData, isConnected, playerId = 
       }
     }
 
-    sendData({
+    sendDataRef.current({
       type: 'player_state',
       payload: {
         event: eventStr,

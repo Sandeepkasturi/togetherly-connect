@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle, Phone, Video } from 'lucide-react';
+import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle, Phone, Video, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, DBUser, DBFollow } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 import { AppContextType } from '@/layouts/AppLayout';
+import { getUnreadCounts } from '@/hooks/useChat';
+import { cn } from '@/lib/utils';
 
 // ── Tab type ─────────────────────────────────────────────────
 type Tab = 'friends' | 'requests' | 'discover';
@@ -17,53 +20,86 @@ const UserCard = ({
     user: DBUser;
     action: React.ReactNode;
 }) => (
-    <div
-        className="flex items-center gap-3 px-4 py-3 rounded-2xl"
+    <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -2, backgroundColor: 'rgba(255,255,255,0.05)' }}
+        className="group relative flex items-center gap-4 px-4 py-4 rounded-[28px] transition-all duration-300 border border-white/5 shadow-lg overflow-hidden"
         style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.06)',
+            background: 'rgba(255,255,255,0.03)',
         }}
     >
+        {/* Subtle Background Glow */}
+        <div className="absolute -top-10 -right-10 h-24 w-24 rounded-full bg-[#0A84FF]/5 blur-[30px] opacity-0 group-hover:opacity-100 transition-opacity" />
+
         {/* Avatar */}
         <div className="relative shrink-0">
-            {user.photo_url
-                ? <img src={user.photo_url} alt={user.display_name} className="w-10 h-10 rounded-full object-cover" />
-                : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#0A84FF] to-[#BF5AF2] flex items-center justify-center text-white font-bold text-base">
-                        {user.display_name[0].toUpperCase()}
-                    </div>
-                )
-            }
-            {/* Online dot */}
-            <span
-                className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-black ${user.is_online ? 'bg-[#34C85A]' : 'bg-white/20'}`}
-            />
+            <div className="h-12 w-12 rounded-[20px] p-0.5 bg-gradient-to-tr from-white/10 to-transparent border border-white/10 overflow-hidden relative z-10 shadow-md">
+                {user.photo_url
+                    ? <img src={user.photo_url} alt={user.display_name} className="w-full h-full rounded-[18px] object-cover" />
+                    : (
+                        <div className="w-full h-full rounded-[18px] bg-gradient-to-br from-[#0A84FF] to-[#BF5AF2] flex items-center justify-center text-white font-bold text-lg shadow-inner">
+                            {user.display_name[0].toUpperCase()}
+                        </div>
+                    )
+                }
+            </div>
+
+            {/* Live Status Badge */}
+            <motion.div
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                className="absolute -bottom-1 -right-1 z-20 h-5 w-5 rounded-full bg-black border-2 border-[#0A0A0F] flex items-center justify-center shadow-lg"
+            >
+                <div className={cn(
+                    "h-2 w-2 rounded-full",
+                    user.is_online ? "bg-[#30D158] animate-pulse glow-green" : "bg-white/20"
+                )} />
+            </motion.div>
         </div>
 
         <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-semibold text-white truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            <p className="text-[16px] font-bold text-white tracking-tight leading-tight truncate">
                 {user.display_name}
             </p>
-            <p className="text-[11px] text-white/35 truncate" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                ID: {user.peer_id} · {user.is_online ? 'Online' : 'Offline'}
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+                <span className={cn(
+                    "text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
+                    user.is_online ? "text-[#30D158] bg-[#30D158]/10" : "text-white/30 bg-white/5"
+                )}>
+                    {user.is_online ? 'Online' : 'Offline'}
+                </span>
+                <span className="text-[10px] text-white/20 font-medium truncate">
+                    ID: {user.peer_id.slice(0, 8)}...
+                </span>
+            </div>
         </div>
 
-        {action}
-    </div>
+        <div className="relative z-10 flex items-center gap-2">
+            {action}
+        </div>
+    </motion.div>
 );
 
 // ── FriendsPage ───────────────────────────────────────────────
 const FriendsPage = () => {
     const { userProfile, isGuest, permanentPeerId } = useAuth();
     const navigate = useNavigate();
+    const { toast } = useToast();
     const [activeTab, setActiveTab] = useState<Tab>('friends');
     const [searchQuery, setSearchQuery] = useState('');
     const [friends, setFriends] = useState<DBUser[]>([]);
     const [pendingRequests, setPendingRequests] = useState<DBUser[]>([]); // incoming
     const [discoverUsers, setDiscoverUsers] = useState<DBUser[]>([]);
     const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+    const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(false);
+    const [searchParams, setSearchParams] = useSearchParams();
+    const filter = searchParams.get('filter');
+
+    // Share Intent State
+    const [shareIntent, setShareIntent] = useState<string | null>(null);
+    const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set());
+    const [isSharing, setIsSharing] = useState(false);
 
     const { initiateCall } = useOutletContext<AppContextType>();
 
@@ -71,6 +107,13 @@ const FriendsPage = () => {
     useEffect(() => {
         if (isGuest) navigate('/app', { replace: true });
     }, [isGuest, navigate]);
+
+    useEffect(() => {
+        const intent = localStorage.getItem('share_intent');
+        if (intent) {
+            setShareIntent(intent);
+        }
+    }, [location.pathname]);
 
     // ── Load friends (accepted follows) ──────────────────────
     const loadFriends = useCallback(async () => {
@@ -90,6 +133,10 @@ const FriendsPage = () => {
             const { data: users } = await supabase
                 .from('users').select('*').in('id', ids);
             setFriends(users ?? []);
+
+            // Also load unread counts
+            const counts = await getUnreadCounts(userProfile.id);
+            setUnreadCounts(counts);
         } finally { setLoading(false); }
     }, [userProfile]);
 
@@ -185,10 +232,76 @@ const FriendsPage = () => {
         loadRequests();
     };
 
-    const connectToFriend = (peerId: string) => {
-        // Copy peer ID to clipboard so user can paste into Watch tab
-        navigator.clipboard.writeText(peerId);
+    const connectToWatch = async (friend: DBUser) => {
+        if (!userProfile) return;
+
+        // 1. Send chat message
+        const inviteMsg = {
+            sender_id: userProfile.id,
+            receiver_id: friend.id,
+            content: `🎥 I'm inviting you to watch together!`,
+            type: 'watch_invite',
+            payload: { peer_id: permanentPeerId }
+        };
+
+        await supabase.from('messages').insert(inviteMsg);
+
+        // 2. Send push notification (fire and forget)
+        import('@/lib/push').then(({ sendPushNotification }) => {
+            sendPushNotification({
+                userId: friend.id,
+                title: 'Watch Party Invite 🎥',
+                body: `${userProfile.display_name} invited you to watch together!`,
+                url: `/chat/${userProfile.id}`
+            });
+        }).catch(e => console.error('Push fail:', e));
+
+        // 3. Connect and Navigate
+        localStorage.setItem('peerIdToConnect', friend.peer_id);
         navigate('/watch');
+    };
+
+    const connectToFriend = (peerId: string) => {
+        localStorage.setItem('peerIdToConnect', peerId);
+        navigate('/watch');
+    };
+
+    // ── Share Integration ──
+    const handleShare = async () => {
+        if (!shareIntent || selectedFriends.size === 0 || !userProfile) return;
+        setIsSharing(true);
+        try {
+            const inserts = Array.from(selectedFriends).map(friendId => ({
+                sender_id: userProfile.id,
+                receiver_id: friendId,
+                content: shareIntent,
+                type: 'text',
+            }));
+            const { error } = await supabase.from('messages').insert(inserts);
+            if (error) throw error;
+
+            localStorage.removeItem('share_intent');
+            setShareIntent(null);
+            setSelectedFriends(new Set());
+            toast({ title: 'Shared successfully', description: `Sent to ${selectedFriends.size} friends` });
+
+            if (selectedFriends.size === 1) {
+                navigate(`/chat/${Array.from(selectedFriends)[0]}`);
+            } else {
+                navigate('/chat');
+            }
+        } catch (e) {
+            console.error(e);
+            toast({ title: 'Share failed', description: 'Could not send', variant: 'destructive' });
+        } finally {
+            setIsSharing(false);
+        }
+    };
+
+    const cancelShare = () => {
+        localStorage.removeItem('share_intent');
+        setShareIntent(null);
+        setSelectedFriends(new Set());
     };
 
     // ── Tab config ────────────────────────────────────────────
@@ -201,51 +314,61 @@ const FriendsPage = () => {
     const spring = { type: 'spring' as const, stiffness: 500, damping: 32 };
 
     return (
-        <div className="flex flex-col h-full px-4 py-4 gap-4">
+        <div className="flex flex-col px-4 py-4 gap-4 pb-12">
 
-            {/* Tab bar */}
-            <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            {/* Tab bar (Modern Liquid Glass) */}
+            <div className="relative p-1.5 rounded-[24px] bg-white/[0.04] border border-white/[0.05] flex items-center gap-1 shadow-2xl backdrop-blur-md">
                 {TABS.map(t => (
                     <button
                         key={t.key}
-                        onClick={() => setActiveTab(t.key)}
-                        className="relative flex-1 py-2 rounded-xl text-[13px] font-semibold transition-colors"
-                        style={{
-                            fontFamily: "'Outfit', sans-serif",
-                            color: activeTab === t.key ? '#fff' : 'rgba(255,255,255,0.4)',
-                            background: activeTab === t.key ? 'rgba(10,132,255,0.25)' : 'transparent',
+                        onClick={() => {
+                            setActiveTab(t.key as Tab);
+                            if (searchParams.has('filter')) {
+                                searchParams.delete('filter');
+                                setSearchParams(searchParams);
+                            }
                         }}
+                        className={cn(
+                            "relative flex-1 py-2.5 rounded-[18px] text-[13px] font-black uppercase tracking-wider transition-all duration-300",
+                            activeTab === t.key ? "text-white" : "text-white/40 hover:text-white/60"
+                        )}
                     >
-                        {t.label}
+                        {activeTab === t.key && (
+                            <motion.div
+                                layoutId="friends-tab-glow"
+                                className="absolute inset-0 bg-white/[0.08] rounded-[18px] border border-white/10"
+                                style={{ boxShadow: '0 0 15px rgba(255,255,255,0.05)' }}
+                                transition={spring}
+                            />
+                        )}
+                        <span className="relative z-10">{t.label}</span>
                         {!!t.badge && (
-                            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-[#FF453A] text-white text-[10px] font-bold flex items-center justify-center px-1">
+                            <motion.span
+                                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-[#FF3B30] text-white text-[10px] font-black flex items-center justify-center px-1 shadow-lg ring-2 ring-[#0A0A0F] z-20"
+                            >
                                 {t.badge}
-                            </span>
+                            </motion.span>
                         )}
                     </button>
                 ))}
             </div>
 
-            {/* Search (discover only) */}
+            {/* Search (Modern Glass) */}
             {activeTab === 'discover' && (
-                <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" />
+                <div className="relative group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-[#0A84FF] transition-colors" />
                     <input
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        placeholder="Search by name…"
-                        className="w-full rounded-2xl pl-10 pr-4 py-3 text-[14px] text-white outline-none"
-                        style={{
-                            fontFamily: "'Outfit', sans-serif",
-                            background: 'rgba(255,255,255,0.06)',
-                            border: '1px solid rgba(255,255,255,0.08)',
-                        }}
+                        placeholder="Discovery People..."
+                        className="w-full rounded-[20px] pl-11 pr-5 py-3.5 text-[14px] text-white outline-none bg-white/[0.03] border border-white/[0.05] focus:border-[#0A84FF]/30 transition-all placeholder:text-white/20 font-semibold"
                     />
                 </div>
             )}
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto space-y-2 pb-32">
+            <div className="flex-1 space-y-2">
                 {loading && (
                     <p className="text-center text-white/30 text-[13px] pt-8" style={{ fontFamily: "'Outfit', sans-serif" }}>
                         Loading…
@@ -253,58 +376,90 @@ const FriendsPage = () => {
                 )}
 
                 {/* Friends */}
-                {activeTab === 'friends' && !loading && (
-                    friends.length === 0
-                        ? <EmptyState icon={<Users className="h-8 w-8 text-white/20" />} text="No friends yet — find people in Discover" />
-                        : friends.map(u => (
-                            <div key={u.id} className="ios-card overflow-hidden">
-                                <UserCard user={u} action={
+                {activeTab === 'friends' && !loading && (() => {
+                    const online = friends.filter(f => f.is_online);
+                    const offline = friends.filter(f => !f.is_online);
+                    const list = [...online, ...offline];
+
+                    if (list.length === 0) {
+                        return <EmptyState icon={<Users className="h-8 w-8 text-white/20" />} text="No friends yet" />;
+                    }
+
+                    return list.map(u => {
+                        const isSelected = selectedFriends.has(u.id);
+
+                        return (
+                            <UserCard key={u.id} user={u} action={
+                                shareIntent ? (
+                                    <button
+                                        onClick={() => {
+                                            const next = new Set(selectedFriends);
+                                            if (isSelected) next.delete(u.id);
+                                            else next.add(u.id);
+                                            setSelectedFriends(next);
+                                        }}
+                                        className={`h-8 w-8 rounded-full flex items-center justify-center border-2 transition-colors ${isSelected ? 'bg-[#0A84FF] border-[#0A84FF]' : 'border-white/20'}`}
+                                    >
+                                        {isSelected && <Check className="h-4 w-4 text-white" />}
+                                    </button>
+                                ) : (
                                     <div className="flex gap-2">
-                                        {/* Chat — always available */}
-                                        <button
+                                        {/* Message Action */}
+                                        <motion.button
+                                            whileTap={{ scale: 0.9 }}
                                             onClick={() => navigate(`/chat/${u.id}`)}
-                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#BF5AF2]/10 text-[#BF5AF2] border border-[#BF5AF2]/20 hover:bg-[#BF5AF2]/20 transition-colors"
+                                            className="h-10 w-10 relative rounded-2xl flex items-center justify-center bg-white/10 text-white border border-white/20 hover:bg-white/20 transition-all shadow-sm"
                                             title="Message"
                                         >
-                                            <MessageCircle className="h-4 w-4" />
-                                        </button>
+                                            <MessageCircle className="h-4.5 w-4.5" />
+                                            {/* Unread Badge */}
+                                            {unreadCounts[u.id] > 0 && (
+                                                <motion.span
+                                                    initial={{ scale: 0 }} animate={{ scale: 1 }}
+                                                    className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] bg-[#FF3B30] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#0A0A0F] shadow-lg"
+                                                >
+                                                    {unreadCounts[u.id]}
+                                                </motion.span>
+                                            )}
+                                        </motion.button>
 
-                                        {/* Audio call */}
-                                        <button
+                                        {/* Audio Action */}
+                                        <motion.button
+                                            whileTap={{ scale: 0.9 }}
                                             onClick={() => initiateCall(u.id, 'audio')}
-                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20 hover:bg-[#30D158]/20 transition-colors"
+                                            className="h-10 w-10 rounded-2xl flex items-center justify-center bg-[#30D158]/10 text-[#30D158] border border-[#30D158]/20 hover:bg-[#30D158]/20 transition-all shadow-sm"
                                             title="Voice Call"
                                         >
-                                            <Phone className="h-4 w-4" />
-                                        </button>
+                                            <Phone className="h-4.5 w-4.5" />
+                                        </motion.button>
 
-                                        {/* Video call */}
-                                        <button
+                                        {/* Video Action */}
+                                        <motion.button
+                                            whileTap={{ scale: 0.9 }}
                                             onClick={() => initiateCall(u.id, 'video')}
-                                            className="h-9 w-9 rounded-xl flex items-center justify-center bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/20 transition-colors"
+                                            className="h-10 w-10 rounded-2xl flex items-center justify-center bg-[#0A84FF]/10 text-[#0A84FF] border border-[#0A84FF]/20 hover:bg-[#0A84FF]/20 transition-all shadow-sm"
                                             title="Video Call"
                                         >
-                                            <Video className="h-4 w-4" />
-                                        </button>
+                                            <Video className="h-4.5 w-4.5" />
+                                        </motion.button>
 
                                         {/* Watch party — only when online */}
                                         {u.is_online && (
-                                            <button
-                                                onClick={() => {
-                                                    localStorage.setItem('peerIdToConnect', u.peer_id);
-                                                    navigate('/watch');
-                                                }}
-                                                className="px-3 h-9 rounded-xl flex items-center justify-center gap-1.5 bg-[#34C85A]/10 text-[#34C85A] border border-[#34C85A]/20 hover:bg-[#34C85A]/20 transition-colors text-[12px] font-bold"
+                                            <motion.button
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => connectToWatch(u)}
+                                                className="px-4 h-10 rounded-2xl flex items-center justify-center gap-2 bg-[#FF375F]/10 text-[#FF375F] border border-[#FF375F]/20 hover:bg-[#FF375F]/20 transition-all text-[12px] font-black uppercase tracking-tight shadow-sm"
                                             >
-                                                <Wifi className="h-3.5 w-3.5" />
+                                                <Wifi className="h-4 w-4" />
                                                 <span>Watch</span>
-                                            </button>
+                                            </motion.button>
                                         )}
                                     </div>
-                                } />
-                            </div>
-                        ))
-                )}
+                                )}
+                            />
+                        );
+                    });
+                })()}
 
                 {/* Requests */}
                 {activeTab === 'requests' && !loading && (
@@ -347,6 +502,34 @@ const FriendsPage = () => {
                         ))
                 )}
             </div>
+
+            {/* Share Intent Bottom Bar */}
+            <AnimatePresence>
+                {shareIntent && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-[80px] left-0 right-0 p-4 z-50 flex justify-center pointer-events-none"
+                    >
+                        <div className="bg-[#1C1C1E]/90 border border-white/10 rounded-full px-4 py-3 shadow-[0_0_30px_rgba(0,0,0,0.8)] flex items-center gap-4 w-full max-w-sm backdrop-blur-xl pointer-events-auto shadow-2xl">
+                            <button onClick={cancelShare} className="px-3 py-2 text-sm font-bold text-white/50 hover:text-white transition-colors">Cancel</button>
+                            <button
+                                onClick={handleShare}
+                                disabled={selectedFriends.size === 0 || isSharing}
+                                className={`flex-1 rounded-full py-2.5 text-sm font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${selectedFriends.size > 0 && !isSharing ? 'bg-[#0A84FF] text-white shadow-[0_0_15px_rgba(10,132,255,0.4)]' : 'bg-white/10 text-white/30'
+                                    }`}
+                            >
+                                {isSharing ? 'Sending...' : (
+                                    <>
+                                        <Send className="h-4 w-4" /> Send ({selectedFriends.size})
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div >
     );
 };

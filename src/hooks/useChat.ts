@@ -6,9 +6,14 @@ export interface ChatMessage {
     sender_id: string;
     receiver_id: string;
     content: string;
-    type: 'text' | 'image' | 'system';
+    type: 'text' | 'image' | 'file' | 'voice' | 'system' | 'watch_invite';
     read_at: string | null;
     created_at: string;
+    file_url?: string;
+    file_name?: string;
+    file_size?: number;
+    duration?: number;
+    payload?: any;
 }
 
 interface UseChatOptions {
@@ -39,7 +44,7 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
         setLoading(false);
     }, [currentUserId, friendId]);
 
-    // Subscribe to new messages in real-time
+    // Subscribe to new messages and changes in real-time
     useEffect(() => {
         if (!currentUserId || !friendId) return;
         fetchHistory();
@@ -50,19 +55,25 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
             .on(
                 'postgres_changes',
                 {
-                    event: 'INSERT',
+                    event: '*',
                     schema: 'public',
                     table: 'messages',
-                    filter: `receiver_id=eq.${currentUserId}`,
                 },
-                (payload) => {
-                    const msg = payload.new as ChatMessage;
-                    if (msg.sender_id === friendId) {
-                        setMessages(prev => [...prev, msg]);
-                        // Auto-mark as read since chat is open
-                        supabase.from('messages')
-                            .update({ read_at: new Date().toISOString() })
-                            .eq('id', msg.id);
+                (payload: any) => {
+                    if (payload.eventType === 'INSERT') {
+                        const msg = payload.new as ChatMessage;
+                        if (msg.receiver_id === currentUserId && msg.sender_id === friendId) {
+                            setMessages(prev => [...prev, msg]);
+                            // Auto-mark as read since chat is open
+                            supabase.from('messages')
+                                .update({ read_at: new Date().toISOString() })
+                                .eq('id', msg.id);
+                        }
+                    } else if (payload.eventType === 'DELETE') {
+                        setMessages(prev => prev.filter(m => m.id !== payload.old.id));
+                    } else if (payload.eventType === 'UPDATE') {
+                        const updated = payload.new as ChatMessage;
+                        setMessages(prev => prev.map(m => m.id === updated.id ? updated : m));
                     }
                 }
             )
@@ -74,64 +85,116 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
         };
     }, [currentUserId, friendId, fetchHistory]);
 
+    // Internal helper to upload file
+    const uploadFile = async (file: File | Blob, name: string): Promise<string | null> => {
+        const fileExt = name.split('.').pop();
+        const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
+        const filePath = `${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+            .from('chat-media')
+            .upload(filePath, file);
+
+        if (uploadError) {
+            console.error('File upload error:', uploadError);
+            return null;
+        }
+
+        const { data } = supabase.storage.from('chat-media').getPublicUrl(filePath);
+        return data.publicUrl;
+    };
+
     // Send a message
-    const sendMessage = useCallback(async (content: string): Promise<boolean> => {
-        if (!content.trim()) return false;
+    const sendMessage = useCallback(async (
+        content: string,
+        type: ChatMessage['type'] = 'text',
+        attachment?: { file: File | Blob; name: string; size?: number; duration?: number }
+    ): Promise<boolean> => {
+        if (!content.trim() && !attachment) return false;
         setSending(true);
 
-        const tempId = `temp-${Date.now()}`;
-        const tempMsg: ChatMessage = {
-            id: tempId,
-            sender_id: currentUserId,
-            receiver_id: friendId,
-            content: content.trim(),
-            type: 'text',
-            read_at: null,
-            created_at: new Date().toISOString(),
-        };
+        let file_url = undefined;
+        let file_name = attachment?.name;
+        let file_size = attachment?.size;
+        let duration = attachment?.duration;
 
-        // Optimistically add to UI immediately so it doesn't "vanish" 
-        setMessages(prev => [...prev, tempMsg]);
+        if (attachment) {
+            file_url = await uploadFile(attachment.file, attachment.name);
+            if (!file_url) {
+                setSending(false);
+                return false;
+            }
+        }
 
         const dbMsg: Partial<ChatMessage> = {
             sender_id: currentUserId,
             receiver_id: friendId,
-            content: content.trim(),
-            type: 'text',
+            content: content.trim() || (type === 'image' ? 'Sent an image' : type === 'voice' ? 'Voice message' : 'Sent a file'),
+            type,
+            file_url,
+            file_name,
+            file_size,
+            duration,
         };
 
         const { data, error } = await supabase.from('messages').insert(dbMsg).select().single();
 
-        if (!error && data) {
-            // Replace temporary message with the real one from DB
-            setMessages(prev => prev.map(m => m.id === tempId ? data as ChatMessage : m));
+        if (error) {
+            console.error('Failed to insert message into DB:', error);
+            setSending(false);
+            return false;
+        }
 
-            // Create notification record in DB
-            await supabase.from('notifications').insert({
+        if (data) {
+            setMessages(prev => [...prev, data as ChatMessage]);
+
+            // Create notification record in DB (fire and forget)
+            supabase.from('notifications').insert({
                 user_id: friendId,
                 type: 'chat',
                 title: 'New Message',
-                body: content.trim().slice(0, 100),
+                body: dbMsg.content?.slice(0, 100),
                 data: { sender_id: currentUserId },
                 read: false,
+            }).then(({ error }) => {
+                if (error) console.error('Failed to create notification:', error);
             });
 
-            // Trigger remote push notification
+            // Trigger remote push notification (fire and forget)
             import('@/lib/push').then(({ sendPushNotification }) => {
                 sendPushNotification({
                     userId: friendId,
                     title: 'New Message',
-                    body: content.trim().slice(0, 100),
+                    body: dbMsg.content?.slice(0, 100),
                     url: `/chat/${currentUserId}`
-                });
-            });
-        } else {
-            // Remove the temporary message if the insert failed
-            setMessages(prev => prev.filter(m => m.id !== tempId));
+                }).catch(e => console.error('Push notification failed:', e));
+            }).catch(e => console.error('Push module load failed:', e));
         }
 
         setSending(false);
-        return !error;
+        return true;
+    }, [currentUserId, friendId]);
+
+    // Delete a message
+    const deleteMessage = useCallback(async (messageId: string) => {
+        const { error } = await supabase.from('messages').delete().eq('id', messageId);
+        if (!error) {
+            setMessages(prev => prev.filter(m => m.id !== messageId));
+        }
+    }, []);
+
+    // Clear entire chat
+    const clearChat = useCallback(async () => {
+        const { error } = await supabase
+            .from('messages')
+            .delete()
+            .or(
+                `and(sender_id.eq.${currentUserId},receiver_id.eq.${friendId}),` +
+                `and(sender_id.eq.${friendId},receiver_id.eq.${currentUserId})`
+            );
+        if (!error) {
+            setMessages([]);
+        }
     }, [currentUserId, friendId]);
 
     // Mark all messages from friend as read
@@ -144,7 +207,7 @@ export function useChat({ currentUserId, friendId }: UseChatOptions) {
             .is('read_at', null);
     }, [currentUserId, friendId]);
 
-    return { messages, loading, sending, sendMessage, markAllRead };
+    return { messages, loading, sending, sendMessage, deleteMessage, clearChat, markAllRead };
 }
 
 // ── Unread counts for ALL friends (used in FriendsPage badge) ──

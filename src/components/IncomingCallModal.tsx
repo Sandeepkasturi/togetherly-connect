@@ -15,7 +15,7 @@ const IncomingCallModal = ({ call, caller, onAccept, onDecline }: IncomingCallMo
         {call && (
             <>
                 {/* Ringtone */}
-                <audio autoPlay loop src="/iphone_ringtone.mp3" className="hidden" />
+                <audio autoPlay loop src="/ringtone.mp3" className="hidden" />
 
                 {/* Backdrop */}
                 <motion.div

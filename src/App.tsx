@@ -18,6 +18,7 @@ import Documentation from "./pages/Documentation";
 import AppLayout from "./layouts/AppLayout";
 import WatchPage from "./pages/WatchPage";
 import BrowserPage from "./pages/BrowserPage";
+import SharePage from "./pages/SharePage";
 import ChatPage from "./pages/ChatPage";
 import TheaterPage from "./pages/TheaterPage";
 import FriendsPage from "./pages/FriendsPage";
@@ -58,6 +59,7 @@ const AppRoutes = () => (
       <Route path="/watch" element={<WatchPage />} />
       <Route path="/theater" element={<TheaterPage />} />
       <Route path="/browser" element={<BrowserPage />} />
+      <Route path="/share" element={<SharePage />} />
       <Route path="/chat" element={<ChatPage />} />
       <Route path="/chat/:friendId" element={<ChatPage />} />
       <Route path="/friends" element={<FriendsPage />} />

@@ -1,4 +1,4 @@
-import { Home, Monitor, Globe2, MessageCircle, Users, UserCircle } from 'lucide-react';
+import { Home, Monitor, MessageCircle, Users, UserCircle, Clapperboard } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 const BASE_TABS = [
   { key: 'home', label: 'Home', icon: Home, to: '/app' },
   { key: 'watch', label: 'Watch', icon: Monitor, to: '/watch' },
-  { key: 'browser', label: 'Share', icon: Globe2, to: '/browser' },
+  { key: 'share', label: 'Shots', icon: Clapperboard, to: '/share' },
   { key: 'chat', label: 'Chat', icon: MessageCircle, to: '/chat' },
 ];
 

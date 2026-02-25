@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send, RefreshCw, QrCode } from 'lucide-react';
+import { Copy, Link as LinkIcon, User, Users, Edit, Check, X, Phone, Video, Share2, MessageCircle, Send, RefreshCw, QrCode, ChevronDown, ChevronUp } from 'lucide-react';
 import { useUser } from '@/contexts/UserContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase, DBUser } from '@/lib/supabase';
 import { DataType } from '@/hooks/usePeer';
 import QRScanner from './QRScanner';
 import {
@@ -27,6 +29,7 @@ interface PeerConnectionProps {
   isCallActive: boolean;
   connectionState: 'disconnected' | 'connecting' | 'connected' | 'failed' | 'reconnecting';
   onManualReconnect: () => void;
+  disconnectPeer: () => void;
 }
 
 const PeerConnection = ({
@@ -39,9 +42,11 @@ const PeerConnection = ({
   startCall,
   isCallActive,
   connectionState,
-  onManualReconnect
+  onManualReconnect,
+  disconnectPeer
 }: PeerConnectionProps) => {
   const [remoteId, setRemoteId] = useState('');
+  const { userProfile, permanentPeerId } = useAuth();
   const { toast } = useToast();
   const { setNickname } = useUser();
   const [isEditingNickname, setIsEditingNickname] = useState(false);
@@ -49,6 +54,16 @@ const PeerConnection = ({
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [isQRScannerOpen, setIsQRScannerOpen] = useState(false);
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+
+  const [friends, setFriends] = useState<DBUser[]>([]);
+  const [isLoadingFriends, setIsLoadingFriends] = useState(false);
+
+  // Invitation Timeout State
+  const [invitingFriendId, setInvitingFriendId] = useState<string | null>(null);
+  const invitingRef = useRef<string | null>(null);
+  const inviteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const shareUrl = `https://togetherly-share.vercel.app/join?peerId=${peerId}`;
 
   useEffect(() => {
@@ -90,12 +105,39 @@ const PeerConnection = ({
     }
   }, [peerId]);
 
+  // Load Friends
   useEffect(() => {
-    if (peerId) {
-      // Auto-copy link when generated (optional, but good for UX if user just clicked "Create Room")
-      // We won't auto-copy on load to avoid annoyance, but we'll make the copy button more prominent
+    const loadFriends = async () => {
+      if (!userProfile) return;
+      setIsLoadingFriends(true);
+      try {
+        const { data: followingData } = await supabase
+          .from('follows')
+          .select('following_id')
+          .eq('follower_id', userProfile.id)
+          .eq('status', 'accepted');
+
+        if (!followingData?.length) {
+          setFriends([]);
+          return;
+        }
+
+        const ids = followingData.map(f => f.following_id);
+        const { data: users } = await supabase
+          .from('users').select('*').in('id', ids).order('is_online', { ascending: false });
+
+        setFriends(users ?? []);
+      } catch (err) {
+        console.error("Failed to load friends", err);
+      } finally {
+        setIsLoadingFriends(false);
+      }
+    };
+
+    if (!isConnected) {
+      loadFriends();
     }
-  }, [peerId]);
+  }, [userProfile, isConnected]);
 
   const handleCopyToClipboard = () => {
     if (!peerId) return;
@@ -181,6 +223,76 @@ const PeerConnection = ({
       description: 'Peer ID has been entered. Click Connect to proceed.',
     });
   };
+
+  const sendFallbackInvite = async (friend: DBUser) => {
+    try {
+      const inviteMsg = {
+        sender_id: userProfile!.id,
+        receiver_id: friend.id,
+        content: `🎥 I'm inviting you to watch together!`,
+        type: 'watch_invite',
+        payload: { peer_id: permanentPeerId || peerId }
+      };
+
+      await supabase.from('messages').insert(inviteMsg);
+
+      import('@/lib/push').then(({ sendPushNotification }) => {
+        sendPushNotification({
+          userId: friend.id,
+          title: 'Watch Party Invite 🎥',
+          body: `${userProfile!.display_name} has invited you to a Watch Party!`,
+          url: `/chat/${userProfile!.id}`
+        });
+      }).catch(e => console.error('Push fail:', e));
+
+      toast({ title: 'Invite Sent via Chat', description: `${friend.display_name} has been pinged.` });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'Error', description: 'Failed to send invite.', variant: 'destructive' });
+    }
+  };
+
+  const inviteFriend = async (friend: DBUser) => {
+    if (!userProfile) return;
+
+    toast({ title: 'Sending Invite', description: `Waiting for ${friend.display_name} to accept...` });
+
+    // 1. Initial direct connection attempt
+    connectToPeer(friend.peer_id, { nickname: myNickname });
+    setInvitingFriendId(friend.id);
+    invitingRef.current = friend.id;
+
+    // 2. Set timeout for fallback
+    if (inviteTimeoutRef.current) clearTimeout(inviteTimeoutRef.current);
+    inviteTimeoutRef.current = setTimeout(() => {
+      if (invitingRef.current === friend.id) {
+        console.log('Invite timed out, falling back to chat');
+        invitingRef.current = null;
+        setInvitingFriendId(null);
+        disconnectPeer(); // Cancel the pending peer connection
+        sendFallbackInvite(friend);
+      }
+    }, 5000);
+  };
+
+  useEffect(() => {
+    if (invitingFriendId) {
+      if (connectionState === 'connected') {
+        console.log('Invite accepted!');
+        if (inviteTimeoutRef.current) clearTimeout(inviteTimeoutRef.current);
+        setInvitingFriendId(null);
+        invitingRef.current = null;
+        toast({ title: 'Connected!', description: `Joined watch party.` });
+      } else if (connectionState === 'failed' || connectionState === 'disconnected') {
+        if (inviteTimeoutRef.current) clearTimeout(inviteTimeoutRef.current);
+        const friendId = invitingFriendId;
+        setInvitingFriendId(null);
+        invitingRef.current = null;
+        const friend = friends.find(f => f.id === friendId);
+        if (friend) sendFallbackInvite(friend);
+      }
+    }
+  }, [connectionState, invitingFriendId, friends, toast]);
 
   return (
     <>
@@ -268,37 +380,98 @@ const PeerConnection = ({
 
           {!isConnected && (
             <div className="p-4 rounded-lg bg-accent/5 border border-accent/20">
-              <div className="flex items-center gap-2 mb-3">
-                <LinkIcon className="h-4 w-4 text-accent" />
-                <p className="text-sm font-medium text-accent">Connect to Friend</p>
-              </div>
-              <div className="space-y-2">
+              <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-2">
-                  <Input
-                    placeholder="Enter Peer ID"
-                    value={remoteId}
-                    onChange={(e) => setRemoteId(e.target.value)}
-                    className="bg-background/30 border-accent/30 font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => setIsQRScannerOpen(true)}
-                    className="flex-shrink-0 h-10 w-10"
-                    title="Scan QR Code"
-                  >
-                    <QrCode className="h-4 w-4" />
-                  </Button>
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-accent"></span>
+                  </span>
+                  <p className="text-sm font-medium text-accent">Invite Friends to Watch</p>
                 </div>
-                <Button
-                  variant="default"
-                  onClick={() => connectToPeer(remoteId, { nickname: myNickname })}
-                  disabled={!remoteId || !peerId}
-                  className="w-full"
+              </div>
+
+              <div className="space-y-3 mb-4 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                {isLoadingFriends ? (
+                  <p className="text-center text-xs text-muted-foreground py-4">Loading friends...</p>
+                ) : friends.length === 0 ? (
+                  <div className="text-center bg-background/30 rounded-lg p-6 border border-border/30">
+                    <Users className="h-6 w-6 text-muted-foreground mx-auto mb-2 opacity-50" />
+                    <p className="text-xs text-muted-foreground">You have no friends online yet.</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-1">Add friends via the Discover tab.</p>
+                  </div>
+                ) : (
+                  friends.map(friend => (
+                    <div key={friend.id} className="flex items-center justify-between p-3 rounded-xl bg-background/40 border border-border/40 hover:bg-background/60 transition-colors">
+                      <div className="flex items-center gap-3 overflow-hidden">
+                        <div className="relative shrink-0">
+                          {friend.photo_url ? (
+                            <img src={friend.photo_url} alt={friend.display_name} className="h-10 w-10 rounded-full object-cover border border-white/10" />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#0A84FF] to-[#BF5AF2] flex items-center justify-center text-white font-bold text-sm shadow-inner">
+                              {friend.display_name[0].toUpperCase()}
+                            </div>
+                          )}
+                          <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0A0A0F] ${friend.is_online ? 'bg-[#30D158]' : 'bg-white/20'}`} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-foreground truncate">{friend.display_name}</p>
+                          <p className="text-[10px] text-muted-foreground truncate">{friend.is_online ? 'Online' : 'Offline'}</p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => inviteFriend(friend)}
+                        className="shrink-0 h-8 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground text-xs font-bold px-4"
+                      >
+                        Invite
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Advanced Manual Connection */}
+              <div className="mt-4 pt-4 border-t border-accent/10">
+                <button
+                  onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+                  className="flex items-center justify-between w-full text-xs font-medium text-muted-foreground hover:text-foreground transition-colors py-2"
                 >
-                  <LinkIcon className="h-4 w-4 mr-2" />
-                  Connect
-                </Button>
+                  <span className="flex items-center gap-2">
+                    <LinkIcon className="h-3.5 w-3.5" /> Advanced: Manual Connection
+                  </span>
+                  {isAdvancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+
+                {isAdvancedOpen && (
+                  <div className="space-y-3 mt-3 animate-in slide-in-from-top-2 fade-in duration-200">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Enter Peer ID"
+                        value={remoteId}
+                        onChange={(e) => setRemoteId(e.target.value)}
+                        className="bg-background/30 border-accent/30 font-mono text-sm"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setIsQRScannerOpen(true)}
+                        className="flex-shrink-0 h-10 w-10"
+                        title="Scan QR Code"
+                      >
+                        <QrCode className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      variant="default"
+                      onClick={() => connectToPeer(remoteId, { nickname: myNickname })}
+                      disabled={!remoteId || !peerId}
+                      className="w-full"
+                    >
+                      <LinkIcon className="h-4 w-4 mr-2" />
+                      Connect Manually
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

@@ -72,6 +72,7 @@ const AppLayout = () => {
     peerId, connectToPeer, sendData, data, isConnected, conn,
     localStream, remoteStream, isCallActive, startCall, startDirectCall, endCall, toggleMedia,
     screenStream, remoteScreenStream, isScreenSharing, startScreenShare, stopScreenShare,
+    disconnectPeer,
     incomingConn, acceptConnection, rejectConnection,
     connectionState, onManualReconnect
   } = usePeer(permanentPeerId);
@@ -236,6 +237,11 @@ const AppLayout = () => {
     if (isConnected && conn && conn.open && nickname) {
       sendData({ type: 'nickname', payload: nickname });
 
+      // Sycn current video if any (for late joiners)
+      if (selectedVideoId) {
+        sendData({ type: 'video', payload: selectedVideoId });
+      }
+
       // Track recent connection if registered
       if (userProfile?.id) {
         import('@/lib/supabase').then(({ supabase }) => {
@@ -250,7 +256,7 @@ const AppLayout = () => {
         });
       }
     }
-  }, [isConnected, conn?.open, nickname, sendData, userProfile?.id, remoteNickname]);
+  }, [isConnected, conn?.open, nickname, sendData, userProfile?.id, remoteNickname, selectedVideoId]);
 
   const lastProcessedData = useRef<DataType | null>(null);
 
@@ -763,7 +769,7 @@ const AppLayout = () => {
     remoteNickname,
     sendData,
     startCall,
-    disconnectPeer: endCall, // Reusing endCall logic for connection cleanup
+    disconnectPeer,
     isCallActive,
     messages,
     sendMessage: handleSendMessage,
@@ -787,7 +793,7 @@ const AppLayout = () => {
     endSignalCall
   };
 
-  const isDeepChat = location.pathname.match(/^\/chat\/[^/]+$/);
+  const isFixedLayout = location.pathname.startsWith('/chat/') || location.pathname === '/theater';
 
   return (
     <>
@@ -803,7 +809,11 @@ const AppLayout = () => {
         </div>
 
         {/* Animated page outlet */}
-        <main ref={mainRef} className={`flex-1 min-h-0 relative z-10 pt-3 overflow-y-auto ${!isDeepChat ? 'pb-[83px]' : ''}`} style={{ WebkitOverflowScrolling: 'touch' }}>
+        <main
+          ref={mainRef}
+          className={`flex-1 min-h-0 relative z-10 flex flex-col ${!isFixedLayout ? 'pb-[83px] overflow-y-auto' : 'overflow-hidden'}`}
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
@@ -811,14 +821,14 @@ const AppLayout = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.99 }}
               transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
-              className="h-full"
+              className={isFixedLayout ? "h-full flex flex-col" : "min-h-full flex flex-col"}
             >
               <Outlet context={context} />
             </motion.div>
           </AnimatePresence>
         </main>
 
-        {!isDeepChat && <BottomNav />}
+        {!isFixedLayout && <BottomNav />}
 
         {/* PWA install prompt — shows on Android & iOS */}
         <PWAInstallPrompt />

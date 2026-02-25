@@ -6,7 +6,7 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { AppContextType } from '@/layouts/AppLayout';
 import {
     LogOut, Mail, Fingerprint, Calendar, User, ExternalLink,
-    ChevronRight, ShieldCheck, Pencil, Camera, Trash2, X, Check, Loader2, Copy, Download, Bell, BellRing
+    ChevronRight, ShieldCheck, Pencil, Camera, Trash2, X, Check, Loader2, Copy, Download, Bell, BellRing, Youtube, Heart, Play
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
@@ -23,6 +23,11 @@ const ProfilePage = () => {
     const navigate = useNavigate();
     const [recentConnections, setRecentConnections] = useState<any[]>([]);
     const { permission, requestPermission, subscribeToPush } = usePushNotifications();
+
+    // YouTube Shorts data
+    const [likedShorts, setLikedShorts] = useState<any[]>([]);
+    const [subscribedChannels, setSubscribedChannels] = useState<any[]>([]);
+    const [viewedShorts, setViewedShorts] = useState<any[]>([]);
 
     // Edit name state
     const [isEditingName, setIsEditingName] = useState(false);
@@ -56,6 +61,34 @@ const ProfilePage = () => {
                     .order('last_connected_at', { ascending: false })
                     .limit(5)
                     .then(({ data }) => { if (data) setRecentConnections(data); });
+
+                // Fetch YouTube Interactions
+                supabase
+                    .from('youtube_interactions')
+                    .select('*')
+                    .eq('user_id', userProfile.id)
+                    .order('created_at', { ascending: false })
+                    .then(({ data }) => {
+                        if (data) {
+                            // Filter unique by video_id or channel_id where appropriate
+                            const likes = data.filter(d => d.interaction_type === 'like');
+                            // Get unique subscriptions by channel_id
+                            const subsMap = new Map();
+                            data.filter(d => d.interaction_type === 'subscribe').forEach(d => {
+                                if (!subsMap.has(d.channel_id)) subsMap.set(d.channel_id, d);
+                            });
+
+                            // Get unique views by video_id
+                            const viewsMap = new Map();
+                            data.filter(d => d.interaction_type === 'view').forEach(d => {
+                                if (!viewsMap.has(d.video_id)) viewsMap.set(d.video_id, d);
+                            });
+
+                            setLikedShorts(likes);
+                            setSubscribedChannels(Array.from(subsMap.values()));
+                            setViewedShorts(Array.from(viewsMap.values()));
+                        }
+                    });
             });
         }
     }, [userProfile?.id]);
@@ -207,305 +240,386 @@ const ProfilePage = () => {
     const joinDate = new Date(userProfile.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
     return (
-        <div className="min-h-full px-4 pt-4 pb-24 space-y-6 overflow-y-auto">
+        <div className="flex flex-col px-4 pt-4 pb-12 space-y-6">
 
-            {/* ── Header / Avatar ── */}
-            <motion.div {...fadeUp(0)} className="flex flex-col items-center text-center space-y-4 pt-4">
-                <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-tr from-[#0A84FF] to-[#BF5AF2] rounded-[40px] blur-lg opacity-30 group-hover:opacity-50 transition-opacity" />
-                    <div className="relative h-28 w-28 rounded-[38px] overflow-hidden border-2 border-white/10 bg-black">
+            {/* ── Luxury Hero Section ── */}
+            <motion.div {...fadeUp(0)} className="relative flex flex-col items-center text-center pt-8 pb-4">
+                {/* Immersive Background Glow */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-sm h-64 overflow-hidden pointer-events-none -z-10">
+                    <motion.div
+                        animate={{
+                            scale: [1, 1.2, 1],
+                            rotate: [0, 90, 0],
+                            opacity: [0.1, 0.2, 0.1]
+                        }}
+                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                        className="absolute top-[-20%] left-[-10%] w-[120%] h-[120%] bg-gradient-to-br from-[#0A84FF] via-[#BF5AF2] to-transparent blur-[80px]"
+                    />
+                </div>
+
+                <div className="relative group mb-6">
+                    <div className="absolute -inset-2 bg-gradient-to-tr from-[#0A84FF] to-[#BF5AF2] rounded-[48px] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity duration-700" />
+                    <div className="relative h-32 w-32 rounded-[42px] p-1 bg-gradient-to-tr from-white/20 to-transparent border border-white/20 shadow-2xl overflow-hidden backdrop-blur-md">
                         {isUploadingPhoto ? (
-                            <div className="h-full w-full flex items-center justify-center bg-black/60">
-                                <Loader2 className="h-8 w-8 text-white/60 animate-spin" />
+                            <div className="h-full w-full flex items-center justify-center bg-black/40 rounded-[38px]">
+                                <Loader2 className="h-10 w-10 text-white/60 animate-spin" />
                             </div>
                         ) : (
                             <img
                                 src={photoPreview ?? userProfile.photo_url ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.email}`}
                                 alt={userProfile.display_name}
-                                className="h-full w-full object-cover rounded-[32px]"
+                                className="h-full w-full object-cover rounded-[38px]"
                             />
                         )}
-                        {/* Camera overlay */}
-                        <button
+
+                        {/* Camera Interaction Overlay */}
+                        <motion.button
+                            initial={{ opacity: 0 }}
+                            whileHover={{ opacity: 1 }}
                             onClick={() => fileInputRef.current?.click()}
-                            className="absolute inset-0 flex items-center justify-center rounded-[32px] opacity-0 group-hover:opacity-100 transition-opacity"
-                            style={{ background: 'rgba(0,0,0,0.55)' }}
+                            className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-[38px] transition-opacity"
                         >
-                            <Camera className="h-7 w-7 text-white" />
-                        </button>
+                            <Camera className="h-8 w-8 text-white" />
+                        </motion.button>
                     </div>
+
                     {/* Hidden file input */}
                     <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
 
-                    {/* Edit photo button (always visible on mobile) */}
-                    <button
+                    {/* Quick Edit Badge */}
+                    <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                         onClick={() => fileInputRef.current?.click()}
-                        className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full flex items-center justify-center shadow-lg"
-                        style={{ background: '#0A84FF', border: '2px solid black' }}
+                        className="absolute -bottom-2 -right-2 h-10 w-10 rounded-full flex items-center justify-center bg-[#0A84FF] border-[3px] border-[#0A0A0F] shadow-xl text-white"
                     >
-                        <Camera className="h-3.5 w-3.5 text-white" />
-                    </button>
+                        <Camera className="h-4 w-4" />
+                    </motion.button>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-2 z-10 w-full px-6">
                     {isEditingName ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col items-center gap-3">
                             <input
                                 autoFocus
                                 value={editedName}
                                 onChange={e => setEditedName(e.target.value)}
                                 onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') setIsEditingName(false); }}
                                 maxLength={32}
-                                className="text-[22px] font-bold text-white text-center bg-white/10 rounded-xl px-3 py-1 outline-none border border-[#0A84FF]/40 focus:border-[#0A84FF] transition-colors w-48"
+                                className="text-[28px] font-black text-white text-center bg-white/5 backdrop-blur-xl rounded-[24px] px-6 py-3 outline-none border border-white/10 focus:border-[#0A84FF]/60 transition-all w-full max-w-[300px] shadow-2xl"
                                 style={{ fontFamily: "'Outfit', sans-serif" }}
                             />
-                            <button onClick={handleSaveName} disabled={isSavingName}
-                                className="h-8 w-8 rounded-full bg-[#30D158]/20 text-[#30D158] flex items-center justify-center">
-                                {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                            </button>
-                            <button onClick={() => setIsEditingName(false)}
-                                className="h-8 w-8 rounded-full bg-white/10 text-white/50 flex items-center justify-center">
-                                <X className="h-4 w-4" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                <motion.button
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={handleSaveName}
+                                    disabled={isSavingName}
+                                    className="h-11 px-6 rounded-full bg-[#30D158] text-white font-black uppercase tracking-widest text-[11px] flex items-center gap-2 shadow-lg shadow-[#30D158]/20"
+                                >
+                                    {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                    Save Name
+                                </motion.button>
+                                <motion.button
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={() => setIsEditingName(false)}
+                                    className="h-11 w-11 rounded-full bg-white/5 text-white/40 flex items-center justify-center border border-white/10"
+                                >
+                                    <X className="h-5 w-5" />
+                                </motion.button>
+                            </div>
                         </div>
                     ) : (
-                        <div className="flex items-center justify-center gap-2">
-                            <h1 className="text-[26px] font-bold text-white tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                                {userProfile.display_name}
-                            </h1>
-                            <button
-                                onClick={handleStartEditName}
-                                className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors text-white/30 hover:text-white"
-                            >
-                                <Pencil className="h-3.5 w-3.5" />
-                            </button>
+                        <div className="flex flex-col items-center">
+                            <div className="flex items-center justify-center gap-3 group">
+                                <h1 className="text-[32px] font-black text-white tracking-tight drop-shadow-2xl" style={{ fontFamily: "'Outfit', sans-serif" }}>
+                                    {userProfile.display_name}
+                                </h1>
+                                <motion.button
+                                    whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                                    whileTap={{ scale: 0.9 }}
+                                    onClick={handleStartEditName}
+                                    className="h-9 w-9 rounded-full flex items-center justify-center bg-white/5 border border-white/5 text-white/30 hover:text-white transition-all shadow-lg"
+                                >
+                                    <Pencil className="h-4 w-4" />
+                                </motion.button>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#30D158]/10 border border-[#30D158]/20">
+                                    <ShieldCheck className="h-3.5 w-3.5 text-[#30D158]" />
+                                    <span className="text-[11px] font-black text-[#30D158] uppercase tracking-[0.1em]">Verified Member</span>
+                                </div>
+                                <span className="text-[11px] font-black text-white/20 uppercase tracking-[0.1em]">Joined {joinDate}</span>
+                            </div>
                         </div>
                     )}
-                    <p className="text-[14px] text-white/40 font-medium tracking-wide flex items-center justify-center gap-1.5">
-                        <ShieldCheck className="h-4 w-4 text-[#30D158]" /> Verified Member
-                    </p>
-                    {/* Name saved flash */}
-                    <AnimatePresence>
+
+                    {/* Status Feedback Messages */}
+                    <AnimatePresence mode="wait">
                         {nameSaved && (
-                            <motion.p
-                                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="text-[12px] text-[#30D158] font-semibold flex items-center gap-1"
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                                className="flex justify-center mt-2"
                             >
-                                <Check className="h-3 w-3" /> Name updated!
-                            </motion.p>
+                                <div className="px-4 py-1.5 rounded-full bg-[#30D158]/20 text-[#30D158] text-[12px] font-bold flex items-center gap-2">
+                                    <Check className="h-3.5 w-3.5" /> Identity Updated
+                                </div>
+                            </motion.div>
                         )}
-                    </AnimatePresence>
-                    {/* Photo error */}
-                    <AnimatePresence>
                         {photoError && (
-                            <motion.p
-                                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                className="text-[12px] text-[#FF453A] font-semibold flex items-center gap-1"
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                                className="flex justify-center mt-2"
                             >
-                                <X className="h-3 w-3" /> {photoError}
-                            </motion.p>
+                                <div className="px-4 py-1.5 rounded-full bg-[#FF453A]/20 text-[#FF453A] text-[12px] font-bold flex items-center gap-2">
+                                    <X className="h-3.5 w-3.5" /> {photoError}
+                                </div>
+                            </motion.div>
                         )}
                     </AnimatePresence>
                 </div>
             </motion.div>
 
-            {/* ── Recent Connections ── */}
-            <motion.div {...fadeUp(0.1)} className="space-y-3">
-                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">Recent Connections</h2>
-                <div className="ios-card divide-y divide-white/[0.06]">
+            {/* ── Recent Connections (High Fidelity) ── */}
+            <motion.div {...fadeUp(0.1)} className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                    <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em]">Recent Connections</h2>
+                    <span className="text-[10px] font-bold text-[#0A84FF]/60 px-2 py-0.5 rounded-full bg-[#0A84FF]/5 border border-[#0A84FF]/10 uppercase tracking-widest">
+                        Last 5 Sessions
+                    </span>
+                </div>
+
+                <div className="space-y-2.5">
                     {recentConnections.length > 0 ? (
                         recentConnections.map((conn) => (
-                            <div key={conn.id} className="flex items-center gap-4 px-4 py-3">
-                                <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                                    <User className="h-5 w-5 text-white/30" />
+                            <motion.div
+                                key={conn.id}
+                                whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.05)' }}
+                                className="flex items-center gap-4 px-4 py-4 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md group transition-all"
+                            >
+                                <div className="h-12 w-12 rounded-[16px] bg-gradient-to-br from-white/10 to-transparent p-0.5 border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
+                                    <div className="h-full w-full rounded-[14px] bg-[#121217] flex items-center justify-center">
+                                        <User className="h-6 w-6 text-white/20 group-hover:text-[#0A84FF] transition-colors" />
+                                    </div>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-[15px] font-semibold text-white truncate">{conn.nickname}</p>
-                                    <p className="text-[11px] text-white/30 truncate font-mono">{conn.peer_id}</p>
+                                    <p className="text-[16px] font-bold text-white tracking-tight leading-tight truncate group-hover:text-[#0A84FF] transition-colors">
+                                        {conn.nickname}
+                                    </p>
+                                    <p className="text-[11px] font-black text-white/20 truncate tracking-widest uppercase mt-1">
+                                        {conn.peer_id.slice(0, 12)}...
+                                    </p>
                                 </div>
                                 <motion.button
                                     whileTap={{ scale: 0.95 }}
                                     onClick={() => { localStorage.setItem('peerIdToConnect', conn.peer_id); navigate('/app'); }}
-                                    className="px-3 py-1.5 rounded-lg text-[12px] font-bold border border-[#0A84FF]/20"
-                                    style={{ background: 'rgba(10,132,255,0.10)', color: '#0A84FF' }}
+                                    className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-[#0A84FF] text-white shadow-lg shadow-[#0A84FF]/20"
                                 >
-                                    Connect
+                                    Login
                                 </motion.button>
-                            </div>
+                            </motion.div>
                         ))
                     ) : (
-                        <div className="px-4 py-8 text-center">
-                            <p className="text-[14px] text-white/30 italic">No recent connections yet.</p>
+                        <div className="px-4 py-10 rounded-[28px] bg-white/[0.02] border border-dashed border-white/5 flex flex-col items-center justify-center text-center">
+                            <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
+                                <User className="h-6 w-6 text-white/10" />
+                            </div>
+                            <p className="text-[13px] font-bold text-white/20 uppercase tracking-widest">No recent sessions found</p>
                         </div>
                     )}
                 </div>
             </motion.div>
 
-            {/* ── Account Info ── */}
-            <motion.div {...fadeUp(0.15)} className="space-y-3">
-                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">Account Info</h2>
-                <div className="ios-card divide-y divide-white/[0.06]">
+            {/* ── Account Details (Luxury Glass) ── */}
+            <motion.div {...fadeUp(0.15)} className="space-y-4">
+                <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em] px-2">Account Intelligence</h2>
+                <div className="space-y-0.5 rounded-[32px] overflow-hidden bg-white/[0.03] border border-white/[0.05] backdrop-blur-3xl shadow-2xl">
                     {/* Email */}
-                    <div className="flex items-center gap-4 px-4 py-4">
-                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                            <Mail className="h-5 w-5 text-[#0A84FF]" />
+                    <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                        className="flex items-center gap-4 px-5 py-5 transition-colors"
+                    >
+                        <div className="h-12 w-12 rounded-[18px] bg-[#0A84FF]/10 flex items-center justify-center shrink-0 border border-[#0A84FF]/20">
+                            <Mail className="h-6 w-6 text-[#0A84FF]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[15px] font-semibold text-white truncate">{userProfile.email}</p>
-                            <p className="text-[12px] text-white/40">Email Address</p>
+                            <p className="text-[16px] font-bold text-white truncate tracking-tight">{userProfile.email}</p>
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.15em] mt-0.5">Verified Identifier</p>
                         </div>
-                    </div>
+                    </motion.div>
+
+                    <div className="h-[1px] w-full bg-white/[0.05]" />
 
                     {/* Peer ID */}
-                    <div className="flex items-center gap-4 px-4 py-4">
-                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                            <Fingerprint className="h-5 w-5 text-[#BF5AF2]" />
+                    <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                        className="flex items-center gap-4 px-5 py-5 transition-colors"
+                    >
+                        <div className="h-12 w-12 rounded-[18px] bg-[#BF5AF2]/10 flex items-center justify-center shrink-0 border border-[#BF5AF2]/20">
+                            <Fingerprint className="h-6 w-6 text-[#BF5AF2]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[14px] font-mono font-bold text-white tracking-wider uppercase select-all truncate">
-                                {userProfile.peer_id}
-                            </p>
-                            <p className="text-[12px] text-white/40">Permanent Peer ID</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-[15px] font-black font-mono text-white tracking-[0.1em] uppercase select-all truncate">
+                                    {userProfile.peer_id}
+                                </p>
+                            </div>
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.15em] mt-0.5">Unique Neural Signature</p>
                         </div>
-                        <button
+                        <motion.button
+                            whileTap={{ scale: 0.9 }}
                             onClick={handleCopyPeerId}
-                            className="p-2 text-white/30 hover:text-white/60 transition-colors"
+                            className="h-10 w-10 rounded-[14px] bg-white/5 flex items-center justify-center text-white/30 hover:bg-white/10 hover:text-white transition-all shadow-lg"
                         >
                             {copiedPeerId ? <Check className="h-4 w-4 text-[#30D158]" /> : <Copy className="h-4 w-4" />}
-                        </button>
-                    </div>
+                        </motion.button>
+                    </motion.div>
+
+                    <div className="h-[1px] w-full bg-white/[0.05]" />
 
                     {/* Member Since */}
-                    <div className="flex items-center gap-4 px-4 py-4">
-                        <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                            <Calendar className="h-5 w-5 text-[#30D158]" />
+                    <motion.div
+                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                        className="flex items-center gap-4 px-5 py-5 transition-colors"
+                    >
+                        <div className="h-12 w-12 rounded-[18px] bg-[#30D158]/10 flex items-center justify-center shrink-0 border border-[#30D158]/20">
+                            <Calendar className="h-6 w-6 text-[#30D158]" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="text-[15px] font-semibold text-white">{joinDate}</p>
-                            <p className="text-[12px] text-white/40">Member Since</p>
+                            <p className="text-[16px] font-bold text-white tracking-tight">{joinDate}</p>
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.15em] mt-0.5">Network Anniversary</p>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             </motion.div>
 
-            {/* ── Install App Banner (Always rendered to allow fallback alert) ── */}
-            <motion.div {...fadeUp(0.18)} className="space-y-3 pt-2">
-                <button
+            {/* ── Premium Content Banner ── */}
+            <motion.div {...fadeUp(0.18)} className="pt-2">
+                <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={handleDownloadApp}
-                    className="w-full relative overflow-hidden rounded-[24px] p-5 text-left group transition-all duration-300 transform active:scale-[0.98] border border-white/10"
+                    className="w-full relative overflow-hidden rounded-[32px] p-6 text-left group transition-all duration-500 shadow-2xl border border-white/10"
                     style={{
-                        background: 'linear-gradient(135deg, rgba(10,132,255,0.15) 0%, rgba(191,90,242,0.15) 100%)',
-                        boxShadow: '0 8px 32px rgba(10,132,255,0.1)'
+                        background: 'linear-gradient(135deg, rgba(10,132,255,0.2) 0%, rgba(191,90,242,0.2) 100%)',
                     }}
                 >
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#0A84FF]/20 to-[#BF5AF2]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                    <div className="relative z-10 flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-full flex items-center justify-center shrink-0 border border-white/20 shadow-inner" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                            <Download className="h-6 w-6 text-white drop-shadow-md" />
+                    {/* Animated Ray */}
+                    <motion.div
+                        animate={{
+                            left: ['-100%', '200%'],
+                        }}
+                        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                        className="absolute inset-0 w-20 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+                    />
+
+                    <div className="relative z-10 flex items-center gap-5">
+                        <div className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 bg-white/10 border border-white/20 shadow-2xl backdrop-blur-md">
+                            <Download className="h-7 w-7 text-white" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="text-[16px] font-bold text-white tracking-tight drop-shadow-md">Get the App</h3>
-                            <p className="text-[13px] text-white/70 font-medium mt-0.5 leading-snug">Install Togetherly on your home screen</p>
+                            <h3 className="text-[18px] font-black text-white tracking-tight leading-tight">Elite Access</h3>
+                            <p className="text-[12px] text-white/60 font-black uppercase tracking-widest mt-1">Install Local Application</p>
                         </div>
-                        <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                            <ChevronRight className="h-4 w-4 text-white" />
+                        <div className="h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-[#0A84FF] group-hover:text-white transition-all">
+                            <ChevronRight className="h-5 w-5" />
                         </div>
                     </div>
-                </button>
+                </motion.button>
             </motion.div>
 
-            {/* ── App Settings ── */}
-            <motion.div {...fadeUp(0.20)} className="space-y-3">
-                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">App Settings</h2>
-                <div className="ios-card overflow-hidden divide-y divide-white/[0.06]">
-                    {/* Push Notifications */}
-                    <button
-                        onClick={permission !== 'granted' ? handleEnablePush : undefined}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
-                    >
-                        <div className="h-10 w-10 rounded-xl bg-[#0A84FF]/10 flex items-center justify-center shrink-0">
-                            {permission === 'granted' ? <BellRing className="h-5 w-5 text-[#0A84FF]" /> : <Bell className="h-5 w-5 text-[#0A84FF] opacity-50" />}
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[15px] font-semibold text-white">Push Notifications</p>
-                            <p className="text-[12px] text-white/40">
-                                {permission === 'granted' ? 'Enabled' : permission === 'denied' ? 'Blocked in browser' : 'Tap to enable'}
-                            </p>
-                        </div>
-                        {permission !== 'granted' && permission !== 'denied' && (
-                            <ChevronRight className="h-4 w-4 text-white/20" />
-                        )}
-                        {permission === 'granted' && (
-                            <Check className="h-4 w-4 text-[#30D158]" />
-                        )}
-                    </button>
+            {/* ── Shots Activity ── */}
+            <motion.div {...fadeUp(0.19)} className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                    <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em]">Shots Activity</h2>
+                    <div className="flex items-center gap-2">
+                        <Youtube className="h-4 w-4 text-[#FF0000]" />
+                    </div>
+                </div>
 
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
+                        <Heart className="h-5 w-5 text-[#FF375F] mb-1" />
+                        <p className="text-[18px] font-black text-white">{likedShorts.length}</p>
+                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Liked</p>
+                    </div>
+                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
+                        <Youtube className="h-5 w-5 text-[#FF0000] mb-1" />
+                        <p className="text-[18px] font-black text-white">{subscribedChannels.length}</p>
+                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Subscribed</p>
+                    </div>
+                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
+                        <Play className="h-5 w-5 text-white mb-1" />
+                        <p className="text-[18px] font-black text-white">{viewedShorts.length}</p>
+                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Viewed</p>
+                    </div>
                 </div>
             </motion.div>
 
-            {/* ── System Actions ── */}
-            <motion.div {...fadeUp(0.25)} className="space-y-3">
-                <h2 className="text-[13px] font-bold text-white/30 uppercase tracking-widest px-2">Account</h2>
-                <div className="ios-card overflow-hidden divide-y divide-white/[0.06]">
-                    {/* Edit Name */}
-                    <button
-                        onClick={handleStartEditName}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
+            {/* ── Visual Preference Stack ── */}
+            <motion.div {...fadeUp(0.20)} className="space-y-4">
+                <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em] px-2">Preferences & Core</h2>
+                <div className="rounded-[32px] overflow-hidden bg-white/[0.03] border border-white/[0.05] shadow-2xl">
+                    {/* Push Notifications */}
+                    <motion.button
+                        whileHover={{ backgroundColor: 'rgba(255,255,255,0.02)' }}
+                        onClick={permission !== 'granted' ? handleEnablePush : undefined}
+                        className="flex items-center w-full gap-5 px-5 py-5 text-left transition-colors"
                     >
-                        <div className="h-10 w-10 rounded-xl bg-[#0A84FF]/10 flex items-center justify-center shrink-0">
-                            <Pencil className="h-5 w-5 text-[#0A84FF]" />
+                        <div className="h-12 w-12 rounded-[18px] bg-[#0A84FF]/10 flex items-center justify-center shrink-0 border border-[#0A84FF]/20">
+                            {permission === 'granted' ? <BellRing className="h-6 w-6 text-[#0A84FF]" /> : <Bell className="h-6 w-6 text-[#0A84FF] opacity-30" />}
                         </div>
                         <div className="flex-1">
-                            <p className="text-[15px] font-semibold text-white">Edit Display Name</p>
-                            <p className="text-[12px] text-white/40">Change how others see you</p>
+                            <p className="text-[16px] font-bold text-white tracking-tight">System Notifications</p>
+                            <p className="text-[11px] font-black text-[#0A84FF] uppercase tracking-[0.1em] mt-0.5">
+                                {permission === 'granted' ? 'Elite Connectivity Active' : permission === 'denied' ? 'Manual Bypass Required' : 'Tap to Synchronize'}
+                            </p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-white/20" />
-                    </button>
+                        {permission !== 'granted' && permission !== 'denied' ? (
+                            <ChevronRight className="h-5 w-5 text-white/10" />
+                        ) : permission === 'granted' ? (
+                            <div className="h-6 w-6 rounded-full bg-[#30D158]/20 flex items-center justify-center">
+                                <Check className="h-3.5 w-3.5 text-[#30D158]" />
+                            </div>
+                        ) : null}
+                    </motion.button>
+                </div>
+            </motion.div>
 
-                    {/* Edit Photo */}
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-white/[0.03] transition-colors"
-                    >
-                        <div className="h-10 w-10 rounded-xl bg-[#BF5AF2]/10 flex items-center justify-center shrink-0">
-                            <Camera className="h-5 w-5 text-[#BF5AF2]" />
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-[15px] font-semibold text-white">Change Profile Photo</p>
-                            <p className="text-[12px] text-white/40">Upload a new photo (max 5MB)</p>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-white/20" />
-                    </button>
-
-                    {/* Sign Out */}
-                    <button
+            {/* ── System Intelligence Actions ── */}
+            <motion.div {...fadeUp(0.25)} className="space-y-4">
+                <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em] px-2">Management Terminal</h2>
+                <div className="rounded-[32px] overflow-hidden bg-white/[0.03] border border-white/[0.05] shadow-2xl divide-y divide-white/[0.05]">
+                    {/* Logout */}
+                    <motion.button
+                        whileHover={{ backgroundColor: 'rgba(255,69,58,0.05)' }}
                         onClick={handleLogout}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-[#FF453A]/5 transition-colors"
+                        className="flex items-center w-full gap-5 px-5 py-5 text-left bg-gradient-to-r from-transparent to-transparent hover:to-[#FF453A]/5 transition-all"
                     >
-                        <div className="h-10 w-10 rounded-xl bg-[#FF453A]/10 flex items-center justify-center shrink-0">
-                            <LogOut className="h-5 w-5 text-[#FF453A]" />
+                        <div className="h-12 w-12 rounded-[18px] bg-[#FF453A]/10 flex items-center justify-center shrink-0 border border-[#FF453A]/20 shadow-lg shadow-[#FF453A]/5">
+                            <LogOut className="h-6 w-6 text-[#FF453A]" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-[15px] font-semibold text-[#FF453A]">Sign Out</p>
-                            <p className="text-[12px] text-[#FF453A]/40">Log out of your account</p>
+                            <p className="text-[16px] font-bold text-[#FF453A] tracking-tight">Deactivate Session</p>
+                            <p className="text-[10px] font-black text-[#FF453A]/40 uppercase tracking-[0.15em] mt-0.5">Secure Termination</p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-[#FF453A]/20" />
-                    </button>
+                        <ChevronRight className="h-5 w-5 text-[#FF453A]/20" />
+                    </motion.button>
 
                     {/* Delete Account */}
-                    <button
+                    <motion.button
+                        whileHover={{ backgroundColor: 'rgba(255,69,58,0.08)' }}
                         onClick={() => setShowDeleteDialog(true)}
-                        className="flex items-center w-full gap-4 px-4 py-4 text-left hover:bg-[#FF453A]/5 transition-colors"
+                        className="flex items-center w-full gap-5 px-5 py-5 text-left transition-all"
                     >
-                        <div className="h-10 w-10 rounded-xl bg-[#FF453A]/10 flex items-center justify-center shrink-0">
-                            <Trash2 className="h-5 w-5 text-[#FF453A]" />
+                        <div className="h-12 w-12 rounded-[18px] bg-red-950/20 flex items-center justify-center shrink-0 border border-red-900/40">
+                            <Trash2 className="h-6 w-6 text-red-700" />
                         </div>
                         <div className="flex-1">
-                            <p className="text-[15px] font-semibold text-[#FF453A]">Delete Account</p>
-                            <p className="text-[12px] text-[#FF453A]/40">Permanently remove your account</p>
+                            <p className="text-[16px] font-bold text-red-900 tracking-tight">Wipe Core Memory</p>
+                            <p className="text-[10px] font-black text-red-900/40 uppercase tracking-[0.15em] mt-0.5">Irreversible Deletion</p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-[#FF453A]/20" />
-                    </button>
+                        <ChevronRight className="h-5 w-5 text-red-900/20" />
+                    </motion.button>
                 </div>
             </motion.div>
 

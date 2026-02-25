@@ -68,102 +68,122 @@ const BrowserPage = () => {
   };
 
   return (
-    <div className="min-h-full px-4 pt-2 pb-4 flex flex-col gap-5">
+    <div className="flex flex-col px-4 pt-4 pb-12 gap-5">
 
-      {/* ── Header row ── */}
+      {/* ── Status Matrix ── */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex items-center justify-between"
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="flex items-center justify-between bg-white/[0.03] backdrop-blur-3xl border border-white/[0.05] px-6 py-5 rounded-[32px] shadow-2xl"
       >
-        <div>
-          <h1 className="text-[22px] font-bold text-white">Screen Share</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className={cn('h-2 w-2 rounded-full', context.isConnected ? 'status-dot-online' : 'bg-white/20')} />
-            <span className="text-[13px] text-white/40">
-              {context.isConnected ? `Peer: ${context.remoteNickname}` : 'Not connected'}
+        <div className="space-y-1">
+          <h1 className="text-[24px] font-black text-white tracking-tight leading-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            Screen Mirror
+          </h1>
+          <div className="flex items-center gap-2">
+            <div className={cn('h-2 w-2 rounded-full', context.isConnected ? 'bg-[#30D158] animate-pulse glow-green' : 'bg-white/10')} />
+            <span className="text-[11px] font-black text-white/30 uppercase tracking-[0.2em]">
+              {context.isConnected ? `Remote Node: ${context.remoteNickname}` : 'Satellite Offline'}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Settings */}
+        <div className="flex items-center gap-3">
+          {/* Settings Trigger */}
           {!context.remoteScreenStream && context.isConnected && !context.isScreenSharing && (
             <motion.button
-              whileTap={{ scale: 0.92 }}
+              whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => setShowSettings((v) => !v)}
               className={cn(
-                'h-9 w-9 rounded-xl flex items-center justify-center border transition-colors',
-                showSettings ? 'bg-[#0A84FF]/15 border-[#0A84FF]/30 text-[#0A84FF]' : 'bg-white/5 border-white/10 text-white/40 hover:text-white/70'
+                'h-11 w-11 rounded-[14px] flex items-center justify-center transition-all duration-500 shadow-xl',
+                showSettings ? 'bg-[#0A84FF] text-white' : 'bg-white/5 border border-white/10 text-white/40'
               )}
             >
-              <Settings2 className="h-4 w-4" />
+              <Settings2 className="h-5 w-5" />
             </motion.button>
           )}
 
-          {/* Share / Stop button */}
+          {/* Core Action Button */}
           {context.isConnected && (
             context.isScreenSharing ? (
               <motion.button
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={context.stopScreenShare}
-                className="flex items-center gap-2 bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] px-4 py-2 rounded-full text-[14px] font-semibold"
+                className="flex items-center gap-2.5 bg-[#FF453A] text-white px-6 py-3 rounded-full text-[13px] font-black uppercase tracking-widest shadow-lg shadow-[#FF453A]/20"
               >
-                <MonitorOff className="h-4 w-4" /> Stop
+                <MonitorOff className="h-4 w-4" /> Termination
               </motion.button>
             ) : (
               <motion.button
+                whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={context.startScreenShare}
-                className="flex items-center gap-2 bg-[#0A84FF]/15 border border-[#0A84FF]/30 text-[#0A84FF] px-4 py-2 rounded-full text-[14px] font-semibold"
+                className="flex items-center gap-2.5 bg-[#0A84FF] text-white px-6 py-3 rounded-full text-[13px] font-black uppercase tracking-widest shadow-lg shadow-[#0A84FF]/20"
               >
-                <MonitorUp className="h-4 w-4" /> Share
+                <MonitorUp className="h-4 w-4" /> Broadcast
               </motion.button>
             )
           )}
         </div>
       </motion.div>
 
-      {/* ── Quality picker (collapsible) ── */}
+      {/* ── Neural Quality Selectors ── */}
       <AnimatePresence>
         {showSettings && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
+            initial={{ opacity: 0, scale: 0.98, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: -10 }}
           >
-            <div className="ios-card p-4 space-y-3">
-              <p className="text-[12px] font-semibold text-white/40 uppercase tracking-widest">Quality</p>
-              <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-[32px] bg-white/[0.03] border border-white/[0.05] p-6 backdrop-blur-3xl shadow-2xl space-y-4">
+              <p className="text-[11px] font-black text-white/20 uppercase tracking-[0.2em] px-1">Signal Fidelity</p>
+              <div className="grid grid-cols-3 gap-3">
                 {QUALITY_PRESETS.map((preset, i) => {
                   const Icon = preset.icon;
                   const active = quality === i;
                   return (
                     <motion.button
                       key={preset.label}
+                      whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setQuality(i)}
                       className={cn(
-                        'flex flex-col items-center gap-2 p-3 rounded-2xl border transition-all',
-                        active
-                          ? 'border-[${preset.color}]/40 text-white'
-                          : 'border-white/8 text-white/40 hover:text-white/70'
+                        'relative flex flex-col items-center gap-3 p-4 rounded-[24px] border transition-all duration-500 overflow-hidden',
+                        active ? 'border-transparent shadow-2xl' : 'border-white/[0.05] bg-white/[0.02] text-white/40'
                       )}
-                      style={active ? { background: preset.color + '15', borderColor: preset.color + '40' } : {}}
+                      style={active ? {
+                        background: `linear-gradient(135deg, ${preset.color}20 0%, ${preset.color}05 100%)`,
+                        borderColor: `${preset.color}40`
+                      } : {}}
                     >
-                      <Icon className="h-5 w-5" style={{ color: active ? preset.color : undefined }} />
-                      <div className="text-center">
-                        <p className="text-[13px] font-bold">{preset.label}</p>
-                        <p className="text-[10px] opacity-50">{preset.sub}</p>
+                      {active && (
+                        <motion.div
+                          layoutId="quality-glow"
+                          className="absolute inset-0 bg-white/[0.02] animate-pulse"
+                        />
+                      )}
+                      <div className={cn(
+                        "h-12 w-12 rounded-[16px] flex items-center justify-center shadow-inner transition-colors duration-500",
+                        active ? "bg-white/10" : "bg-white/5"
+                      )}>
+                        <Icon className="h-6 w-6" style={{ color: active ? preset.color : undefined }} />
                       </div>
-                      {active && <CheckCircle2 className="h-3.5 w-3.5 absolute top-2 right-2" style={{ color: preset.color }} />}
+                      <div className="text-center relative z-10">
+                        <p className={cn("text-[14px] font-black uppercase tracking-tight", active ? "text-white" : "text-white/40")}>{preset.label}</p>
+                        <p className="text-[10px] font-bold opacity-40 uppercase tracking-widest mt-0.5">{preset.sub.split(' · ')[0]}</p>
+                      </div>
+                      {active && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                          <CheckCircle2 className="h-4 w-4 absolute top-3 right-3" style={{ color: preset.color }} />
+                        </motion.div>
+                      )}
                     </motion.button>
                   );
                 })}
               </div>
-              <p className="text-[11px] text-white/25 text-center">Higher quality uses more bandwidth</p>
             </div>
           </motion.div>
         )}
@@ -234,83 +254,109 @@ const BrowserPage = () => {
             </motion.div>
           )}
 
-          {/* Sharing state */}
+          {/* Sharing Spectrum (Active) */}
           {!context.remoteScreenStream && context.isScreenSharing && (
             <motion.div
               key="sharing"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="ios-card w-full max-w-xs mx-auto p-8 text-center space-y-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-sm mx-auto p-10 rounded-[40px] bg-white/[0.03] border border-white/[0.05] shadow-[0_40px_100px_rgba(0,0,0,0.6)] backdrop-blur-3xl text-center space-y-8 relative overflow-hidden"
             >
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#0A84FF] to-transparent animate-shimmer" />
+
               <div className="relative mx-auto w-fit">
-                <div className="absolute inset-0 bg-[#0A84FF]/25 rounded-full blur-2xl animate-pulse" />
-                <div className="relative h-20 w-20 rounded-3xl bg-[#0A84FF]/15 border border-[#0A84FF]/30 flex items-center justify-center mx-auto">
-                  <MonitorUp className="h-9 w-9 text-[#0A84FF] animate-bounce" />
+                <motion.div
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  className="absolute inset-0 bg-[#0A84FF] rounded-full blur-[40px]"
+                />
+                <div className="relative h-24 w-24 rounded-[28px] bg-gradient-to-br from-white/10 to-transparent border border-white/20 flex items-center justify-center mx-auto shadow-2xl">
+                  <MonitorUp className="h-10 w-10 text-[#0A84FF] animate-pulse" />
                 </div>
               </div>
-              <div>
-                <h2 className="text-[20px] font-bold text-white">Live Sharing</h2>
-                <p className="text-[14px] text-white/45 mt-1">
-                  {QUALITY_PRESETS[quality].label} · {QUALITY_PRESETS[quality].sub}
-                </p>
+
+              <div className="space-y-2">
+                <h2 className="text-[28px] font-black text-white tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>Signal Active</h2>
+                <div className="flex items-center justify-center gap-2">
+                  <span className="px-3 py-1 rounded-full bg-[#0A84FF]/10 text-[#0A84FF] text-[10px] font-black uppercase tracking-widest border border-[#0A84FF]/20">
+                    {QUALITY_PRESETS[quality].label} HD
+                  </span>
+                  <span className="text-white/20 font-black text-[10px] uppercase tracking-widest">•</span>
+                  <span className="text-white/40 font-black text-[10px] uppercase tracking-widest">{QUALITY_PRESETS[quality].sub.split(' · ')[1]}</span>
+                </div>
               </div>
-              <div className="ios-pill py-2 px-4 flex items-center gap-2 justify-center">
-                <Radio className="h-3 w-3 text-[#FF453A] animate-pulse" />
-                <span className="text-[13px] text-white/60">Your peer can see your screen</span>
+
+              <div className="px-6 py-3 rounded-full bg-white/5 border border-white/10 flex items-center gap-3 justify-center">
+                <div className="w-2 h-2 rounded-full bg-[#FF453A] animate-ping" />
+                <span className="text-[12px] font-black text-white/40 uppercase tracking-[0.15em]">Streaming to Peer</span>
               </div>
+
               <motion.button
-                whileTap={{ scale: 0.96 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={context.stopScreenShare}
-                className="w-full h-12 rounded-xl bg-[#FF453A]/15 border border-[#FF453A]/30 text-[#FF453A] font-semibold text-[16px]"
+                className="w-full h-14 rounded-[20px] bg-[#FF453A] text-white font-black uppercase tracking-widest text-[14px] shadow-lg shadow-[#FF453A]/20"
               >
-                Stop Sharing
+                Terminate Link
               </motion.button>
             </motion.div>
           )}
 
-          {/* Idle */}
+          {/* Idle Terminal */}
           {!context.remoteScreenStream && !context.isScreenSharing && (
             <motion.div
               key="idle"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="ios-card w-full max-w-xs mx-auto p-8 text-center space-y-5"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-sm mx-auto p-10 rounded-[40px] bg-white/[0.03] border border-white/[0.05] shadow-[0_40px_100px_rgba(0,0,0,0.4)] backdrop-blur-3xl text-center space-y-8"
             >
-              <div className="h-20 w-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto">
-                <Monitor className="h-9 w-9 text-white/25" />
-              </div>
-              <div>
-                <h2 className="text-[20px] font-bold text-white">Screen Share</h2>
-                <p className="text-[14px] text-white/40 mt-1">Share your screen with your peer in real time.</p>
+              <div className="h-24 w-24 rounded-[28px] bg-white/5 border border-white/10 flex items-center justify-center mx-auto shadow-2xl group overflow-hidden">
+                <Monitor className="h-10 w-10 text-white/20 group-hover:text-[#0A84FF] transition-colors duration-500" />
               </div>
 
-              {/* Quality info row */}
-              <div className="flex items-center gap-2 p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                {(() => { const Icon = QUALITY_PRESETS[quality].icon; return <Icon className="h-4 w-4 shrink-0" style={{ color: QUALITY_PRESETS[quality].color }} />; })()}
-                <span className="text-[13px] text-white/50 flex-1 text-left">{QUALITY_PRESETS[quality].label} — {QUALITY_PRESETS[quality].sub}</span>
-                <button onClick={() => setShowSettings((v) => !v)} className="text-[12px] text-[#0A84FF] font-semibold">Change</button>
+              <div className="space-y-2">
+                <h2 className="text-[28px] font-black text-white tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>Screen Mirror</h2>
+                <p className="text-[14px] font-bold text-white/30 uppercase tracking-[0.15em]">Sync your view with peers</p>
               </div>
+
+              {/* Quality Configuration Summary */}
+              <motion.div
+                whileHover={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
+                onClick={() => setShowSettings(true)}
+                className="flex items-center gap-4 p-4 rounded-[22px] bg-white/5 border border-white/10 shadow-inner group cursor-pointer transition-all"
+              >
+                <div className="h-10 w-10 rounded-[14px] flex items-center justify-center bg-white/5 shadow-xl transition-transform group-hover:scale-110">
+                  {(() => { const Icon = QUALITY_PRESETS[quality].icon; return <Icon className="h-5 w-5" style={{ color: QUALITY_PRESETS[quality].color }} />; })()}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-[13px] font-black text-white/60 tracking-tight uppercase">Quality: {QUALITY_PRESETS[quality].label}</p>
+                  <p className="text-[10px] font-black text-white/20 uppercase tracking-widest mt-0.5">{QUALITY_PRESETS[quality].sub}</p>
+                </div>
+                <Settings2 className="h-4 w-4 text-white/10 group-hover:text-[#0A84FF] transition-colors" />
+              </motion.div>
 
               {context.isConnected ? (
                 <motion.button
-                  whileTap={{ scale: 0.96 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={context.startScreenShare}
-                  className="w-full h-13 rounded-xl ios-btn-primary flex items-center justify-center gap-2 font-semibold text-[16px]"
+                  className="w-full h-15 rounded-[22px] bg-[#0A84FF] text-white flex items-center justify-center gap-3 font-black uppercase tracking-[0.2em] text-[15px] shadow-2xl shadow-[#0A84FF]/30"
                 >
-                  <MonitorUp className="h-5 w-5" /> Start Sharing
+                  <MonitorUp className="h-5 w-5" /> Initiate Link
                 </motion.button>
               ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-[#FF453A]/08 border border-[#FF453A]/15">
-                    <WifiOff className="h-4 w-4 text-[#FF453A]/70 shrink-0" />
-                    <p className="text-[13px] text-white/45">Connect to a peer first</p>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 rounded-[22px] bg-[#FF453A]/10 border border-[#FF453A]/20 shadow-inner">
+                    <WifiOff className="h-5 w-5 text-[#FF453A] shrink-0" />
+                    <p className="text-[12px] font-black text-[#FF453A]/80 uppercase tracking-widest text-left">Peer Connection Offline</p>
                   </div>
                   <motion.button
-                    whileTap={{ scale: 0.96 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => navigate('/watch')}
-                    className="w-full h-11 rounded-xl ios-btn-glass text-[15px]"
+                    className="w-full h-13 rounded-[20px] bg-white/5 border border-white/10 text-white/60 font-black uppercase tracking-widest text-[13px] shadow-xl"
                   >
-                    Go to Watch
+                    Return to Nexus
                   </motion.button>
                 </div>
               )}

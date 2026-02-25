@@ -34,42 +34,73 @@ const WatchPage = () => {
   ];
 
   return (
-    <div className="flex flex-col min-h-full">
+    <div className="flex flex-col gap-4">
 
-      {/* ── Connection status pill ── */}
+      {/* ── Premium Connection Status Indicator ── */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="px-4 pt-2 pb-3"
+        className="px-4 pt-4 pb-2"
       >
-        <div
+        <motion.div
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowWizard(!showWizard)}
           className={cn(
-            'ios-pill flex items-center gap-2 px-4 py-2.5 w-full justify-between cursor-pointer tap-effect',
-            context.isConnected ? 'border-[#30D158]/30' : 'border-white/10'
+            'relative overflow-hidden group px-5 py-4 rounded-[32px] border transition-all duration-500 shadow-[0_20px_40px_rgba(0,0,0,0.3)]',
+            context.isConnected
+              ? 'bg-[#30D158]/5 border-[#30D158]/20 shadow-[#30D158]/5'
+              : 'bg-white/[0.03] border-white/[0.08] shadow-black/40'
           )}
-          onClick={() => setShowWizard((v) => !v)}
         >
-          <div className="flex items-center gap-2.5">
-            <span className={cn(
-              'h-2.5 w-2.5 rounded-full shrink-0',
-              context.isConnected ? 'status-dot-online' : 'bg-white/20'
-            )} />
-            <span className={cn(
-              'text-[14px] font-semibold',
-              context.isConnected ? 'text-[#30D158]' : 'text-white/50'
-            )}>
-              {context.isConnected
-                ? `Watching with ${context.remoteNickname}`
-                : 'Not connected — tap to connect'}
-            </span>
-          </div>
+          {/* Animated Background Glow */}
+          <div className={cn(
+            "absolute -top-10 -right-10 h-32 w-32 rounded-full blur-[40px] opacity-20 transition-opacity",
+            context.isConnected ? "bg-[#30D158]" : "bg-[#0A84FF]"
+          )} />
 
-          {showWizard
-            ? <ChevronUp className="h-4 w-4 text-white/30" />
-            : <ChevronDown className="h-4 w-4 text-white/30" />
-          }
-        </div>
+          <div className="flex items-center justify-between relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className={cn(
+                  "h-10 w-10 rounded-[14px] flex items-center justify-center border transition-all duration-500",
+                  context.isConnected
+                    ? "bg-[#30D158]/20 border-[#30D158]/30 text-[#30D158]"
+                    : "bg-white/10 border-white/20 text-white/40"
+                )}>
+                  <LinkIcon className="h-5 w-5" />
+                </div>
+                {context.isConnected && (
+                  <motion.div
+                    animate={{ scale: [1, 1.3, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#30D158] border-2 border-[#0A0A0F]"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-0.5">
+                <p className={cn(
+                  "text-[15px] font-black tracking-tight",
+                  context.isConnected ? "text-white" : "text-white/60"
+                )}>
+                  {context.isConnected ? "Connection active" : "Standalone mode"}
+                </p>
+                <p className="text-[11px] font-bold text-white/30 uppercase tracking-[0.1em]">
+                  {context.isConnected
+                    ? `Streaming with ${context.remoteNickname}`
+                    : "Tap to sync with a friend"}
+                </p>
+              </div>
+            </div>
+
+            <div className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center">
+              {showWizard
+                ? <ChevronUp className="h-4 w-4 text-white/40" />
+                : <ChevronDown className="h-4 w-4 text-white/40" />
+              }
+            </div>
+          </div>
+        </motion.div>
       </motion.div>
 
       {/* Expandable connection wizard */}
@@ -101,35 +132,37 @@ const WatchPage = () => {
         )}
       </AnimatePresence>
 
-      {/* ── iOS Segmented Control ── */}
+      {/* ── Modern Liquid Glass Tab Bar ── */}
       <div className="px-4 mb-4">
-        <div className="ios-card p-1 flex gap-1">
+        <div className="relative p-1.5 rounded-[24px] bg-white/[0.04] border border-white/[0.05] flex items-center gap-1 shadow-2xl backdrop-blur-md">
           {TABS.map(({ key, icon: Icon, label }) => (
-            <motion.button
+            <button
               key={key}
               onClick={() => setTab(key)}
               className={cn(
-                'relative flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[13px] font-semibold transition-colors duration-200',
-                tab === key ? 'text-white' : 'text-white/40 hover:text-white/60'
+                "relative flex-1 py-2.5 rounded-[18px] text-[13px] font-black uppercase tracking-wider transition-all duration-300",
+                tab === key ? "text-white" : "text-white/40 hover:text-white/60"
               )}
             >
               {tab === key && (
-                <motion.span
-                  layoutId="seg-pill"
-                  className="absolute inset-0 bg-white/12 rounded-xl"
-                  style={{ boxShadow: '0 0 12px rgba(10,132,255,0.2)' }}
+                <motion.div
+                  layoutId="watch-tab-glow"
+                  className="absolute inset-0 bg-white/[0.08] rounded-[18px] border border-white/10"
+                  style={{ boxShadow: '0 0 15px rgba(255,255,255,0.05)' }}
                   transition={spring}
                 />
               )}
-              <Icon className="h-3.5 w-3.5 relative z-10" />
-              <span className="relative z-10">{label}</span>
-            </motion.button>
+              <div className="relative z-10 flex items-center justify-center gap-2">
+                <Icon className="h-4 w-4" />
+                <span>{label}</span>
+              </div>
+            </button>
           ))}
         </div>
       </div>
 
       {/* ── Tab Content ── */}
-      <div className="flex-1 px-4 pb-32">
+      <div className="px-4 pb-12">
         <AnimatePresence mode="wait">
 
           {tab === 'watch' && (
@@ -154,27 +187,35 @@ const WatchPage = () => {
                 </div>
               ) : (
                 <motion.div
-                  className="ios-card aspect-video w-full flex flex-col items-center justify-center gap-4 cursor-pointer tap-effect"
-                  whileTap={{ scale: 0.97 }}
+                  className="relative group p-8 rounded-[40px] bg-white/[0.02] border border-white/[0.05] flex flex-col items-center justify-center gap-6 cursor-pointer overflow-hidden shadow-2xl"
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setTab('discover')}
                 >
+                  <div className="absolute inset-x-0 -top-20 h-40 bg-[#0A84FF]/10 blur-[60px] rounded-full opacity-50" />
+
                   <div className="relative">
-                    <div className="absolute inset-0 bg-[#0A84FF]/25 rounded-full blur-2xl animate-pulse" />
                     <motion.div
-                      animate={{ y: [0, -8, 0] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                      className="relative h-16 w-16 rounded-3xl bg-[#0A84FF]/15 border border-[#0A84FF]/25 flex items-center justify-center"
+                      animate={{
+                        scale: [1, 1.1, 1],
+                        rotate: [0, 5, -5, 0]
+                      }}
+                      transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+                      className="relative h-24 w-24 rounded-[32px] bg-gradient-to-tr from-[#0A84FF]/20 to-[#BF5AF2]/20 border border-white/10 flex items-center justify-center shadow-2xl"
                     >
-                      <Tv className="h-8 w-8 text-[#0A84FF]" />
+                      <Tv className="h-10 w-10 text-white" />
+                      <div className="absolute inset-0 bg-white/10 rounded-[32px] blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
                     </motion.div>
                   </div>
-                  <div className="text-center">
-                    <p className="text-[16px] font-bold text-white">No video selected</p>
-                    <p className="text-[13px] text-white/40 mt-1">Tap to discover videos</p>
+
+                  <div className="text-center relative z-10 space-y-1">
+                    <p className="text-[20px] font-black text-white tracking-tight">Ready to watch?</p>
+                    <p className="text-[14px] font-bold text-white/30 uppercase tracking-widest">Select a video to begin</p>
                   </div>
-                  <div className="ios-pill px-4 py-2 flex items-center gap-2">
-                    <Search className="h-3.5 w-3.5 text-[#0A84FF]" />
-                    <span className="text-[13px] text-[#0A84FF] font-semibold">Browse YouTube</span>
+
+                  <div className="ios-pill px-6 py-3 bg-[#0A84FF]/10 border-[#0A84FF]/20 flex items-center gap-2 group-hover:bg-[#0A84FF]/20 transition-all">
+                    <Search className="h-4 w-4 text-[#0A84FF]" />
+                    <span className="text-[14px] text-[#0A84FF] font-black uppercase tracking-tight">Browse YouTube</span>
                   </div>
                 </motion.div>
               )}
@@ -220,6 +261,7 @@ const WatchPage = () => {
                 remoteNickname={context.remoteNickname}
                 sendData={context.sendData}
                 startCall={context.startCall}
+                disconnectPeer={context.disconnectPeer}
                 isCallActive={context.isCallActive}
                 connectionState={context.connectionState}
                 onManualReconnect={context.onManualReconnect}
