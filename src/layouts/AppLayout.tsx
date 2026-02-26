@@ -120,7 +120,7 @@ const AppLayout = () => {
     onCallAccepted: (call) => {
       // CALLER side: callee accepted → start media call to callee's peer ID
       stopRingtone();
-      if (call.callee_peer_id) {
+      if (call.callee_peer_id && !call.caller_peer_id?.startsWith('room_invite:')) {
         startDirectCall(call.callee_peer_id, call.type);
       }
     },
@@ -139,7 +139,16 @@ const AppLayout = () => {
     setIncomingCaller(null);
     // CALLEE side: start media call back to caller's peer ID
     if (call?.caller_peer_id) {
-      startDirectCall(call.caller_peer_id, call.type);
+      if (call.caller_peer_id.startsWith('room_invite:')) {
+        const match = call.caller_peer_id.match(/room_invite:([^:]+):(.+)/);
+        if (match) {
+          const roomId = match[1];
+          const roomType = match[2];
+          navigate(`/rooms/${roomId}?type=${roomType}`);
+        }
+      } else {
+        startDirectCall(call.caller_peer_id, call.type);
+      }
     }
   };
 

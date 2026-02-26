@@ -29,8 +29,8 @@ export function useRingtone() {
 
     const start = useCallback(() => {
         if (!audioRef.current) {
-            // Using ringing.mp3 which is smaller and more "loop-friendly" based on public dir
-            audioRef.current = new Audio('/ringing.mp3');
+            // Using ringtone.mp3 for incoming calls
+            audioRef.current = new Audio('/ringtone.mp3');
             audioRef.current.loop = true;
         }
 

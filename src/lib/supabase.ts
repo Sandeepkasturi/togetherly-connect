@@ -20,6 +20,7 @@ export interface DBUser {
     is_online: boolean;
     last_seen: string;
     created_at: string;
+    bio?: string;
 }
 
 export interface DBFollow {

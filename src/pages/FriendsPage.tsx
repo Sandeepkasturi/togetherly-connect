@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle, Phone, Video, Send } from 'lucide-react';
+import { Search, UserPlus, Check, X, Users, Clock, Wifi, MessageCircle, Phone, Video, Send, UserMinus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase, DBUser, DBFollow } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
@@ -57,10 +57,13 @@ const UserCard = ({
             </motion.div>
         </div>
 
-        <div className="flex-1 min-w-0">
-            <p className="text-[16px] font-bold text-white tracking-tight leading-tight truncate">
+        <div className="flex-1 min-w-0 pr-2">
+            <button
+                onClick={() => window.location.href = `/profile/${user.id}`}
+                className="text-[16px] font-bold text-white tracking-tight leading-tight truncate hover:underline hover:text-[#0A84FF] transition-colors text-left w-full"
+            >
                 {user.display_name}
-            </p>
+            </button>
             <div className="flex items-center gap-1.5 mt-0.5">
                 <span className={cn(
                     "text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md",
@@ -230,6 +233,28 @@ const FriendsPage = () => {
             .eq('follower_id', fromUserId)
             .eq('following_id', userProfile.id);
         loadRequests();
+    };
+
+    const withdrawRequest = async (targetId: string) => {
+        if (!userProfile) return;
+        await supabase.from('follows')
+            .delete()
+            .eq('follower_id', userProfile.id)
+            .eq('following_id', targetId)
+            .eq('status', 'pending');
+        setSentRequests(prev => {
+            const next = new Set(prev);
+            next.delete(targetId);
+            return next;
+        });
+    };
+
+    const unfriendUser = async (targetId: string) => {
+        if (!userProfile) return;
+        if (!window.confirm("Are you sure you want to unfriend this user?")) return;
+
+        await supabase.from('follows').delete().or(`and(follower_id.eq.${userProfile.id},following_id.eq.${targetId}),and(follower_id.eq.${targetId},following_id.eq.${userProfile.id})`);
+        loadFriends();
     };
 
     const connectToWatch = async (friend: DBUser) => {
@@ -454,6 +479,16 @@ const FriendsPage = () => {
                                                 <span>Watch</span>
                                             </motion.button>
                                         )}
+
+                                        {/* Unfriend Action */}
+                                        <motion.button
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => unfriendUser(u.id)}
+                                            className="h-10 w-10 ml-1 rounded-2xl flex items-center justify-center bg-[#FF453A]/10 text-[#FF453A] border border-[#FF453A]/20 hover:bg-[#FF453A]/20 transition-all shadow-sm"
+                                            title="Unfriend"
+                                        >
+                                            <UserMinus className="h-4 w-4" />
+                                        </motion.button>
                                     </div>
                                 )}
                             />
@@ -490,7 +525,15 @@ const FriendsPage = () => {
                         : discoverUsers.map(u => (
                             <UserCard key={u.id} user={u} action={
                                 sentRequests.has(u.id)
-                                    ? <span className="text-[11px] text-white/30 px-2" style={{ fontFamily: "'Outfit', sans-serif" }}>Sent</span>
+                                    ? (
+                                        <div className="flex gap-2">
+                                            <span className="text-[11px] text-white/30 px-2 py-1.5" style={{ fontFamily: "'Outfit', sans-serif" }}>Sent</span>
+                                            <button onClick={() => withdrawRequest(u.id)}
+                                                className="h-8 px-3 rounded-full flex items-center justify-center text-[10px] font-black uppercase tracking-widest transition-colors bg-white/5 hover:bg-white/10 text-white/50 border border-white/10">
+                                                Withdraw
+                                            </button>
+                                        </div>
+                                    )
                                     : (
                                         <button onClick={() => sendFollowRequest(u.id)}
                                             className="w-8 h-8 rounded-full flex items-center justify-center"

@@ -30,11 +30,6 @@ const ProfilePage = () => {
     const [followersCount, setFollowersCount] = useState(0);
     const [followingCount, setFollowingCount] = useState(0);
 
-    // YouTube Shorts data
-    const [likedShorts, setLikedShorts] = useState<any[]>([]);
-    const [skippedShorts, setSkippedShorts] = useState<any[]>([]);
-    const [viewedShorts, setViewedShorts] = useState<any[]>([]);
-
     // Edit name state
     const [isEditingName, setIsEditingName] = useState(false);
     const [editedName, setEditedName] = useState('');
@@ -83,29 +78,6 @@ const ProfilePage = () => {
                     .eq('follower_id', userProfile.id)
                     .eq('status', 'accepted')
                     .then(({ count }) => { if (count !== null) setFollowingCount(count); });
-
-                // Fetch YouTube Shorts Interactions
-                supabase
-                    .from('youtube_shorts_interactions')
-                    .select('*')
-                    .eq('user_id', userProfile.id)
-                    .order('created_at', { ascending: false })
-                    .then(({ data }) => {
-                        if (data) {
-                            const likes = data.filter(d => d.liked);
-                            const skips = data.filter(d => d.skipped);
-
-                            // Get unique views by video_id
-                            const viewsMap = new Map();
-                            data.forEach(d => {
-                                if (!viewsMap.has(d.video_id)) viewsMap.set(d.video_id, d);
-                            });
-
-                            setLikedShorts(likes);
-                            setSkippedShorts(skips);
-                            setViewedShorts(Array.from(viewsMap.values()));
-                        }
-                    });
             });
         }
     }, [userProfile?.id]);
@@ -578,34 +550,6 @@ const ProfilePage = () => {
                         </div>
                     </div>
                 </motion.button>
-            </motion.div>
-
-            {/* ── Shots Activity ── */}
-            <motion.div {...fadeUp(0.19)} className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                    <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em]">Shots Activity</h2>
-                    <div className="flex items-center gap-2">
-                        <Youtube className="h-4 w-4 text-[#FF0000]" />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
-                        <Heart className="h-5 w-5 text-[#FF375F] mb-1" />
-                        <p className="text-[18px] font-black text-white">{likedShorts.length}</p>
-                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Liked</p>
-                    </div>
-                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
-                        <Play className="h-5 w-5 text-white mb-1" />
-                        <p className="text-[18px] font-black text-white">{viewedShorts.length}</p>
-                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Watched</p>
-                    </div>
-                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
-                        <Youtube className="h-5 w-5 text-[#FF9F0A] mb-1 opacity-50" />
-                        <p className="text-[18px] font-black text-white">{skippedShorts.length}</p>
-                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Skipped</p>
-                    </div>
-                </div>
             </motion.div>
 
             {/* ── Visual Preference Stack ── */}

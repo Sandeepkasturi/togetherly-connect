@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 const BASE_TABS = [
   { key: 'home', label: 'Home', icon: Home, to: '/app' },
   { key: 'watch', label: 'Watch', icon: Monitor, to: '/watch' },
-  { key: 'share', label: 'Shots', icon: Clapperboard, to: '/share' },
+  { key: 'rooms', label: 'Rooms', icon: Users, to: '/rooms' },
   { key: 'chat', label: 'Chat', icon: MessageCircle, to: '/chat' },
 ];
 

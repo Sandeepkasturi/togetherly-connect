@@ -37,8 +37,9 @@ export function useCallSignaling({
     useEffect(() => {
         if (!currentUserId) return;
 
+        const channelId = `calls:${currentUserId}_${Math.random().toString(36).substring(7)}`;
         const channel = supabase
-            .channel(`calls:${currentUserId}`)
+            .channel(channelId)
             .on(
                 'postgres_changes',
                 {
@@ -139,6 +140,69 @@ export function useCallSignaling({
         return data as CallRecord;
     }, [currentUserId, currentPeerId]);
 
+    // Invite to a Room
+    const initiateRoomInvite = useCallback(async (
+        calleeId: string,
+        roomId: string,
+        roomType: 'conference' | 'party'
+    ): Promise<CallRecord | null> => {
+        // We overload the `type` as 'video' to ensure the ringing UI shows a video icon by default
+        // and we encode the room info in the `caller_peer_id`.
+        const { data, error } = await supabase
+            .from('calls')
+            .insert({
+                caller_id: currentUserId,
+                callee_id: calleeId,
+                caller_peer_id: `room_invite:${roomId}:${roomType}`,
+                type: 'video',
+                status: 'ringing',
+            })
+            .select()
+            .single();
+
+        if (error || !data) return null;
+
+        // Note: We intentionally do NOT call setActiveCall(data) here.
+        // Doing so would trigger the OutgoingCallModal in AppLayout and override concurrent invites.
+
+        const roomName = roomType === 'party' ? 'Watch togetherly' : 'Conference Room';
+
+        // Notify callee via DB record
+        await supabase.from('notifications').insert({
+            user_id: calleeId,
+            type: 'call',
+            title: `🚪 Invite: ${roomName}`,
+            body: 'Tap to join room',
+            data: { call_id: data.id, caller_id: currentUserId },
+            read: false,
+        });
+
+        // Trigger remote push notification
+        import('@/lib/push').then(({ sendPushNotification }) => {
+            sendPushNotification({
+                userId: calleeId,
+                title: `🚪 Invite: ${roomName}`,
+                body: `${currentUserId} invited you to a room`,
+                url: `/rooms/${roomId}?type=${roomType}`
+            });
+        });
+
+        // Auto-mark as missed after 45s if not answered
+        setTimeout(async () => {
+            const { data: current } = await supabase
+                .from('calls').select('status').eq('id', data.id).single();
+            if (current?.status === 'ringing') {
+                await supabase.from('calls')
+                    .update({ status: 'missed', ended_at: new Date().toISOString() })
+                    .eq('id', data.id);
+                // Only clear if this is still the active call
+                setActiveCall(prev => prev?.id === data.id ? null : prev);
+            }
+        }, 45_000);
+
+        return data as CallRecord;
+    }, [currentUserId]);
+
     // Accept incoming call — fills callee_peer_id and sets active
     const acceptCall = useCallback(async (callId: string): Promise<CallRecord | null> => {
         const { data, error } = await supabase
@@ -167,5 +231,5 @@ export function useCallSignaling({
         setActiveCall(null);
     }, []);
 
-    return { activeCall, initiateCall, acceptCall, declineCall, endCall };
+    return { activeCall, initiateCall, initiateRoomInvite, acceptCall, declineCall, endCall };
 }

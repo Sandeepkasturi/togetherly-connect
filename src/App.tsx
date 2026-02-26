@@ -18,14 +18,15 @@ import Documentation from "./pages/Documentation";
 import AppLayout from "./layouts/AppLayout";
 import WatchPage from "./pages/WatchPage";
 import BrowserPage from "./pages/BrowserPage";
-import SharePage from "./pages/SharePage";
 import ChatPage from "./pages/ChatPage";
 import TheaterPage from "./pages/TheaterPage";
 import FriendsPage from "./pages/FriendsPage";
 import ProfilePage from "./pages/ProfilePage";
+import PublicProfilePage from "./pages/PublicProfilePage";
+import RoomsPage from "./pages/RoomsPage";
+import RoomDetailsPage from "./pages/RoomDetailsPage";
 import SplashScreen from "@/components/SplashScreen";
 import LegalPage from "./pages/LegalPage";
-import ShortsPage from "./pages/ShortsPage";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string ?? '';
@@ -66,20 +67,13 @@ const AppRoutes = () => (
       <Route path="/watch" element={<WatchPage />} />
       <Route path="/theater" element={<TheaterPage />} />
       <Route path="/browser" element={<BrowserPage />} />
-      <Route path="/share" element={<SharePage />} />
+      <Route path="/rooms" element={<RoomsPage />} />
+      <Route path="/rooms/:id" element={<RoomDetailsPage />} />
       <Route path="/chat" element={<ChatPage />} />
       <Route path="/chat/:friendId" element={<ChatPage />} />
       <Route path="/friends" element={<FriendsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
-    </Route>
-
-    {/* Full Screen Mode Protected Route */}
-    <Route element={
-      <ProtectedRoute>
-        <Outlet />
-      </ProtectedRoute>
-    }>
-      <Route path="/shorts" element={<ShortsPage />} />
+      <Route path="/profile/:userId" element={<PublicProfilePage />} />
     </Route>
 
     <Route path="*" element={<NotFound />} />
