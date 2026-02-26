@@ -337,7 +337,7 @@ const AppLayout = () => {
         }
       } else if (data.type === 'video') {
         setSelectedVideoId(data.payload);
-        navigate('/theater');
+        // Removed force navigate to theater to ensure a smooth watch page experience
       } else if (data.type === 'system') {
         const systemMessage: Message = {
           id: Date.now().toString(),
@@ -723,7 +723,7 @@ const AppLayout = () => {
     setSelectedVideoId(videoId);
     const dataToSend: DataType = { type: 'video', payload: videoId };
     sendData(dataToSend);
-    navigate('/theater');
+    // Removed force navigate to theater to ensure a smooth watch page experience
   };
 
   const handleSendReaction = (messageId: string, emoji: string) => {

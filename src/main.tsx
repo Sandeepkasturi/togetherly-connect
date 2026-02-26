@@ -7,6 +7,24 @@ import { registerSW } from 'virtual:pwa-register'
 
 // Automatically check for updates and refresh
 const updateSW = registerSW({
+    onRegisteredSW(swUrl, r) {
+        // Poll for updates every hour
+        const intervalMS = 60 * 60 * 1000;
+        if (r) {
+            setInterval(() => {
+                if (r.active) {
+                    r.update();
+                }
+            }, intervalMS);
+        }
+
+        // Check for updates when the window regains visibility
+        window.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible' && r && r.active) {
+                r.update();
+            }
+        });
+    },
     onNeedRefresh() {
         // When a new update is found, auto-refresh to fetch it.
         updateSW(true);
@@ -15,6 +33,16 @@ const updateSW = registerSW({
         console.log('[PWA] Ready for offline use');
     },
 });
+
+// Auto-reload the page when a new service worker takes over
+if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+    });
+}
 
 const bootStep = (step: string) => {
     console.log(`[BOOT] ${step}`);
