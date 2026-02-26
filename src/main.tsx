@@ -10,13 +10,29 @@ import ErrorBoundary from './components/ErrorBoundary.tsx'
 // Unregister old caching service workers (PWA cleanup)
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
-        for (const reg of registrations) {
+        // Nuke all old caches to ensure fresh code is fetched!
+        if ('caches' in window) {
+            caches.keys().then((names) => {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
+        }
+
+        let shouldReload = false;
+        Promise.all(registrations.map(reg => {
             if (reg.active && !reg.active.scriptURL.endsWith('push-sw.js')) {
-                reg.unregister().then(() => {
+                return reg.unregister().then(() => {
                     console.log('Unregistered old PWA caching service worker safely.');
+                    shouldReload = true;
                 });
             }
-        }
+            return Promise.resolve();
+        })).then(() => {
+            if (shouldReload) {
+                window.location.reload();
+            }
+        });
     });
 }
 

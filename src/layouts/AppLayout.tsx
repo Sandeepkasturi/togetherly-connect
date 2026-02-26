@@ -121,6 +121,9 @@ const AppLayout = () => {
       // CALLER side: callee accepted → start media call to callee's peer ID
       stopRingtone();
       if (call.callee_peer_id && !call.caller_peer_id?.startsWith('room_invite:')) {
+        // Essential for Sync: We need a DataConnection alongside the MediaConnection
+        connectToPeer(call.callee_peer_id, { nickname: userProfile?.displayName || nickname });
+        // Start the media stream channel
         startDirectCall(call.callee_peer_id, call.type);
       }
     },
@@ -147,6 +150,9 @@ const AppLayout = () => {
           navigate(`/rooms/${roomId}?type=${roomType}`);
         }
       } else {
+        // Essential for Sync: We need a DataConnection alongside the MediaConnection
+        connectToPeer(call.caller_peer_id, { nickname: userProfile?.displayName || nickname });
+        // Start the media stream channel
         startDirectCall(call.caller_peer_id, call.type);
       }
     }
@@ -219,19 +225,33 @@ const AppLayout = () => {
   useEffect(() => {
     if (incomingConn) {
       const nickname = incomingConn.metadata?.nickname || 'A friend';
-      const peerId = incomingConn.peer;
-      // Optimistically set with just the nickname
-      setIncomingPeerInfo({ nickname, peerId });
+      const connectionPeerId = incomingConn.peer; // renamed from peerId to avoid shadowing
+
+      // Auto-accept the incoming DataConnection if it's arriving while we have an active signaling call
+      // with this peer (meaning they called us or we called them and one just sent the data channel request).
+      // We check if connectionPeerId matches either our active call's callee_peer_id or caller_peer_id.
+      const isExpectedConnection = activeCall &&
+        (activeCall.caller_peer_id === connectionPeerId || activeCall.callee_peer_id === connectionPeerId);
+
+      if (isExpectedConnection) {
+        console.log('[AppLayout] Auto-accepting DataConnection from active signaling call');
+        acceptConnection();
+        // Skip the manual incomingPeerInfo flow since we are auto-accepting
+        return;
+      }
+
+      // Optimistically set with just the nickname for manual connections
+      setIncomingPeerInfo({ nickname, peerId: connectionPeerId });
       // Then try to enrich with Supabase profile
       supabase
         .from('users')
         .select('display_name, photo_url, peer_id')
-        .eq('peer_id', peerId)
+        .eq('peer_id', connectionPeerId)
         .maybeSingle()
         .then(({ data }) => {
           setIncomingPeerInfo({
             nickname: data?.display_name ?? nickname,
-            peerId,
+            peerId: connectionPeerId,
             photo: data?.photo_url ?? null,
             displayName: data?.display_name ?? null,
           });
@@ -239,7 +259,7 @@ const AppLayout = () => {
     } else {
       setIncomingPeerInfo(null);
     }
-  }, [incomingConn]);
+  }, [incomingConn, activeCall, acceptConnection]);
 
   useEffect(() => {
     // Only send nickname after connection is fully established

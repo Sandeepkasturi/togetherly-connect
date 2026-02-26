@@ -154,15 +154,17 @@ export const useMultiPeer = (roomId: string, roomType: RoomType = 'conference') 
                     let hostId = myPresenceState.userId; // Default to self
 
                     Object.values(newState).forEach(presences => {
-                        const presenceInfo = presences[0];
-                        if (presenceInfo) {
-                            currentPeers.push(presenceInfo);
+                        // A user might have multiple connections (tabs) under the same userId
+                        presences.forEach(presenceInfo => {
+                            if (presenceInfo) {
+                                currentPeers.push(presenceInfo);
 
-                            // Naive Host resolution: Sort by userId or presence join time (if provided)
-                            // For reliable host: Host is the one whose userId created the room.
-                            // If we don't know who created it, we can just pick the alphabetically first ID for now.
-                            if (presenceInfo.userId < hostId) hostId = presenceInfo.userId;
-                        }
+                                // Naive Host resolution: Sort by userId or presence join time (if provided)
+                                // For reliable host: Host is the one whose userId created the room.
+                                // If we don't know who created it, we can just pick the alphabetically first ID for now.
+                                if (presenceInfo.userId < hostId) hostId = presenceInfo.userId;
+                            }
+                        });
                     });
 
                     // Update who is host

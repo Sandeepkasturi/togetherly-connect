@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import YouTubeSearch from "@/components/YouTubeSearch";
+import YouTubePlayer from "@/components/YouTubePlayer";
+import { DataType } from "@/hooks/usePeer";
 
 // Simple YouTube URL parser
 const getYouTubeId = (url: string) => {
@@ -109,6 +111,34 @@ const RoomDetailsPage = () => {
   const isHost = myPeer?.isHost;
   const canControlPlayer = myPeer?.isPlayerGranted || isHost;
 
+  // Adapter to convert YouTubePlayer's `sendData` format to useMultiPeer's `broadcastPartyState`
+  const handlePlayerSendData = (data: DataType) => {
+    if (data.type === "player_state") {
+      const { event, currentTime } = data.payload;
+      broadcastPartyState({
+        isPlaying: event === "play",
+        currentTime: currentTime,
+      });
+    } else if (data.type === "request_sync" && isHost) {
+      // If someone requests sync, the host should oblige.
+      const isPlaying = partyState.isPlaying;
+      broadcastPartyState({
+        // Force broadcast by changing updatedAt
+        updatedAt: Date.now()
+      });
+    }
+  };
+
+  // Adapter to convert useMultiPeer's `partyState` into the format YouTubePlayer expects via `playerData`
+  // This effectively fakes an incoming PeerJS message from the central room state
+  const formattedPlayerData: DataType | null = partyState.videoId ? {
+    type: "player_state",
+    payload: {
+      event: partyState.isPlaying ? "play" : "pause",
+      currentTime: partyState.currentTime
+    }
+  } : null;
+
   // Grid classes based on participant count
   const totalParticipants = peers.length;
   let gridClass = "grid-cols-2"; // default to 2 cols to fit 4 easily
@@ -147,12 +177,11 @@ const RoomDetailsPage = () => {
           <div className="flex-1 lg:flex-[2] bg-[#0A0A0F] rounded-2xl border border-white/10 flex flex-col shadow-2xl relative overflow-y-auto overflow-x-hidden custom-scrollbar">
             {partyState.videoId ? (
               <div className="flex-1 w-full h-full relative">
-                <iframe
-                  ref={playerRef}
-                  src={`https://www.youtube.com/embed/${partyState.videoId}?enablejsapi=1&autoplay=${partyState.isPlaying ? 1 : 0}&start=${Math.floor(partyState.currentTime)}&controls=${canControlPlayer ? 1 : 0}`}
-                  className="absolute inset-0 w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
+                <YouTubePlayer
+                  videoId={partyState.videoId}
+                  sendData={handlePlayerSendData}
+                  playerData={formattedPlayerData}
+                  isConnected={true} // In rooms, connectiveness is implied by channel subscription
                 />
                 {!canControlPlayer && (
                   <div
