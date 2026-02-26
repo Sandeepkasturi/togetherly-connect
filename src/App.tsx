@@ -24,6 +24,7 @@ import TheaterPage from "./pages/TheaterPage";
 import FriendsPage from "./pages/FriendsPage";
 import ProfilePage from "./pages/ProfilePage";
 import SplashScreen from "@/components/SplashScreen";
+import LegalPage from "./pages/LegalPage";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string ?? '';
@@ -52,6 +53,11 @@ const AppRoutes = () => (
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/documentation" element={<Documentation />} />
     <Route path="/join" element={<JoinPage />} />
+
+    {/* Legal Pages */}
+    <Route path="/privacy" element={<LegalPage defaultType="privacy" />} />
+    <Route path="/terms" element={<LegalPage defaultType="terms" />} />
+    <Route path="/security" element={<LegalPage defaultType="security" />} />
 
     {/* Protected — all app routes */}
     <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>

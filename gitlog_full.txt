@@ -1,0 +1,29 @@
+commit 46912b74cf4bff5c344dab05dd9ad90f2d797966
+Author: Sandeep Kasturi <openhack873@gmail.com>
+Date:   Thu Feb 26 00:35:22 2026 +0530
+
+    chore: Configure Deno VS Code extension for Edge Functions to resolve IDE type errors
+
+commit 89159bdfb3115adca2e44d22845d258b72042d0d
+Author: Sandeep Kasturi <openhack873@gmail.com>
+Date:   Thu Feb 26 00:33:13 2026 +0530
+
+    fix: Resolve Deno TypeScript errors in send-push edge function
+
+commit f1d0fefe4889a081a74729313166a5231b4a1190
+Author: Sandeep Kasturi <openhack873@gmail.com>
+Date:   Thu Feb 26 00:30:56 2026 +0530
+
+    fix: Resolve missing disconnectPeer prop and useRef import
+
+commit 4ffdc404ae0bd13c1c18d85c792e951eb4f9696f
+Author: Sandeep Kasturi <openhack873@gmail.com>
+Date:   Thu Feb 26 00:28:08 2026 +0530
+
+    feat: Connection Hub realtime invites & UX refactoring
+
+commit 2a63b9f4b9429988ad220c26c90637fe7b92aaba
+Author: Sandeep Kasturi <openhack873@gmail.com>
+Date:   Tue Feb 24 22:27:18 2026 +0530
+
+    docs: update live link and remove lovable mentions

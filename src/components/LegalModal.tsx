@@ -4,7 +4,7 @@ import { X, ShieldCheck, Lock, FileText } from 'lucide-react';
 
 // ── Content definitions ───────────────────────────────────────
 
-const LEGAL_CONTENT = {
+export const LEGAL_CONTENT = {
     privacy: {
         title: 'Privacy Policy',
         icon: Lock,

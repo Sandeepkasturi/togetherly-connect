@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { ChevronRight } from 'lucide-react';
@@ -195,8 +195,9 @@ const AuthPage = () => {
                         Encrypted Connection • Version 2.0.4
                     </p>
                     <p className="text-[10px] text-white/30 font-bold" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                        By engaging, you synchronize with our <span className="text-white/50 underline underline-offset-4 cursor-pointer hover:text-white transition-colors">Terms of Togetherly</span> & <span className="text-white/50 underline underline-offset-4 cursor-pointer hover:text-white transition-colors">Privacy Protocol</span>
+                        By engaging, you synchronize with our <Link to="/terms" className="text-white/50 underline underline-offset-4 cursor-pointer hover:text-white transition-colors">Terms of Togetherly</Link> & <Link to="/privacy" className="text-white/50 underline underline-offset-4 cursor-pointer hover:text-white transition-colors">Privacy Protocol</Link>
                     </p>
+
                 </motion.div>
             </div>
         </div>

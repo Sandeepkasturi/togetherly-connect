@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
     ShieldCheck,
@@ -11,22 +11,13 @@ import {
     Building2,
     FileText,
 } from 'lucide-react';
-import LegalModal, { LegalKey } from './LegalModal';
 
 const AppFooter = () => {
     const currentYear = new Date().getFullYear();
-    const [legalOpen, setLegalOpen] = useState(false);
-    const [legalType, setLegalType] = useState<LegalKey | null>(null);
-
-    const openLegal = (type: LegalKey) => {
-        setLegalType(type);
-        setLegalOpen(true);
-    };
+    const navigate = useNavigate();
 
     return (
         <>
-            <LegalModal open={legalOpen} type={legalType} onClose={() => setLegalOpen(false)} />
-
             <footer
                 className="w-full pt-16 pb-14 px-6 space-y-12 mt-12 relative overflow-hidden"
             >
@@ -133,7 +124,7 @@ const AppFooter = () => {
                                 whileHover={{ scale: 1.05, y: -4, backgroundColor: 'rgba(48,209,88,0.05)' }}
                                 whileTap={{ scale: 0.95 }}
                                 className="text-left rounded-[28px] p-5 space-y-3 border border-white/[0.05] bg-white/[0.02] shadow-xl backdrop-blur-2xl transition-all"
-                                onClick={() => openLegal('security')}
+                                onClick={() => navigate('/security')}
                             >
                                 <div className="h-10 w-10 rounded-[12px] border border-[#30D158]/20 bg-[#30D158]/10 flex items-center justify-center shadow-inner">
                                     <Lock className="h-5 w-5 text-[#30D158]" />
@@ -149,7 +140,7 @@ const AppFooter = () => {
                                 whileHover={{ scale: 1.05, y: -4, backgroundColor: 'rgba(255,159,10,0.05)' }}
                                 whileTap={{ scale: 0.95 }}
                                 className="text-left rounded-[28px] p-5 space-y-3 border border-white/[0.05] bg-white/[0.02] shadow-xl backdrop-blur-2xl transition-all"
-                                onClick={() => openLegal('privacy')}
+                                onClick={() => navigate('/privacy')}
                             >
                                 <div className="h-10 w-10 rounded-[12px] border border-[#FF9F0A]/20 bg-[#FF9F0A]/10 flex items-center justify-center shadow-inner">
                                     <ShieldCheck className="h-5 w-5 text-[#FF9F0A]" />
@@ -170,24 +161,24 @@ const AppFooter = () => {
                     <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent absolute top-0 left-0" />
 
                     <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-4 text-[13px] font-bold text-white/40 uppercase tracking-widest" style={{ fontFamily: "'Outfit', sans-serif" }}>
-                        <button
-                            onClick={() => openLegal('privacy')}
+                        <Link
+                            to="/privacy"
                             className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white/40 pb-1"
                         >
                             Privacy
-                        </button>
-                        <button
-                            onClick={() => openLegal('terms')}
+                        </Link>
+                        <Link
+                            to="/terms"
                             className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white/40 pb-1"
                         >
                             Terms
-                        </button>
-                        <button
-                            onClick={() => openLegal('security')}
+                        </Link>
+                        <Link
+                            to="/security"
                             className="hover:text-white transition-colors border-b-2 border-transparent hover:border-white/40 pb-1"
                         >
                             Security
-                        </button>
+                        </Link>
                     </div>
 
                     <div className="flex flex-col items-center gap-4">
