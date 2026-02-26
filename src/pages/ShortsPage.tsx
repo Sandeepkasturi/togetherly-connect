@@ -4,34 +4,6 @@ import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 
-// Hardcoded mock feed for demonstration purposes
-const MOCK_SHORTS = [
-    {
-        id: '1',
-        videoId: 'F0B7HDiY-10', // Example Short ID 
-        author: 'TechTok',
-        description: 'The future of AI is here and it is mindblowing! 🤯 #tech #ai #future'
-    },
-    {
-        id: '2',
-        videoId: 'd1YBv2mWll0', // Example Short ID
-        author: 'DesignInspo',
-        description: 'Minimalist workspace setup that will boost your productivity 10x 💻✨ #workspace #productivity'
-    },
-    {
-        id: '3',
-        videoId: '1La4QzGeaaQ', // Example Short ID
-        author: 'CodeDaily',
-        description: 'Stop using traditional CSS. Tailwind is the way. Here is why... 🚀 #coding #webdev #react'
-    },
-    {
-        id: '4',
-        videoId: 'kJQP7kiw5Fk', // Despacito but just used for testing vertical
-        author: 'MusicVibes',
-        description: 'This song never gets old 🔥 #music #vibes'
-    }
-];
-
 const ShortsPage = () => {
     const navigate = useNavigate();
     const [activeIndex, setActiveIndex] = useState(0);
@@ -47,23 +19,12 @@ const ShortsPage = () => {
     const fetchShorts = async (pageToken?: string) => {
         const token = sessionStorage.getItem('yt_token');
         if (!token) {
-            // Fallback if no token (user needs to re-login to grant YouTube scopes)
             if (shorts.length === 0) {
-                setShorts([...MOCK_SHORTS]);
                 toast({
                     title: "Action Required",
                     description: "Please log out and log back in to grant YouTube access for real shorts.",
                     variant: "destructive"
                 });
-            } else {
-                // Endless mock scroll
-                setShorts((prev) => [
-                    ...prev,
-                    ...MOCK_SHORTS.map((s) => ({
-                        ...s,
-                        id: `${s.id}_${Date.now()}_${Math.random()}`
-                    }))
-                ]);
             }
             setIsLoading(false);
             return;
@@ -91,7 +52,11 @@ const ShortsPage = () => {
             setNextPageToken(data.nextPageToken || null);
         } catch (error) {
             console.error('[ShortsPage] Error fetching shorts:', error);
-            if (shorts.length === 0) setShorts([...MOCK_SHORTS]);
+            toast({
+                title: "Error fetching shorts",
+                description: "Failed to connect to YouTube. Please try again later.",
+                variant: "destructive"
+            });
         } finally {
             setIsLoading(false);
             setIsFetchingMore(false);
@@ -169,6 +134,22 @@ const ShortsPage = () => {
                     <div className="w-full h-full flex flex-col items-center justify-center bg-black gap-4 text-white/50">
                         <Loader2 className="w-8 h-8 animate-spin text-[#30D158]" />
                         <p className="font-bold tracking-widest uppercase text-[12px]">Loading Feed...</p>
+                    </div>
+                ) : !isLoading && shorts.length === 0 ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-[#0A0A0F] gap-4 text-white p-6 text-center">
+                        <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-2">
+                            <span className="text-2xl">🎬</span>
+                        </div>
+                        <h2 className="text-xl font-bold">No Shorts Found</h2>
+                        <p className="text-white/50 text-sm max-w-xs">
+                            We couldn't load any YouTube Shorts. Please make sure you have granted YouTube access by logging out and logging back in.
+                        </p>
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="mt-4 px-6 py-2 bg-[#30D158] text-black font-bold rounded-full text-sm hover:bg-[#30D158]/90 transition-colors"
+                        >
+                            Refresh Feed
+                        </button>
                     </div>
                 ) : (
                     shorts.map((short, index) => (
