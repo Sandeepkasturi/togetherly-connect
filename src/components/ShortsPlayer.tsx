@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { Heart, MessageCircle, Share2, Play, Pause, MoreVertical, ThumbsDown } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Play, Pause, MoreVertical, ThumbsDown, ThumbsUp, Music } from 'lucide-react';
 import { useShortsTelemetry } from '@/hooks/useShortsTelemetry';
 import { useToast } from '@/hooks/use-toast';
 
@@ -271,7 +271,7 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
                             }}
                             className="pointer-events-none"
                         >
-                            <Heart className="h-24 w-24 text-[#FF375F] drop-shadow-2xl" fill="currentColor" />
+                            <Heart className="h-24 w-24 text-white drop-shadow-2xl" fill="currentColor" />
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -280,17 +280,34 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
                 <div className="absolute bottom-0 w-full h-1/2 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
 
                 {/* Native Data Underlay (Left Side) */}
-                <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] md:bottom-[90px] left-4 right-20 z-20 flex flex-col gap-2">
-                    <h3 className="text-white font-bold text-[16px] drop-shadow-md pb-1 pointer-events-auto cursor-auto">
-                        @{author}
-                    </h3>
-                    <p className="text-white/90 text-[14px] leading-snug drop-shadow-md line-clamp-2 md:line-clamp-3 pointer-events-auto cursor-auto">
+                <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+80px)] md:bottom-[90px] left-4 right-16 z-20 flex flex-col gap-3 pointer-events-auto">
+                    {/* Author Row */}
+                    <div className="flex items-center gap-3">
+                        <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-500 border border-white/20 shadow-md flex items-center justify-center overflow-hidden shrink-0">
+                            <span className="text-white font-bold text-[14px]">{author.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <h3 className="text-white font-bold text-[15px] drop-shadow-md">
+                            @{author}
+                        </h3>
+                        <button className="bg-white text-black font-bold text-[12px] px-3 py-1.5 rounded-full ml-1 hover:bg-gray-200 transition-colors">
+                            Subscribe
+                        </button>
+                    </div>
+
+                    {/* Description */}
+                    <p className="text-white/95 text-[14px] leading-snug drop-shadow-md line-clamp-2 pr-4 font-medium">
                         {description}
                     </p>
-                    <div className="flex items-center gap-2 mt-2 pointer-events-auto">
-                        <div className="px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[12px] font-medium text-white shadow-sm flex items-center gap-1.5 cursor-auto">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#30D158] shadow-[0_0_8px_rgba(48,209,88,0.5)] animate-pulse" />
-                            For You
+
+                    {/* Sound Track Row */}
+                    <div className="flex items-center gap-2 mt-1 -ml-1">
+                        <div className="px-3 py-1 rounded-full bg-black/20 backdrop-blur-md text-[13px] font-medium text-white/90 flex items-center gap-2 w-fit overflow-hidden">
+                            <Music className="h-3 w-3 text-white" fill="white" />
+                            <div className="w-32 relative overflow-hidden whitespace-nowrap">
+                                <p className="animate-marquee inline-block">
+                                    Original Sound - @{author}
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -301,13 +318,13 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
                     <motion.button
                         whileTap={{ scale: 0.8 }}
                         onClick={handleLike}
-                        className="flex flex-col items-center gap-1"
+                        className="flex flex-col items-center gap-1.5"
                     >
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center shadow-2xl transition-colors ${localLiked ? 'bg-[#FF375F] border-[#FF375F]/50' : 'bg-black/40 backdrop-blur-xl border border-white/20'}`}>
-                            <Heart className="h-6 w-6" fill={localLiked ? 'white' : 'transparent'} color={localLiked ? 'white' : 'white'} />
+                        <div className="h-12 w-12 rounded-full flex items-center justify-center transition-colors bg-black/20 backdrop-blur-xl">
+                            <ThumbsUp className="h-6 w-6" fill={localLiked ? 'white' : 'transparent'} color="white" />
                         </div>
-                        <span className="text-[12px] font-bold text-white drop-shadow-md">
-                            {localLiked ? 'Liked' : 'Like'}
+                        <span className="text-[12px] font-medium text-white drop-shadow-md">
+                            Like
                         </span>
                     </motion.button>
 
@@ -315,12 +332,12 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
                     <motion.button
                         whileTap={{ scale: 0.8 }}
                         onClick={handleDislike}
-                        className="flex flex-col items-center gap-1"
+                        className="flex flex-col items-center gap-1.5"
                     >
-                        <div className={`h-12 w-12 rounded-full flex items-center justify-center shadow-2xl transition-colors ${localDisliked ? 'bg-white/20 border-white/50' : 'bg-black/40 backdrop-blur-xl border border-white/20'}`}>
+                        <div className="h-12 w-12 rounded-full flex items-center justify-center transition-colors bg-black/20 backdrop-blur-xl">
                             <ThumbsDown className="h-6 w-6" fill={localDisliked ? 'white' : 'transparent'} color="white" />
                         </div>
-                        <span className="text-[12px] font-bold text-white drop-shadow-md">
+                        <span className="text-[12px] font-medium text-white drop-shadow-md">
                             Dislike
                         </span>
                     </motion.button>
@@ -328,23 +345,23 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
                     <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={handleComment}
-                        className="flex flex-col items-center gap-1"
+                        className="flex flex-col items-center gap-1.5"
                     >
-                        <div className="h-12 w-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/20 shadow-2xl">
-                            <MessageCircle className="h-6 w-6 text-white" />
+                        <div className="h-12 w-12 rounded-full flex items-center justify-center bg-black/20 backdrop-blur-xl">
+                            <MessageCircle className="h-6 w-6" color="white" fill="white" />
                         </div>
-                        <span className="text-[12px] font-bold text-white drop-shadow-md">1.2k</span>
+                        <span className="text-[12px] font-medium text-white drop-shadow-md">1.2k</span>
                     </motion.button>
 
                     <motion.button
                         whileTap={{ scale: 0.9 }}
                         onClick={handleShare}
-                        className="flex flex-col items-center gap-1"
+                        className="flex flex-col items-center gap-1.5"
                     >
-                        <div className="h-12 w-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/20 shadow-2xl">
-                            <Share2 className="h-6 w-6 text-white" />
+                        <div className="h-12 w-12 rounded-full flex items-center justify-center bg-black/20 backdrop-blur-xl">
+                            <Share2 className="h-6 w-6" color="white" fill="white" />
                         </div>
-                        <span className="text-[12px] font-bold text-white drop-shadow-md">Share</span>
+                        <span className="text-[12px] font-medium text-white drop-shadow-md">Share</span>
                     </motion.button>
 
                     <button className="h-8 w-8 rounded-full flex items-center justify-center mt-2 opacity-50">
