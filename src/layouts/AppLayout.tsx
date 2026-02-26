@@ -153,7 +153,8 @@ const AppLayout = () => {
         // Essential for Sync: We need a DataConnection alongside the MediaConnection
         connectToPeer(call.caller_peer_id, { nickname: userProfile?.displayName || nickname });
         // Start the media stream channel
-        startDirectCall(call.caller_peer_id, call.type);
+        // NOTE: DO NOT call startDirectCall here as CALLEE. 
+        // The CALLER automatically initiates it in onCallAccepted, which triggers the 'call' event on our side.
       }
     }
   };

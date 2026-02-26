@@ -78,6 +78,7 @@ const RoomDetailsPage = () => {
   const { userProfile } = useAuth();
 
   const {
+    myPeerId,
     peers,
     streams,
     localStream,
@@ -107,7 +108,7 @@ const RoomDetailsPage = () => {
     }
   };
 
-  const myPeer = peers.find((p) => p.userId === userProfile?.id);
+  const myPeer = peers.find((p) => p.peerId === myPeerId);
   const isHost = myPeer?.isHost;
   const canControlPlayer = myPeer?.isPlayerGranted || isHost;
 
@@ -168,9 +169,9 @@ const RoomDetailsPage = () => {
         </div>
       </div>
 
-      {/* Main Content Area - Split cleanly. Pb-24 avoids overlap with bottom controls */}
+      {/* Main Content Area - Split cleanly. Pb-40 avoids overlap with bottom controls on mobile */}
       <div
-        className={`flex-1 overflow-hidden flex ${roomType === "party" ? "flex-col lg:flex-row" : "flex-col"} p-2 gap-2 pb-24`}
+        className={`flex-1 overflow-hidden flex ${roomType === "party" ? "flex-col lg:flex-row" : "flex-col"} p-2 gap-2 pb-40 lg:pb-24`}
       >
         {/* Watch togetherly Player Area */}
         {roomType === "party" && (
@@ -265,14 +266,14 @@ const RoomDetailsPage = () => {
 
             {/* Remote Peers */}
             {peers
-              .filter((p) => p.userId !== userProfile?.id)
+              .filter((p) => p.peerId !== myPeerId)
               .map((peer) => (
                 <div
-                  key={peer.userId}
+                  key={peer.peerId}
                   className="relative group w-full aspect-video rounded-2xl overflow-hidden bg-[#1C1C1E]"
                 >
                   <VideoTile
-                    stream={streams[peer.userId] || null}
+                    stream={streams[peer.peerId] || null}
                     name={peer.displayName}
                     isHost={peer.isHost}
                   />
@@ -298,7 +299,7 @@ const RoomDetailsPage = () => {
       </div>
 
       {/* Control Bar */}
-      <div className="h-24 pb-safe bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-4 z-20 absolute bottom-0 w-full px-4">
+      <div className="h-24 pb-safe bg-gradient-to-t from-black via-black/80 to-transparent flex items-center justify-center gap-4 z-20 absolute bottom-16 lg:bottom-0 w-full px-4">
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={toggleAudio}

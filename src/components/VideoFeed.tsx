@@ -5,9 +5,10 @@ interface VideoFeedProps {
   stream: MediaStream | null;
   isMuted?: boolean;
   isMe?: boolean;
+  className?: string; // Add className prop support
 }
 
-const VideoFeed = ({ stream, isMuted = false, isMe = false }: VideoFeedProps) => {
+const VideoFeed = ({ stream, isMuted = false, isMe = false, className }: VideoFeedProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -17,8 +18,8 @@ const VideoFeed = ({ stream, isMuted = false, isMe = false }: VideoFeedProps) =>
   }, [stream]);
 
   return (
-    <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
-      <video ref={videoRef} autoPlay playsInline muted={isMuted} className="w-full h-full object-cover" style={{ transform: isMe ? 'scaleX(-1)' : 'none' }}/>
+    <div className={`relative bg-black rounded-lg overflow-hidden ${className || 'aspect-video'}`}>
+      <video ref={videoRef} autoPlay playsInline muted={isMuted} className="w-full h-full object-cover" style={{ transform: isMe ? 'scaleX(-1)' : 'none' }} />
     </div>
   );
 };

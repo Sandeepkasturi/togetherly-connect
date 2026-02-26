@@ -108,21 +108,17 @@ export const useMultiPeer = (roomId: string, roomType: RoomType = 'conference') 
                 call.answer(localStreamRef.current);
 
                 call.on('stream', (remoteStream) => {
-                    const callerUserId = call.metadata?.userId;
-                    if (callerUserId) {
-                        setStreams(prev => ({ ...prev, [callerUserId]: remoteStream }));
-                    }
+                    const callerPeerId = call.peer;
+                    setStreams(prev => ({ ...prev, [callerPeerId]: remoteStream }));
                 });
 
                 call.on('close', () => {
-                    const callerUserId = call.metadata?.userId;
-                    if (callerUserId) {
-                        setStreams(prev => {
-                            const next = { ...prev };
-                            delete next[callerUserId];
-                            return next;
-                        });
-                    }
+                    const callerPeerId = call.peer;
+                    setStreams(prev => {
+                        const next = { ...prev };
+                        delete next[callerPeerId];
+                        return next;
+                    });
                 });
 
                 mediaConnections.current[call.peer] = call;
@@ -208,12 +204,12 @@ export const useMultiPeer = (roomId: string, roomType: RoomType = 'conference') 
 
             if (call) {
                 call.on('stream', (remoteStream) => {
-                    setStreams(prev => ({ ...prev, [remotePeer.userId]: remoteStream }));
+                    setStreams(prev => ({ ...prev, [remotePeer.peerId]: remoteStream }));
                 });
                 call.on('close', () => {
                     setStreams(prev => {
                         const next = { ...prev };
-                        delete next[remotePeer.userId];
+                        delete next[remotePeer.peerId];
                         return next;
                     });
                 });

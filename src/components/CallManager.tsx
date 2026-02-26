@@ -51,7 +51,7 @@ const CallManager = ({ localStream, remoteStream, isCallActive, endCall, toggleM
                 >
                     {/* Remote Video (Main) */}
                     <div className="absolute inset-0 bg-black">
-                        <VideoFeed stream={remoteStream} />
+                        <VideoFeed stream={remoteStream} className="w-full h-full rounded-none" />
                     </div>
 
                     {/* Gradient Overlay for Text */}
@@ -74,7 +74,7 @@ const CallManager = ({ localStream, remoteStream, isCallActive, endCall, toggleM
                     {!videoIsActuallyOff && (
                         <div className={`absolute border border-white/20 bg-black shadow-lg rounded-xl overflow-hidden z-10
                             ${expanded ? 'bottom-20 right-4 w-[120px] h-[160px]' : 'top-10 right-2 w-[45px] h-[60px] rounded-lg'}`}>
-                            <VideoFeed stream={localStream} isMuted isMe />
+                            <VideoFeed stream={localStream} isMuted isMe className="w-full h-full rounded-none" />
                         </div>
                     )}
 
