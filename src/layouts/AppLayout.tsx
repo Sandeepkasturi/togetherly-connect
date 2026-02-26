@@ -9,7 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import CallManager from '@/components/CallManager';
 import SplashScreen from '@/components/SplashScreen';
 import BottomNav from '@/components/BottomNav';
-import PWAInstallPrompt from '@/components/PWAInstallPrompt';
+
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { useAutoConnect } from '@/hooks/useAutoConnect';
 import IncomingCallModal from '@/components/IncomingCallModal';
@@ -839,8 +839,6 @@ const AppLayout = () => {
 
         {!isFixedLayout && <BottomNav />}
 
-        {/* PWA install prompt — shows on Android & iOS */}
-        <PWAInstallPrompt />
 
         {/* Global friend call modal — fires when anyone calls you via Supabase signaling */}
         <IncomingCallModal

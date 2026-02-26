@@ -49,7 +49,16 @@ export const usePushNotifications = (): PushNotificationState => {
         if (!isSupported || permission !== 'granted') return false;
 
         try {
-            const registration = await navigator.serviceWorker.ready;
+            let registration = await navigator.serviceWorker.getRegistration();
+            if (!registration || (registration.active && !registration.active.scriptURL.endsWith('push-sw.js'))) {
+                registration = await navigator.serviceWorker.register('/push-sw.js');
+            }
+            await navigator.serviceWorker.ready;
+
+            // Safety fallback if registration is somehow undefined
+            if (!registration) {
+                registration = await navigator.serviceWorker.ready;
+            }
 
             // Check for existing subscription
             let subscription = await registration.pushManager.getSubscription();

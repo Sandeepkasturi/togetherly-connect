@@ -3,44 +3,20 @@ import { SpeedInsights } from "@vercel/speed-insights/react"
 import App from './App.tsx'
 import './index.css'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
-import { registerSW } from 'virtual:pwa-register'
 
-// Automatically check for updates and refresh
-const updateSW = registerSW({
-    onRegisteredSW(swUrl, r) {
-        // Poll for updates every hour
-        const intervalMS = 60 * 60 * 1000;
-        if (r) {
-            setInterval(() => {
-                if (r.active) {
-                    r.update();
-                }
-            }, intervalMS);
-        }
 
-        // Check for updates when the window regains visibility
-        window.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && r && r.active) {
-                r.update();
-            }
-        });
-    },
-    onNeedRefresh() {
-        // When a new update is found, auto-refresh to fetch it.
-        updateSW(true);
-    },
-    onOfflineReady() {
-        console.log('[PWA] Ready for offline use');
-    },
-});
 
-// Auto-reload the page when a new service worker takes over
+
+// Unregister old caching service workers (PWA cleanup)
 if ('serviceWorker' in navigator) {
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (refreshing) return;
-        refreshing = true;
-        window.location.reload();
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+            if (reg.active && !reg.active.scriptURL.endsWith('push-sw.js')) {
+                reg.unregister().then(() => {
+                    console.log('Unregistered old PWA caching service worker safely.');
+                });
+            }
+        }
     });
 }
 
