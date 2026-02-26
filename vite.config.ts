@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => ({
         enabled: true, // Enable in dev so the install prompt works for testing
       },
       workbox: {
+        cleanupOutdatedCaches: true,
         importScripts: ['/push-sw.js'],
         // Cache all key assets
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
