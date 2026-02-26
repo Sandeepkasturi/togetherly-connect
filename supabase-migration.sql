@@ -61,3 +61,29 @@ create index if not exists idx_users_peer_id     on public.users(peer_id);
 create index if not exists idx_follows_follower  on public.follows(follower_id);
 create index if not exists idx_follows_following on public.follows(following_id);
 create index if not exists idx_follows_status    on public.follows(status);
+
+-- 5. Youtube Shorts Interactions
+create table if not exists public.youtube_shorts_interactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    video_id TEXT NOT NULL,
+    watch_time_ms INTEGER NOT NULL DEFAULT 0,
+    liked BOOLEAN NOT NULL DEFAULT false,
+    skipped BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+alter table public.youtube_shorts_interactions enable row level security;
+
+create policy "Users can insert their own interactions"
+    on public.youtube_shorts_interactions for insert
+    to authenticated with check (auth.uid() = user_id);
+
+create policy "Users can view their own interactions"
+    on public.youtube_shorts_interactions for select
+    to authenticated using (auth.uid() = user_id);
+
+create policy "Users can update their own interactions"
+    on public.youtube_shorts_interactions for update
+    to authenticated using (auth.uid() = user_id);
+

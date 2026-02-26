@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -25,6 +25,7 @@ import FriendsPage from "./pages/FriendsPage";
 import ProfilePage from "./pages/ProfilePage";
 import SplashScreen from "@/components/SplashScreen";
 import LegalPage from "./pages/LegalPage";
+import ShortsPage from "./pages/ShortsPage";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string ?? '';
@@ -70,6 +71,15 @@ const AppRoutes = () => (
       <Route path="/chat/:friendId" element={<ChatPage />} />
       <Route path="/friends" element={<FriendsPage />} />
       <Route path="/profile" element={<ProfilePage />} />
+    </Route>
+
+    {/* Full Screen Mode Protected Route */}
+    <Route element={
+      <ProtectedRoute>
+        <Outlet />
+      </ProtectedRoute>
+    }>
+      <Route path="/shorts" element={<ShortsPage />} />
     </Route>
 
     <Route path="*" element={<NotFound />} />

@@ -35,7 +35,7 @@ import { getUnreadCounts } from '@/hooks/useChat';
 const QUICK_ACTIONS = [
   { icon: Tv2, color: '#0A84FF', label: 'Theater', sub: 'Immersive Viewing', to: '/watch' },
   { icon: MessageCircle, color: '#BF5AF2', label: 'Chat', sub: 'End-to-End encrypted', to: '/chat' },
-  { icon: MonitorUp, color: '#30D158', label: 'Shots', sub: 'share content', to: '/share' },
+  { icon: MonitorUp, color: '#30D158', label: 'Shorts', sub: 'Swipe & Discover', to: '/shorts' },
   { icon: UserCircle, color: '#FF9F0A', label: 'Identity', sub: 'Check Profile', to: '/profile' },
 ];
 
