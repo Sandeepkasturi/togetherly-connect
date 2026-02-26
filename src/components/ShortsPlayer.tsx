@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
-import { Heart, MessageCircle, Share2, Play, Pause, MoreVertical } from 'lucide-react';
+import { Heart, MessageCircle, Share2, Play, Pause, MoreVertical, ThumbsDown } from 'lucide-react';
 import { useShortsTelemetry } from '@/hooks/useShortsTelemetry';
+import { useToast } from '@/hooks/use-toast';
 
 declare global {
     interface Window {
@@ -24,6 +25,8 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
     const [showPlayAnim, setShowPlayAnim] = useState(false);
     const [showPauseAnim, setShowPauseAnim] = useState(false);
     const [localLiked, setLocalLiked] = useState(false);
+    const [localDisliked, setLocalDisliked] = useState(false);
+    const { toast } = useToast();
 
     const { toggleLike } = useShortsTelemetry(isActive ? videoId : null);
 
@@ -124,8 +127,41 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
 
     const handleLike = (e: React.MouseEvent) => {
         e.stopPropagation(); // Don't trigger play/pause
+        setLocalDisliked(false);
         const isNowLiked = toggleLike();
         setLocalLiked(isNowLiked);
+    };
+
+    const handleDislike = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setLocalLiked(false);
+        setLocalDisliked(!localDisliked);
+    };
+
+    const handleShare = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: `Check out this Short by @${author}`,
+                    text: description,
+                    url: `https://youtube.com/shorts/${videoId}`,
+                });
+            } else {
+                navigator.clipboard.writeText(`https://youtube.com/shorts/${videoId}`);
+                toast({ title: 'Link copied to clipboard!' });
+            }
+        } catch (error) {
+            console.log('Error sharing', error);
+        }
+    };
+
+    const handleComment = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        toast({
+            title: 'Comments',
+            description: 'Comments feature is coming soon!',
+        });
     };
 
     return (
@@ -203,19 +239,41 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
                         </span>
                     </motion.button>
 
-                    <button className="flex flex-col items-center gap-1 opacity-70 cursor-not-allowed">
+                    {/* Dislike Button */}
+                    <motion.button
+                        whileTap={{ scale: 0.8 }}
+                        onClick={handleDislike}
+                        className="flex flex-col items-center gap-1"
+                    >
+                        <div className={`h-12 w-12 rounded-full flex items-center justify-center shadow-2xl transition-colors ${localDisliked ? 'bg-white/20 border-white/50' : 'bg-black/40 backdrop-blur-xl border border-white/20'}`}>
+                            <ThumbsDown className="h-6 w-6" fill={localDisliked ? 'white' : 'transparent'} color="white" />
+                        </div>
+                        <span className="text-[12px] font-bold text-white drop-shadow-md">
+                            Dislike
+                        </span>
+                    </motion.button>
+
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleComment}
+                        className="flex flex-col items-center gap-1"
+                    >
                         <div className="h-12 w-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/20 shadow-2xl">
                             <MessageCircle className="h-6 w-6 text-white" />
                         </div>
-                        <span className="text-[12px] font-bold text-white drop-shadow-md">0</span>
-                    </button>
+                        <span className="text-[12px] font-bold text-white drop-shadow-md">1.2k</span>
+                    </motion.button>
 
-                    <button className="flex flex-col items-center gap-1">
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleShare}
+                        className="flex flex-col items-center gap-1"
+                    >
                         <div className="h-12 w-12 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-xl border border-white/20 shadow-2xl">
                             <Share2 className="h-6 w-6 text-white" />
                         </div>
                         <span className="text-[12px] font-bold text-white drop-shadow-md">Share</span>
-                    </button>
+                    </motion.button>
 
                     <button className="h-8 w-8 rounded-full flex items-center justify-center mt-2 opacity-50">
                         <MoreVertical className="h-5 w-5 text-white drop-shadow-md" />

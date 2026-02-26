@@ -21,12 +21,18 @@ const ProfilePage = () => {
     const { userProfile, logout, isGuest, updateProfile } = useAuth();
     const { setNickname } = useUser();
     const navigate = useNavigate();
-    const [recentConnections, setRecentConnections] = useState<any[]>([]);
     const { permission, requestPermission, subscribeToPush } = usePushNotifications();
+
+    const [bio, setBio] = useState('');
+    const [isEditingBio, setIsEditingBio] = useState(false);
+    const [editedBio, setEditedBio] = useState('');
+    const [isSavingBio, setIsSavingBio] = useState(false);
+    const [followersCount, setFollowersCount] = useState(0);
+    const [followingCount, setFollowingCount] = useState(0);
 
     // YouTube Shorts data
     const [likedShorts, setLikedShorts] = useState<any[]>([]);
-    const [subscribedChannels, setSubscribedChannels] = useState<any[]>([]);
+    const [skippedShorts, setSkippedShorts] = useState<any[]>([]);
     const [viewedShorts, setViewedShorts] = useState<any[]>([]);
 
     // Edit name state
@@ -54,38 +60,49 @@ const ProfilePage = () => {
     useEffect(() => {
         if (userProfile?.id) {
             import('@/lib/supabase').then(({ supabase }) => {
+                // Fetch Bio
                 supabase
-                    .from('recent_connections')
-                    .select('*')
-                    .eq('user_id', userProfile.id)
-                    .order('last_connected_at', { ascending: false })
-                    .limit(5)
-                    .then(({ data }) => { if (data) setRecentConnections(data); });
+                    .from('users')
+                    .select('bio')
+                    .eq('id', userProfile.id)
+                    .single()
+                    .then(({ data }) => { if (data) setBio(data.bio || ''); });
 
-                // Fetch YouTube Interactions
+                // Followers
                 supabase
-                    .from('youtube_interactions')
+                    .from('follows')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('following_id', userProfile.id)
+                    .eq('status', 'accepted')
+                    .then(({ count }) => { if (count !== null) setFollowersCount(count); });
+
+                // Following
+                supabase
+                    .from('follows')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('follower_id', userProfile.id)
+                    .eq('status', 'accepted')
+                    .then(({ count }) => { if (count !== null) setFollowingCount(count); });
+
+                // Fetch YouTube Shorts Interactions
+                supabase
+                    .from('youtube_shorts_interactions')
                     .select('*')
                     .eq('user_id', userProfile.id)
                     .order('created_at', { ascending: false })
                     .then(({ data }) => {
                         if (data) {
-                            // Filter unique by video_id or channel_id where appropriate
-                            const likes = data.filter(d => d.interaction_type === 'like');
-                            // Get unique subscriptions by channel_id
-                            const subsMap = new Map();
-                            data.filter(d => d.interaction_type === 'subscribe').forEach(d => {
-                                if (!subsMap.has(d.channel_id)) subsMap.set(d.channel_id, d);
-                            });
+                            const likes = data.filter(d => d.liked);
+                            const skips = data.filter(d => d.skipped);
 
                             // Get unique views by video_id
                             const viewsMap = new Map();
-                            data.filter(d => d.interaction_type === 'view').forEach(d => {
+                            data.forEach(d => {
                                 if (!viewsMap.has(d.video_id)) viewsMap.set(d.video_id, d);
                             });
 
                             setLikedShorts(likes);
-                            setSubscribedChannels(Array.from(subsMap.values()));
+                            setSkippedShorts(skips);
                             setViewedShorts(Array.from(viewsMap.values()));
                         }
                     });
@@ -124,6 +141,30 @@ const ProfilePage = () => {
         } finally {
             setIsSavingName(false);
             setIsEditingName(false);
+        }
+    };
+
+    const handleStartEditBio = () => {
+        setEditedBio(bio);
+        setIsEditingBio(true);
+    };
+
+    const handleSaveBio = async () => {
+        if (!userProfile) return;
+        setIsSavingBio(true);
+        try {
+            const { error } = await supabase.from('users')
+                .update({ bio: editedBio.trim() })
+                .eq('id', userProfile.id);
+            if (error) throw error;
+            setBio(editedBio.trim());
+            setNameSaved(true); // Re-use the success toast for bio update as well
+            setTimeout(() => setNameSaved(false), 2500);
+        } catch (e) {
+            console.error('[Profile] Failed to save bio:', e);
+        } finally {
+            setIsSavingBio(false);
+            setIsEditingBio(false);
         }
     };
 
@@ -379,53 +420,65 @@ const ProfilePage = () => {
                 </div>
             </motion.div>
 
-            {/* ── Recent Connections (High Fidelity) ── */}
+            {/* ── Network & Bio ── */}
             <motion.div {...fadeUp(0.1)} className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em]">Recent Connections</h2>
-                    <span className="text-[10px] font-bold text-[#0A84FF]/60 px-2 py-0.5 rounded-full bg-[#0A84FF]/5 border border-[#0A84FF]/10 uppercase tracking-widest">
-                        Last 5 Sessions
-                    </span>
+                    <h2 className="text-[12px] font-black text-white/30 uppercase tracking-[0.2em]">Network & Identity</h2>
                 </div>
 
-                <div className="space-y-2.5">
-                    {recentConnections.length > 0 ? (
-                        recentConnections.map((conn) => (
-                            <motion.div
-                                key={conn.id}
-                                whileHover={{ scale: 1.01, backgroundColor: 'rgba(255,255,255,0.05)' }}
-                                className="flex items-center gap-4 px-4 py-4 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md group transition-all"
-                            >
-                                <div className="h-12 w-12 rounded-[16px] bg-gradient-to-br from-white/10 to-transparent p-0.5 border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
-                                    <div className="h-full w-full rounded-[14px] bg-[#121217] flex items-center justify-center">
-                                        <User className="h-6 w-6 text-white/20 group-hover:text-[#0A84FF] transition-colors" />
-                                    </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-[16px] font-bold text-white tracking-tight leading-tight truncate group-hover:text-[#0A84FF] transition-colors">
-                                        {conn.nickname}
-                                    </p>
-                                    <p className="text-[11px] font-black text-white/20 truncate tracking-widest uppercase mt-1">
-                                        {conn.peer_id.slice(0, 12)}...
-                                    </p>
-                                </div>
-                                <motion.button
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => { localStorage.setItem('peerIdToConnect', conn.peer_id); navigate('/app'); }}
-                                    className="px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-widest bg-[#0A84FF] text-white shadow-lg shadow-[#0A84FF]/20"
-                                >
-                                    Login
-                                </motion.button>
-                            </motion.div>
-                        ))
-                    ) : (
-                        <div className="px-4 py-10 rounded-[28px] bg-white/[0.02] border border-dashed border-white/5 flex flex-col items-center justify-center text-center">
-                            <div className="h-12 w-12 rounded-full bg-white/5 flex items-center justify-center mb-3">
-                                <User className="h-6 w-6 text-white/10" />
-                            </div>
-                            <p className="text-[13px] font-bold text-white/20 uppercase tracking-widest">No recent sessions found</p>
+                <div className="flex flex-col gap-3">
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="px-4 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md flex flex-col items-center justify-center">
+                            <p className="text-[22px] font-black text-white">{followersCount}</p>
+                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Followers</p>
                         </div>
-                    )}
+                        <div className="px-4 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md flex flex-col items-center justify-center">
+                            <p className="text-[22px] font-black text-white">{followingCount}</p>
+                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Following</p>
+                        </div>
+                    </div>
+
+                    <div className="px-5 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Bio</p>
+                            {!isEditingBio && (
+                                <button onClick={handleStartEditBio} className="text-[#0A84FF] text-[10px] font-bold uppercase tracking-widest">
+                                    Edit
+                                </button>
+                            )}
+                        </div>
+                        {isEditingBio ? (
+                            <div className="space-y-3">
+                                <textarea
+                                    value={editedBio}
+                                    onChange={(e) => setEditedBio(e.target.value)}
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-white text-[14px] outline-none focus:border-[#0A84FF]/60"
+                                    rows={3}
+                                    placeholder="Write a little about yourself..."
+                                />
+                                <div className="flex items-center gap-2 justify-end">
+                                    <button
+                                        onClick={() => setIsEditingBio(false)}
+                                        className="px-4 py-2 rounded-xl text-white/40 text-[12px] font-bold uppercase"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveBio}
+                                        disabled={isSavingBio}
+                                        className="px-4 py-2 rounded-xl bg-[#0A84FF] text-white text-[12px] font-bold uppercase shadow-lg shadow-[#0A84FF]/20 flex items-center gap-2"
+                                    >
+                                        {isSavingBio && <Loader2 className="w-3 h-3 animate-spin" />}
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <p className="text-[14px] text-white/80 leading-relaxed font-medium">
+                                {bio || <span className="text-white/20 italic">No bio written yet. Click edit to add one.</span>}
+                            </p>
+                        )}
+                    </div>
                 </div>
             </motion.div>
 
@@ -543,14 +596,14 @@ const ProfilePage = () => {
                         <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Liked</p>
                     </div>
                     <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
-                        <Youtube className="h-5 w-5 text-[#FF0000] mb-1" />
-                        <p className="text-[18px] font-black text-white">{subscribedChannels.length}</p>
-                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Subscribed</p>
-                    </div>
-                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
                         <Play className="h-5 w-5 text-white mb-1" />
                         <p className="text-[18px] font-black text-white">{viewedShorts.length}</p>
-                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Viewed</p>
+                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Watched</p>
+                    </div>
+                    <div className="px-4 flex flex-col items-center justify-center py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
+                        <Youtube className="h-5 w-5 text-[#FF9F0A] mb-1 opacity-50" />
+                        <p className="text-[18px] font-black text-white">{skippedShorts.length}</p>
+                        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest mt-1">Skipped</p>
                     </div>
                 </div>
             </motion.div>

@@ -34,11 +34,13 @@ const MOCK_SHORTS = [
 const ShortsPage = () => {
     const navigate = useNavigate();
     const [activeIndex, setActiveIndex] = useState(0);
+    const [shorts, setShorts] = useState([...MOCK_SHORTS]);
     const containerRef = useRef<HTMLDivElement>(null);
+    const observerRef = useRef<IntersectionObserver | null>(null);
 
-    // Intersection Observer to detect which video is currently visible on screen
+    // Initialize Intersection Observer once
     useEffect(() => {
-        const observer = new IntersectionObserver(
+        observerRef.current = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
                     if (entry.isIntersecting) {
@@ -55,11 +57,32 @@ const ShortsPage = () => {
             }
         );
 
-        const elements = document.querySelectorAll('.shorts-item');
-        elements.forEach((el) => observer.observe(el));
-
-        return () => observer.disconnect();
+        return () => {
+            if (observerRef.current) {
+                observerRef.current.disconnect();
+            }
+        };
     }, []);
+
+    // Observe all items whenever the shorts list changes
+    useEffect(() => {
+        if (!observerRef.current) return;
+        const elements = document.querySelectorAll('.shorts-item');
+        elements.forEach((el) => observerRef.current?.observe(el));
+    }, [shorts]);
+
+    // Endless scroll logic: append more items when reaching the end
+    useEffect(() => {
+        if (activeIndex >= shorts.length - 2) {
+            setShorts((prev) => [
+                ...prev,
+                ...MOCK_SHORTS.map((s) => ({
+                    ...s,
+                    id: `${s.id}_${Date.now()}_${Math.random()}`
+                }))
+            ]);
+        }
+    }, [activeIndex, shorts.length]);
 
     return (
         <div className="fixed inset-0 bg-[#0A0A0F] text-white overflow-hidden">
@@ -83,7 +106,7 @@ const ShortsPage = () => {
                 className="w-full h-full overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar"
                 style={{ scrollBehavior: 'smooth' }}
             >
-                {MOCK_SHORTS.map((short, index) => (
+                {shorts.map((short, index) => (
                     <div
                         key={short.id}
                         data-index={index}

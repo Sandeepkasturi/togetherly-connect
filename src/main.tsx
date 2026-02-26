@@ -3,6 +3,18 @@ import { SpeedInsights } from "@vercel/speed-insights/react"
 import App from './App.tsx'
 import './index.css'
 import ErrorBoundary from './components/ErrorBoundary.tsx'
+import { registerSW } from 'virtual:pwa-register'
+
+// Automatically check for updates and refresh
+const updateSW = registerSW({
+    onNeedRefresh() {
+        // When a new update is found, auto-refresh to fetch it.
+        updateSW(true);
+    },
+    onOfflineReady() {
+        console.log('[PWA] Ready for offline use');
+    },
+});
 
 const bootStep = (step: string) => {
     console.log(`[BOOT] ${step}`);
