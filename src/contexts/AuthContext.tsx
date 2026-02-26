@@ -202,6 +202,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         onSuccess: async (tokenResponse) => {
             setIsLoading(true);
             try {
+                // Store YouTube token for API calls
+                sessionStorage.setItem('yt_token', tokenResponse.access_token);
+
                 // Fetch user info from Google
                 const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                     headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
@@ -227,6 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error('[Auth] Google OAuth error:', err);
             setIsLoading(false);
         },
+        scope: 'openid email profile https://www.googleapis.com/auth/youtube.force-ssl',
         flow: 'implicit',
     });
 
@@ -250,6 +254,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         googleLogout();
         localStorage.removeItem(PROFILE_KEY);
         sessionStorage.removeItem(GUEST_KEY);
+        sessionStorage.removeItem('yt_token');
         setGoogleProfile(null);
         setUserProfile(null);
         setIsGuest(false);

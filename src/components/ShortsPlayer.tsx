@@ -24,8 +24,13 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
     const [{ isPlaying, isReady }, setPlayerState] = useState({ isPlaying: false, isReady: false });
     const [showPlayAnim, setShowPlayAnim] = useState(false);
     const [showPauseAnim, setShowPauseAnim] = useState(false);
+    const [showLikeAnim, setShowLikeAnim] = useState(false);
     const [localLiked, setLocalLiked] = useState(false);
     const [localDisliked, setLocalDisliked] = useState(false);
+
+    const lastTapRef = useRef<number>(0);
+    const tapTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const likeAnimPosRef = useRef({ x: 0, y: 0 });
     const { toast } = useToast();
 
     const { toggleLike } = useShortsTelemetry(isActive ? videoId : null);
@@ -111,25 +116,76 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
         }
     }, [isActive]);
 
-    const handleScreenClick = () => {
-        if (!playerRef.current) return;
+    const postYouTubeLike = async () => {
+        const token = sessionStorage.getItem('yt_token');
+        if (!token) return;
 
-        if (isPlaying) {
-            playerRef.current.pauseVideo();
-            setShowPauseAnim(true);
-            setTimeout(() => setShowPauseAnim(false), 500);
+        try {
+            const res = await fetch(`https://www.googleapis.com/youtube/v3/videos/rate?id=${videoId}&rating=like`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (!res.ok) console.warn('[ShortsPlayer] Failed to like on YouTube account');
+        } catch (error) {
+            console.error('[ShortsPlayer] YouTube API error:', error);
+        }
+    };
+
+    const handleScreenClick = (e: React.MouseEvent) => {
+        const now = Date.now();
+        const DOUBLE_TAP_DELAY = 300;
+
+        if (now - lastTapRef.current < DOUBLE_TAP_DELAY) {
+            // Double Tap detected
+            if (tapTimeoutRef.current) clearTimeout(tapTimeoutRef.current);
+            lastTapRef.current = 0; // reset
+
+            // Get click position for animation
+            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+            likeAnimPosRef.current = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top,
+            };
+
+            handleDoubleTapLike();
         } else {
-            playerRef.current.playVideo();
-            setShowPlayAnim(true);
-            setTimeout(() => setShowPlayAnim(false), 500);
+            // Single Tap started
+            lastTapRef.current = now;
+            tapTimeoutRef.current = setTimeout(() => {
+                if (!playerRef.current) return;
+                if (isPlaying) {
+                    playerRef.current.pauseVideo();
+                    setShowPauseAnim(true);
+                    setTimeout(() => setShowPauseAnim(false), 500);
+                } else {
+                    playerRef.current.playVideo();
+                    setShowPlayAnim(true);
+                    setTimeout(() => setShowPlayAnim(false), 500);
+                }
+            }, DOUBLE_TAP_DELAY);
+        }
+    };
+
+    const handleDoubleTapLike = () => {
+        setShowLikeAnim(true);
+        setTimeout(() => setShowLikeAnim(false), 800);
+
+        if (!localLiked) {
+            setLocalDisliked(false);
+            setLocalLiked(true);
+            toggleLike(); // telemetry
+            postYouTubeLike(); // actual YouTube API
         }
     };
 
     const handleLike = (e: React.MouseEvent) => {
         e.stopPropagation(); // Don't trigger play/pause
         setLocalDisliked(false);
-        const isNowLiked = toggleLike();
+        const isNowLiked = toggleLike(); // telemetry
         setLocalLiked(isNowLiked);
+        if (isNowLiked) postYouTubeLike();
     };
 
     const handleDislike = (e: React.MouseEvent) => {
@@ -197,9 +253,25 @@ const ShortsPlayer = ({ videoId, isActive, author, description }: ShortsPlayerPr
                             initial={{ opacity: 0, scale: 0.5 }}
                             animate={{ opacity: 1, scale: 1.5 }}
                             exit={{ opacity: 0, scale: 2 }}
-                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-20 w-20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white/90"
+                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-20 w-20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white/90 pointer-events-none"
                         >
                             <Pause className="h-10 w-10" fill="currentColor" />
+                        </motion.div>
+                    )}
+                    {showLikeAnim && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.5, rotate: -15 }}
+                            animate={{ opacity: 1, scale: 1.5, rotate: 0 }}
+                            exit={{ opacity: 0, scale: 2, y: -50 }}
+                            style={{
+                                left: likeAnimPosRef.current.x,
+                                top: likeAnimPosRef.current.y,
+                                position: 'absolute',
+                                transform: 'translate(-50%, -50%)'
+                            }}
+                            className="pointer-events-none"
+                        >
+                            <Heart className="h-24 w-24 text-[#FF375F] drop-shadow-2xl" fill="currentColor" />
                         </motion.div>
                     )}
                 </AnimatePresence>
