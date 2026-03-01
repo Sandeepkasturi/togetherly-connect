@@ -32,9 +32,9 @@ const RoomsPage = () => {
   const { initiateRoomInvite } = useCallSignaling({
     currentUserId: userProfile?.id ?? "",
     currentPeerId: "", // not fully needed here since we overload caller_peer_id in the hook
-    onIncomingCall: () => {},
-    onCallAccepted: () => {},
-    onCallEnded: () => {},
+    onIncomingCall: () => { },
+    onCallAccepted: () => { },
+    onCallEnded: () => { },
   });
 
   // Load friends
@@ -120,28 +120,30 @@ const RoomsPage = () => {
           {...fadeUp(0.1)}
           disabled={isCreating}
           onClick={() => handleStartRoomCreation("conference")}
-          className="w-full relative overflow-hidden rounded-[32px] p-6 text-left group transition-all duration-500 shadow-2xl border border-white/10"
+          className="w-full relative overflow-hidden rounded-[32px] p-6 text-left group transition-all duration-500 shadow-2xl border border-white/10 hover:-translate-y-1 hover:shadow-[#0A84FF]/20"
           style={{
             background:
-              "linear-gradient(135deg, rgba(10,132,255,0.15) 0%, rgba(10,132,255,0.05) 100%)",
+              "linear-gradient(135deg, rgba(10,132,255,0.15) 0%, rgba(10,132,255,0.02) 100%)",
           }}
         >
-          <div className="absolute inset-0 bg-[#0A84FF] opacity-0 group-hover:opacity-10 transition-opacity" />
+          {/* Animated Glow Effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+          <div className="absolute inset-0 bg-[#0A84FF] opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
 
           <div className="relative z-10 flex items-center gap-5">
-            <div className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 bg-[#0A84FF]/20 border border-[#0A84FF]/30 shadow-2xl backdrop-blur-md">
-              <Users className="h-7 w-7 text-[#0A84FF]" />
+            <div className="h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 bg-[#0A84FF]/20 border border-[#0A84FF]/30 shadow-[0_0_20px_rgba(10,132,255,0.2)] backdrop-blur-md group-hover:scale-105 transition-transform duration-300">
+              <Users className="h-8 w-8 text-[#0A84FF]" />
             </div>
             <div className="flex-1">
-              <h3 className="text-[20px] font-black text-white tracking-tight leading-tight">
+              <h3 className="text-[22px] font-black text-white tracking-tight leading-tight group-hover:text-[#0A84FF] transition-colors">
                 Conference Room
               </h3>
-              <p className="text-[12px] text-white/60 font-medium tracking-wide mt-1">
-                Multi-user audio & video calls
+              <p className="text-[13px] text-white/50 font-medium tracking-wide mt-1">
+                Multi-user high-def video calls
               </p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-[#0A84FF] group-hover:border-transparent group-hover:text-white transition-all">
-              <Plus className="h-5 w-5" />
+            <div className="h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-[#0A84FF] group-hover:border-transparent group-hover:text-white transition-all group-hover:rotate-90">
+              <Plus className="h-6 w-6" />
             </div>
           </div>
         </motion.button>
@@ -150,28 +152,29 @@ const RoomsPage = () => {
           {...fadeUp(0.2)}
           disabled={isCreating}
           onClick={() => handleStartRoomCreation("party")}
-          className="w-full relative overflow-hidden rounded-[32px] p-6 text-left group transition-all duration-500 shadow-2xl border border-white/10"
+          className="w-full relative overflow-hidden rounded-[32px] p-6 text-left group transition-all duration-500 shadow-2xl border border-white/10 hover:-translate-y-1 hover:shadow-[#BF5AF2]/20"
           style={{
             background:
-              "linear-gradient(135deg, rgba(191,90,242,0.15) 0%, rgba(191,90,242,0.05) 100%)",
+              "linear-gradient(135deg, rgba(191,90,242,0.15) 0%, rgba(191,90,242,0.02) 100%)",
           }}
         >
-          <div className="absolute inset-0 bg-[#BF5AF2] opacity-0 group-hover:opacity-10 transition-opacity" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+          <div className="absolute inset-0 bg-[#BF5AF2] opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
 
           <div className="relative z-10 flex items-center gap-5">
-            <div className="h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 bg-[#BF5AF2]/20 border border-[#BF5AF2]/30 shadow-2xl backdrop-blur-md">
-              <MonitorPlay className="h-7 w-7 text-[#BF5AF2]" />
+            <div className="h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 bg-[#BF5AF2]/20 border border-[#BF5AF2]/30 shadow-[0_0_20px_rgba(191,90,242,0.2)] backdrop-blur-md group-hover:scale-105 transition-transform duration-300">
+              <MonitorPlay className="h-8 w-8 text-[#BF5AF2]" />
             </div>
             <div className="flex-1">
-              <h3 className="text-[20px] font-black text-white tracking-tight leading-tight">
+              <h3 className="text-[22px] font-black text-white tracking-tight leading-tight group-hover:text-[#BF5AF2] transition-colors">
                 Watch togetherly
               </h3>
-              <p className="text-[12px] text-white/60 font-medium tracking-wide mt-1">
+              <p className="text-[13px] text-white/50 font-medium tracking-wide mt-1">
                 Sync YouTube videos with friends
               </p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-[#BF5AF2] group-hover:border-transparent group-hover:text-white transition-all">
-              <Plus className="h-5 w-5" />
+            <div className="h-12 w-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:bg-[#BF5AF2] group-hover:border-transparent group-hover:text-white transition-all group-hover:rotate-90">
+              <Plus className="h-6 w-6" />
             </div>
           </div>
         </motion.button>
@@ -192,95 +195,99 @@ const RoomsPage = () => {
         </p>
       </motion.div>
       {/* Friend Selection Modal */}
-      {isSelectingFriends && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className="w-full max-w-sm bg-[#1C1C1E] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
-          >
-            <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
-              <div>
-                <h3 className="text-lg font-bold text-white">Invite Friends</h3>
-                <p className="text-[11px] text-white/40 uppercase tracking-wider font-bold mt-0.5">
-                  {pendingRoomType === "party"
-                    ? "Watch togetherly"
-                    : "Conference Room"}
-                </p>
+      <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-opacity duration-300 ${isSelectingFriends ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+        <motion.div
+          animate={isSelectingFriends ? { opacity: 1, scale: 1, y: 0 } : { opacity: 0, scale: 0.95, y: 20 }}
+          transition={{ type: "spring", bounce: 0.3, duration: 0.5 }}
+          className="w-full max-w-sm bg-[#1C1C1E] border border-white/10 rounded-[32px] overflow-hidden shadow-2xl flex flex-col max-h-[80vh]"
+        >
+          <div className="p-5 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+            <div className="flex flex-col">
+              <h3 className="text-[20px] font-black tracking-tight text-white mb-0.5">Invite Friends</h3>
+              <p className="text-[11px] text-[#0A84FF] uppercase tracking-[0.15em] font-black">
+                {pendingRoomType === "party"
+                  ? "▶ Watch togetherly"
+                  : "🎥 Conference Room"}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                setIsSelectingFriends(false);
+                setSelectedFriendIds(new Set());
+              }}
+              className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+            {friends.length === 0 ? (
+              <div className="text-center py-12 flex flex-col items-center justify-center opacity-50">
+                <Users className="h-12 w-12 mb-4" />
+                <p className="font-bold text-sm">No friends to invite yet</p>
+                <p className="text-xs mt-1">Add friends from the Chat tab!</p>
               </div>
-              <button
-                onClick={() => {
-                  setIsSelectingFriends(false);
-                  setSelectedFriendIds(new Set());
-                }}
-                className="h-8 w-8 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:bg-white/10 hover:text-white transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {friends.length === 0 ? (
-                <div className="text-center py-8 text-white/50 text-sm">
-                  No friends to invite yet. Add some from the chat tab!
-                </div>
-              ) : (
-                friends.map((friend) => {
-                  const isSelected = selectedFriendIds.has(friend.id);
-                  return (
-                    <button
-                      key={friend.id}
-                      onClick={() => toggleFriend(friend.id)}
-                      className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-colors border border-transparent"
-                      style={{
-                        borderColor: isSelected
-                          ? "rgba(10,132,255,0.3)"
-                          : "transparent",
-                        background: isSelected ? "rgba(10,132,255,0.05)" : "",
-                      }}
+            ) : (
+              friends.map((friend) => {
+                const isSelected = selectedFriendIds.has(friend.id);
+                return (
+                  <button
+                    key={friend.id}
+                    onClick={() => toggleFriend(friend.id)}
+                    className="w-full flex items-center gap-4 p-3 rounded-[20px] hover:bg-white/5 transition-colors border border-transparent group"
+                    style={{
+                      borderColor: isSelected
+                        ? "rgba(10,132,255,0.3)"
+                        : "transparent",
+                      background: isSelected ? "rgba(10,132,255,0.08)" : "",
+                    }}
+                  >
+                    <div className="h-12 w-12 rounded-[18px] bg-[#0A84FF]/20 flex items-center justify-center text-[#0A84FF] font-black overflow-hidden border border-white/5 shadow-md group-hover:scale-105 transition-transform">
+                      {friend.photo_url ? (
+                        <img
+                          src={friend.photo_url}
+                          alt="avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        friend.display_name.charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    <span className="flex-1 text-left text-white font-bold text-[16px] tracking-tight truncate">
+                      {friend.display_name}
+                    </span>
+                    <div
+                      className={`h-7 w-7 rounded-full border flex items-center justify-center transition-all duration-300 ${isSelected ? "bg-[#0A84FF] border-[#0A84FF] scale-110 shadow-[0_0_15px_rgba(10,132,255,0.5)]" : "border-white/20 group-hover:border-white/40"}`}
                     >
-                      <div className="h-10 w-10 rounded-full bg-[#0A84FF] flex items-center justify-center text-white font-bold overflow-hidden">
-                        {friend.photo_url ? (
-                          <img
-                            src={friend.photo_url}
-                            alt="avatar"
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          friend.display_name.charAt(0)
-                        )}
-                      </div>
-                      <span className="flex-1 text-left text-white font-medium text-[15px]">
-                        {friend.display_name}
-                      </span>
-                      <div
-                        className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${isSelected ? "bg-[#0A84FF] border-[#0A84FF]" : "border-white/20"}`}
-                      >
-                        {isSelected && <Check className="h-4 w-4 text-white" />}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
+                      {isSelected && <Check className="h-4 w-4 text-white" />}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
 
-            <div className="p-5 border-t border-white/5 bg-white/[0.02]">
-              <button
-                onClick={confirmAndCreateRoom}
-                className={`w-full py-4 rounded-2xl font-bold tracking-wide transition-all shadow-lg ${
-                  selectedFriendIds.size > 0
-                    ? "bg-[#0A84FF] text-white hover:bg-[#0070DF]"
-                    : "bg-white/10 text-white hover:bg-white/20"
+          <div className="p-5 border-t border-white/5 bg-white/[0.02] relative">
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={confirmAndCreateRoom}
+              className={`relative overflow-hidden w-full py-4 rounded-[20px] font-black tracking-wide transition-all shadow-2xl flex flex-col items-center justify-center ${selectedFriendIds.size > 0
+                  ? "bg-[#0A84FF] text-white hover:bg-[#0070DF] shadow-[#0A84FF]/20"
+                  : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white"
                 }`}
-              >
+            >
+              <span className="relative z-10 text-[15px] uppercase tracking-wider">
                 {selectedFriendIds.size > 0
-                  ? `Invite ${selectedFriendIds.size} & Create Room`
-                  : "Create Room without Invites"}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+                  ? `Invite ${selectedFriendIds.size} & Start`
+                  : "Start without Invites"}
+              </span>
+              {selectedFriendIds.size > 0 && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />}
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

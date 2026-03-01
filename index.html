@@ -12,6 +12,15 @@
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Togetherly — Watch. Connect. Together.</title>
 
+  <script>
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent Chrome 67 and earlier from automatically showing the prompt
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      window.deferredPWAInstallPrompt = e;
+    });
+  </script>
+
   <!-- ── App identity ── -->
   <meta name="description" content="Real-time peer-to-peer watch parties, calls, and screen sharing — by SKAV TECH" />
   <meta name="author" content="SKAV TECH" />
@@ -29,9 +38,16 @@
 
 
   <!-- ── Icons ── -->
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="/pwa-512x512.png" />
   <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+  <!-- ── Web App Manifest ── -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Togetherly" />
+  <link rel="apple-touch-icon" href="/pwa-192x192.png" />
 
   <!-- ── Open Graph ── -->
   <meta property="og:type" content="website" />
@@ -76,6 +92,18 @@
 
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:site" content="@lovable_dev" />
+  <!-- ── Unregister obsolete Service Workers to fix caching issues ── -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister().then(function (boolean) {
+            console.log('Unregistered obsolete PWA service worker to ensure latest updates.');
+          });
+        }
+      });
+    }
+  </script>
 </head>
 
 <body>

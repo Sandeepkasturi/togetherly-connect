@@ -5,7 +5,7 @@ import {
   ArrowLeft, Phone, Video, Send, Check, CheckCheck, Loader2,
   MessageCircle, Plus, Image as ImageIcon, File as FileIcon,
   Mic, Square, Play, Pause, Trash2, MoreVertical, Download, X, Tv,
-  Search, Users
+  Search, Users, Camera
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { CameraCapture } from '@/components/CameraCapture';
 
 const formatDuration = (seconds: number) => {
   const mins = Math.floor(seconds / 60);
@@ -176,7 +177,7 @@ const ChatList = ({ userProfile, navigate }: { userProfile: any; navigate: (path
   return (
     <div className="flex flex-col h-full bg-[#0A0A0F]">
       {/* Header */}
-      <div className="px-5 pt-6 pb-3 shrink-0">
+      <div className="px-5 pt-6 pb-2 shrink-0 bg-[#000000] border-b border-white/[0.05] z-10 relative">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-[28px] font-black text-white tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>
             Messages
@@ -184,7 +185,7 @@ const ChatList = ({ userProfile, navigate }: { userProfile: any; navigate: (path
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate('/friends')}
-            className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all"
+            className="h-10 w-10 flex items-center justify-center text-white/90 hover:bg-white/5 rounded-full transition-all"
           >
             <Users className="h-5 w-5" />
           </motion.button>
@@ -196,8 +197,8 @@ const ChatList = ({ userProfile, navigate }: { userProfile: any; navigate: (path
           <input
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            placeholder="Search conversations..."
-            className="w-full rounded-[18px] pl-11 pr-5 py-3 text-[14px] text-white outline-none bg-white/[0.04] border border-white/[0.06] focus:border-[#0A84FF]/30 transition-all placeholder:text-white/20 font-medium"
+            placeholder="Search"
+            className="w-full rounded-[10px] pl-11 pr-5 py-2 text-[15px] text-white outline-none bg-[#262626] border-none focus:bg-[#333333] transition-all placeholder:text-[#A8A8A8] font-medium"
           />
         </div>
       </div>
@@ -237,11 +238,11 @@ const ChatList = ({ userProfile, navigate }: { userProfile: any; navigate: (path
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   onClick={() => navigate(`/chat/${friend.id}`)}
-                  className="w-full flex items-center gap-3.5 px-3 py-3.5 rounded-[20px] hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors text-left"
+                  className="w-full flex items-center gap-3.5 px-5 py-2 hover:bg-[#121212] active:bg-[#1A1A1A] transition-colors text-left"
                 >
                   {/* Avatar */}
                   <div className="relative shrink-0">
-                    <div className="h-14 w-14 rounded-full overflow-hidden bg-white/10">
+                    <div className="h-14 w-14 rounded-full overflow-hidden bg-[#262626]">
                       {friend.photo_url ? (
                         <img src={friend.photo_url} alt={friend.display_name} className="w-full h-full object-cover" />
                       ) : (
@@ -319,9 +320,13 @@ const ChatPage = () => {
   const [recordingDuration, setRecordingDuration] = useState(0);
   const durationRef = useRef(0);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [isSelectMode, setIsSelectMode] = useState(false); // Added state for select mode
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -371,6 +376,31 @@ const ChatPage = () => {
     }
   }, [input, sendMessage, sending, toast]);
 
+  const toggleSelection = (id: string) => {
+    setSelectedMessages(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      if (next.size === 0) setIsSelectMode(false);
+      return next;
+    });
+  };
+
+  const handleLongPress = (id: string) => {
+    setIsSelectMode(true);
+    setSelectedMessages(new Set([id]));
+  };
+
+  const deleteSelected = async () => {
+    if (selectedMessages.size === 0) return;
+    setIsSelectMode(false);
+    for (const id of selectedMessages) {
+      await deleteMessage(id);
+    }
+    setSelectedMessages(new Set());
+    toast({ title: 'Messages Deleted', description: 'Successfully removed from database' });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'file') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -386,6 +416,14 @@ const ChatPage = () => {
     }
     // Reset input
     e.target.value = '';
+  };
+
+  const handleDirectMedia = async (file: File, type: 'image' | 'video') => {
+    const attachType = type === 'video' ? 'file' : 'image';
+    const success = await sendMessage('', attachType, { file, name: file.name, size: file.size });
+    if (!success) {
+      toast({ title: 'Upload failed', description: 'Could not send captured media', variant: 'destructive' });
+    }
   };
 
   const startRecording = async () => {
@@ -451,27 +489,25 @@ const ChatPage = () => {
   }
 
   return (
-    <div className="flex flex-col flex-1 h-full min-h-0 bg-[#0A0A0F] relative overflow-hidden">
-      {/* WhatsApp Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{ backgroundImage: `url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png')` }} />
+    <div className="flex flex-col flex-1 h-full min-h-0 bg-[#000000] relative overflow-hidden">
+      {/* Instagram dark background is solid #000 */}
 
       {/* Luxury Floating Header */}
-      <div className="sticky top-0 z-30 px-4 py-3 shrink-0">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-[28px] bg-[#121217]/60 backdrop-blur-2xl border border-white/5 shadow-2xl">
+      <div className="sticky top-0 z-30 shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2 bg-[#000000] border-b border-white/[0.05]">
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => navigate(-1)}
-            className="h-10 w-10 rounded-full flex items-center justify-center text-white/50 hover:bg-white/5 transition-colors"
+            className="h-10 w-10 flex items-center text-white/90 hover:opacity-70 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </motion.button>
 
           <div className="relative group cursor-pointer">
-            <div className="h-11 w-11 rounded-[16px] overflow-hidden bg-white/10 p-0.5 border border-white/10 group-hover:border-[#0A84FF]/40 transition-colors">
+            <div className="h-9 w-9 rounded-full overflow-hidden bg-[#262626]">
               <img
                 src={friend?.photo_url ?? `https://api.dicebear.com/7.x/avataaars/svg?seed=${friendId}`}
-                className="h-full w-full object-cover rounded-[14px]"
+                className="h-full w-full object-cover"
               />
             </div>
             {friend?.is_online && (
@@ -484,7 +520,7 @@ const ChatPage = () => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <p className="text-[16px] font-black text-white truncate tracking-tight">{friend?.display_name ?? '...'}</p>
+            <p className="text-[15px] font-semibold text-white tracking-tight leading-tight">{friend?.display_name ?? '...'}</p>
             <div className="flex items-center gap-1.5">
               <span className={cn(
                 "h-1.5 w-1.5 rounded-full",
@@ -500,7 +536,7 @@ const ChatPage = () => {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => initiateCall(friendId!, 'audio')}
-              className="h-10 w-10 rounded-[14px] flex items-center justify-center bg-white/[0.04] text-white/60 hover:bg-[#30D158]/10 hover:text-[#30D158] transition-all"
+              className="h-10 w-10 flex items-center justify-center text-white/90 hover:opacity-70 transition-all"
             >
               <Phone className="h-5 w-5" />
             </motion.button>
@@ -508,7 +544,7 @@ const ChatPage = () => {
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => initiateCall(friendId!, 'video')}
-              className="h-10 w-10 rounded-[14px] flex items-center justify-center bg-white/[0.04] text-white/60 hover:bg-[#0A84FF]/10 hover:text-[#0A84FF] transition-all"
+              className="h-10 w-10 flex items-center justify-center text-white/90 hover:opacity-70 transition-all"
             >
               <Video className="h-5 w-5" />
             </motion.button>
@@ -531,7 +567,7 @@ const ChatPage = () => {
                   };
                   invite();
                 }}
-                className="h-10 w-10 rounded-[14px] flex items-center justify-center bg-[#FF375F]/5 text-[#FF375F]/60 hover:bg-[#FF375F]/10 hover:text-[#FF375F] transition-all shadow-sm"
+                className="h-10 w-10 flex items-center justify-center text-white/90 hover:opacity-70 transition-all"
               >
                 <Tv className="h-5 w-5" />
               </motion.button>
@@ -539,7 +575,7 @@ const ChatPage = () => {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <motion.button whileTap={{ scale: 0.9 }} className="h-10 w-10 rounded-[14px] flex items-center justify-center bg-white/[0.04] text-white/40 hover:bg-white/10 transition-all">
+                <motion.button whileTap={{ scale: 0.9 }} className="h-10 w-10 flex items-center justify-center text-white/90 hover:opacity-70 transition-all">
                   <MoreVertical className="h-5 w-5" />
                 </motion.button>
               </DropdownMenuTrigger>
@@ -558,7 +594,24 @@ const ChatPage = () => {
         {loading ? (
           <div className="flex justify-center pt-8"><Loader2 className="h-8 w-8 text-[#0A84FF] animate-spin opacity-20" /></div>
         ) : (
-          <div className="flex flex-col gap-2 pb-6">
+          <div className="flex flex-col gap-2 w-full mx-auto relative px-2">
+
+            {/* Multi-Select Action Bar */}
+            <AnimatePresence>
+              {isSelectMode && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="sticky top-2 mx-2 bg-[#262626] rounded-[22px] p-3 px-5 flex items-center justify-between shadow-2xl z-50 border border-white/10"
+                >
+                  <button onClick={() => { setIsSelectMode(false); setSelectedMessages(new Set()); }} className="text-white/70 font-medium active:scale-95 transition-all">Cancel</button>
+                  <span className="text-white font-black tracking-tight">{selectedMessages.size} Selected</span>
+                  <button onClick={deleteSelected} className="text-[#FF3B30] font-bold active:scale-95 transition-all">Delete</button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {messages.map((msg, i) => {
               const mine = isMe(msg);
               const showDate = i === 0 || formatDateLabel(messages[i - 1].created_at) !== formatDateLabel(msg.created_at);
@@ -566,8 +619,8 @@ const ChatPage = () => {
               return (
                 <div key={msg.id} className="w-full">
                   {showDate && (
-                    <div className="flex justify-center my-8">
-                      <span className="text-[10px] font-black text-white/20 px-4 py-1 rounded-full bg-white/[0.03] border border-white/[0.05] uppercase tracking-[0.2em] shadow-sm">
+                    <div className="flex justify-center my-6">
+                      <span className="text-[12px] font-medium text-[#A8A8A8]">
                         {formatDateLabel(msg.created_at)}
                       </span>
                     </div>
@@ -577,16 +630,34 @@ const ChatPage = () => {
                     initial={{ opacity: 0, x: mine ? 20 : -20, scale: 0.95 }}
                     animate={{ opacity: 1, x: 0, scale: 1 }}
                     className={cn(
-                      "flex group mb-2 px-1 transition-all duration-300",
+                      "flex group mb-2 px-1 transition-all duration-300 relative",
                       mine ? "justify-end" : "justify-start"
                     )}
                   >
-                    <div className={cn(
-                      "relative max-w-[85%] sm:max-w-[70%] px-4 py-3 rounded-[28px] shadow-2xl group",
-                      mine
-                        ? "bg-[#0A84FF] text-white rounded-tr-none shadow-[#0A84FF]/10 ring-1 ring-white/10"
-                        : "bg-[#1C1C26]/80 backdrop-blur-xl text-white rounded-tl-none border border-white/5"
-                    )}>
+                    {isSelectMode && (
+                      <div
+                        onClick={() => toggleSelection(msg.id)}
+                        className={cn(
+                          "absolute top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full border-2 transition-all z-10 cursor-pointer shadow-lg",
+                          mine ? "left-4" : "right-4",
+                          selectedMessages.has(msg.id) ? "bg-[#0A84FF] border-[#0A84FF]" : "border-white/20 bg-black/20"
+                        )}
+                      >
+                        {selectedMessages.has(msg.id) && <Check className="h-4 w-4 text-white" />}
+                      </div>
+                    )}
+
+                    <div
+                      onContextMenu={(e) => { e.preventDefault(); handleLongPress(msg.id); }}
+                      onClick={() => { if (isSelectMode) toggleSelection(msg.id); }}
+                      className={cn(
+                        "relative max-w-[75%] px-3.5 py-2.5 group transition-transform",
+                        isSelectMode ? (mine ? "translate-x-[-48px]" : "translate-x-[48px]") : "",
+                        mine
+                          ? "bg-[#3797F0] text-white rounded-[22px] rounded-br-[4px]"
+                          : "bg-[#262626] text-white rounded-[22px] rounded-bl-[4px]",
+                        isSelectMode && "cursor-pointer"
+                      )}>
                       {/* Multimedia Content */}
                       {msg.type === 'image' && msg.file_url && (
                         <motion.div
@@ -700,46 +771,18 @@ const ChatPage = () => {
         <div className="flex items-end gap-3 max-w-5xl mx-auto">
           <motion.div
             layout
-            className="flex-1 min-h-[56px] rounded-[32px] bg-white/[0.03] border border-white/[0.08] backdrop-blur-3xl shadow-2xl flex flex-col overflow-hidden transition-all focus-within:border-[#0A84FF]/40 focus-within:bg-white/[0.05]"
+            className="flex-1 min-h-[44px] rounded-full bg-[#262626] border border-transparent flex flex-col overflow-hidden transition-all focus-within:border-white/20"
           >
             <div className="flex items-end px-2 py-2">
               {/* Attachment Actions */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    className="h-10 w-10 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/5 transition-all mb-1 ml-1"
-                  >
-                    <Plus className="h-6 w-6" />
-                  </motion.button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="top" align="start" className="bg-[#1A1A23]/95 backdrop-blur-2xl border-white/5 rounded-[28px] p-2 mb-3 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-                  <DropdownMenuItem className="p-0 mb-1 border-none bg-transparent focus:bg-transparent">
-                    <label className="flex items-center gap-4 w-full px-4 py-3.5 rounded-[20px] cursor-pointer hover:bg-white/5 transition-colors text-white/90">
-                      <div className="h-11 w-11 rounded-[16px] bg-[#0A84FF]/10 flex items-center justify-center text-[#0A84FF] border border-[#0A84FF]/10">
-                        <ImageIcon className="h-5 w-5" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[14px] font-black tracking-tight">Gallery</span>
-                        <span className="text-[10px] font-bold opacity-30 uppercase tracking-[0.1em]">Photos & Videos</span>
-                      </div>
-                      <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => handleFileUpload(e, 'image')} />
-                    </label>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="p-0 border-none bg-transparent focus:bg-transparent">
-                    <label className="flex items-center gap-4 w-full px-4 py-3.5 rounded-[20px] cursor-pointer hover:bg-white/5 transition-colors text-white/90">
-                      <div className="h-11 w-11 rounded-[16px] bg-[#BF5AF2]/10 flex items-center justify-center text-[#BF5AF2] border border-[#BF5AF2]/10">
-                        <FileIcon className="h-5 w-5" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[14px] font-black tracking-tight">Documents</span>
-                        <span className="text-[10px] font-bold opacity-30 uppercase tracking-[0.1em]">Shared Files</span>
-                      </div>
-                      <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'file')} />
-                    </label>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Attachment Actions */}
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setIsCameraOpen(true)}
+                className="h-9 w-9 rounded-full flex items-center justify-center bg-[#0095F6] text-white hover:bg-[#1877F2] transition-all mb-1 ml-1 shrink-0"
+              >
+                <Camera className="h-5 w-5" />
+              </motion.button>
 
               {isRecording ? (
                 <div className="flex-1 flex items-center px-4 h-[44px] gap-4">
@@ -776,8 +819,8 @@ const ChatPage = () => {
                   ref={inputRef}
                   value={input}
                   onChange={e => setInput(e.target.value)}
-                  placeholder="Shared thoughts..."
-                  className="flex-1 bg-transparent border-none text-white text-[16px] font-medium py-3 px-3 outline-none resize-none max-h-40 min-h-[44px] no-scrollbar placeholder:text-white/10"
+                  placeholder="Message..."
+                  className="flex-1 bg-transparent border-none text-white text-[15px] font-normal py-2.5 px-3 outline-none resize-none max-h-32 min-h-[44px] no-scrollbar placeholder:text-[#A8A8A8]"
                   rows={1}
                   onKeyDown={e => {
                     if (e.key === 'Enter' && !e.shiftKey) {
@@ -790,31 +833,70 @@ const ChatPage = () => {
             </div>
           </motion.div>
 
-          {/* Primary Action Button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={isRecording ? stopRecording : (input.trim() ? handleSend : startRecording)}
-            disabled={sending}
-            className={cn(
-              "h-14 w-14 shrink-0 rounded-[28px] flex items-center justify-center shadow-2xl transition-all duration-500",
-              (input.trim() || isRecording)
-                ? "bg-[#0A84FF] text-white shadow-[#0A84FF]/20"
-                : "bg-white/5 text-white/30 border border-white/5 hover:bg-white/10 hover:text-white"
+          {/* Primary Action Buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            {(!input.trim() && !isRecording) && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => startRecording('audio')}
+                className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/90 hover:bg-white/10 transition-all duration-200"
+              >
+                <Mic className="h-6 w-6" />
+              </motion.button>
             )}
-          >
-            {sending ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : isRecording ? (
-              <Square className="h-6 w-6 fill-current rounded-sm shadow-inner" />
-            ) : input.trim() ? (
-              <Send className="h-6 w-6 fill-current ml-0.5" />
-            ) : (
-              <Mic className="h-6 w-6" />
+            {(!input.trim() && !isRecording) && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => fileInputRef.current?.click()}
+                className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/90 hover:bg-white/10 transition-all duration-200"
+              >
+                <ImageIcon className="h-6 w-6" />
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={(e) => handleFileUpload(e, 'image')}
+                />
+              </motion.button>
             )}
-          </motion.button>
+
+            {(input.trim() || isRecording) && (
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={isRecording ? stopRecording : handleSend}
+                disabled={sending}
+                className={cn(
+                  "h-11 px-4 shrink-0 rounded-full flex items-center justify-center transition-all duration-200",
+                  "text-[#0095F6] font-semibold text-base hover:text-white"
+                )}
+              >
+                {sending ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : isRecording ? (
+                  <Square className="h-6 w-6 fill-current rounded-sm shadow-inner" />
+                ) : input.trim() ? (
+                  "Send"
+                ) : (
+                  ""
+                )}
+              </motion.button>
+            )}
+          </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isCameraOpen && (
+          <CameraCapture
+            onClose={() => setIsCameraOpen(false)}
+            onCapture={handleDirectMedia}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

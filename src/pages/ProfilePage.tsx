@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { NetworkModal } from '@/components/NetworkModal';
 
 const fadeUp = (d = 0) => ({
     initial: { opacity: 0, y: 20 },
@@ -51,6 +52,10 @@ const ProfilePage = () => {
 
     // Copy peer ID feedback
     const [copiedPeerId, setCopiedPeerId] = useState(false);
+
+    // Network Modal State
+    const [showNetworkModal, setShowNetworkModal] = useState(false);
+    const [networkModalType, setNetworkModalType] = useState<'followers' | 'following'>('followers');
 
     useEffect(() => {
         if (userProfile?.id) {
@@ -222,6 +227,16 @@ const ProfilePage = () => {
         } else {
             alert("App is either already installed, or your browser doesn't support automatic installation. On iOS, use the Share button to 'Add to Home Screen'.");
         }
+    };
+
+    const handleViewFollowers = () => {
+        setNetworkModalType('followers');
+        setShowNetworkModal(true);
+    };
+
+    const handleViewFollowing = () => {
+        setNetworkModalType('following');
+        setShowNetworkModal(true);
     };
 
     // ── Guest UI ──
@@ -400,14 +415,20 @@ const ProfilePage = () => {
 
                 <div className="flex flex-col gap-3">
                     <div className="grid grid-cols-2 gap-3">
-                        <div className="px-4 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md flex flex-col items-center justify-center">
+                        <button
+                            onClick={handleViewFollowers}
+                            className="px-4 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md flex flex-col items-center justify-center hover:bg-white/[0.06] transition-colors"
+                        >
                             <p className="text-[22px] font-black text-white">{followersCount}</p>
                             <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Followers</p>
-                        </div>
-                        <div className="px-4 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md flex flex-col items-center justify-center">
+                        </button>
+                        <button
+                            onClick={handleViewFollowing}
+                            className="px-4 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md flex flex-col items-center justify-center hover:bg-white/[0.06] transition-colors"
+                        >
                             <p className="text-[22px] font-black text-white">{followingCount}</p>
                             <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Following</p>
-                        </div>
+                        </button>
                     </div>
 
                     <div className="px-5 py-5 rounded-[24px] bg-white/[0.03] border border-white/[0.05] shadow-xl backdrop-blur-md">
@@ -687,6 +708,14 @@ const ProfilePage = () => {
                     </>
                 )}
             </AnimatePresence>
+
+            <NetworkModal
+                isOpen={showNetworkModal}
+                onClose={() => setShowNetworkModal(false)}
+                userId={userProfile.id}
+                type={networkModalType}
+                currentUserId={userProfile.id}
+            />
         </div>
     );
 };
