@@ -154,6 +154,7 @@ const TheaterPage = () => {
                 isCallActive={context.isCallActive}
                 connectionState={context.connectionState}
                 onManualReconnect={context.onManualReconnect}
+                disconnectPeer={context.disconnectPeer}
               />
             </motion.div>
           </TabsContent>

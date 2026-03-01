@@ -4,14 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Phone, Video, Send, Check, CheckCheck, Loader2,
   MessageCircle, Plus, Image as ImageIcon, File as FileIcon,
-  Mic, Square, Play, Pause, Trash2, MoreVertical, Download, X, Tv
+  Mic, Square, Play, Pause, Trash2, MoreVertical, Download, X, Tv,
+  Search, Users
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useChat, ChatMessage } from '@/hooks/useChat';
+import { useChat, ChatMessage, getUnreadCounts } from '@/hooks/useChat';
 import { AppContextType } from '@/layouts/AppLayout';
 import { DBUser } from '@/lib/supabase';
-import { format, isToday, isYesterday } from 'date-fns';
+import { format, isToday, isYesterday, formatDistanceToNow } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -80,6 +81,232 @@ const VoicePlayer = ({ url, duration, isMine }: { url: string, duration?: number
   );
 };
 
+// ── Instagram-style Chat List ──────────────────────────────────
+interface ChatConversation {
+  friend: DBUser;
+  lastMessage: ChatMessage | null;
+  unreadCount: number;
+}
+
+const ChatList = ({ userProfile, navigate }: { userProfile: any; navigate: (path: string) => void }) => {
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (!userProfile) return;
+    const loadConversations = async () => {
+      setLoading(true);
+      try {
+        // Load friends
+        const { data: followData } = await supabase
+          .from('follows')
+          .select('followerUser:users!follower_id(*), followingUser:users!following_id(*)')
+          .or(`follower_id.eq.${userProfile.id},following_id.eq.${userProfile.id}`)
+          .eq('status', 'accepted');
+
+        const friendMap = new Map<string, DBUser>();
+        (followData ?? []).forEach((f: any) => {
+          const friend = f.followerUser.id === userProfile.id ? f.followingUser : f.followerUser;
+          if (friend && !friendMap.has(friend.id)) friendMap.set(friend.id, friend);
+        });
+
+        const friendsList = Array.from(friendMap.values());
+
+        // Get unread counts
+        const unreadCounts = await getUnreadCounts(userProfile.id);
+
+        // Get last message for each friend
+        const convos: ChatConversation[] = [];
+        for (const friend of friendsList) {
+          const { data: lastMsgs } = await supabase
+            .from('messages')
+            .select('*')
+            .or(
+              `and(sender_id.eq.${userProfile.id},receiver_id.eq.${friend.id}),` +
+              `and(sender_id.eq.${friend.id},receiver_id.eq.${userProfile.id})`
+            )
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          convos.push({
+            friend,
+            lastMessage: (lastMsgs?.[0] as ChatMessage) ?? null,
+            unreadCount: unreadCounts[friend.id] ?? 0,
+          });
+        }
+
+        // Sort: unread first, then by last message time
+        convos.sort((a, b) => {
+          if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+          if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+          const aTime = a.lastMessage?.created_at ?? '0';
+          const bTime = b.lastMessage?.created_at ?? '0';
+          return bTime.localeCompare(aTime);
+        });
+
+        setConversations(convos);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadConversations();
+  }, [userProfile]);
+
+  const filteredConversations = searchQuery.trim()
+    ? conversations.filter(c => c.friend.display_name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : conversations;
+
+  const formatTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    if (isToday(d)) return format(d, 'h:mm a');
+    if (isYesterday(d)) return 'Yesterday';
+    return format(d, 'MMM d');
+  };
+
+  const getPreview = (msg: ChatMessage | null) => {
+    if (!msg) return 'Tap to start chatting';
+    if (msg.type === 'image') return '📷 Photo';
+    if (msg.type === 'voice') return '🎤 Voice message';
+    if (msg.type === 'file') return `📎 ${msg.file_name || 'File'}`;
+    if (msg.type === 'watch_invite') return '🎥 Watch invite';
+    return msg.content.length > 50 ? msg.content.slice(0, 50) + '…' : msg.content;
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-[#0A0A0F]">
+      {/* Header */}
+      <div className="px-5 pt-6 pb-3 shrink-0">
+        <div className="flex items-center justify-between mb-5">
+          <h1 className="text-[28px] font-black text-white tracking-tight" style={{ fontFamily: "'Outfit', sans-serif" }}>
+            Messages
+          </h1>
+          <motion.button
+            whileTap={{ scale: 0.9 }}
+            onClick={() => navigate('/friends')}
+            className="h-10 w-10 rounded-full bg-white/[0.06] border border-white/10 flex items-center justify-center text-white/60 hover:bg-white/10 transition-all"
+          >
+            <Users className="h-5 w-5" />
+          </motion.button>
+        </div>
+
+        {/* Search */}
+        <div className="relative group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/20 group-focus-within:text-[#0A84FF] transition-colors" />
+          <input
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search conversations..."
+            className="w-full rounded-[18px] pl-11 pr-5 py-3 text-[14px] text-white outline-none bg-white/[0.04] border border-white/[0.06] focus:border-[#0A84FF]/30 transition-all placeholder:text-white/20 font-medium"
+          />
+        </div>
+      </div>
+
+      {/* Conversations List */}
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        {loading ? (
+          <div className="flex justify-center pt-16">
+            <Loader2 className="h-8 w-8 text-[#0A84FF] animate-spin opacity-30" />
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center pt-20 px-6 text-center">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-20 h-20 rounded-full bg-[#0A84FF]/10 flex items-center justify-center mb-6">
+              <MessageCircle className="h-10 w-10 text-[#0A84FF]" />
+            </motion.div>
+            <h2 className="text-lg font-bold text-white mb-2">No conversations yet</h2>
+            <p className="text-white/40 text-sm max-w-[260px] leading-relaxed mb-6">
+              Add friends to start chatting with them
+            </p>
+            <button
+              onClick={() => navigate('/friends?filter=discover')}
+              className="bg-[#0A84FF] text-white px-6 py-3 rounded-full font-bold text-sm shadow-lg shadow-[#0A84FF]/20"
+            >
+              Find Friends
+            </button>
+          </div>
+        ) : (
+          <div className="px-2">
+            {filteredConversations.map((convo, i) => {
+              const { friend, lastMessage, unreadCount } = convo;
+              const isMine = lastMessage?.sender_id === userProfile?.id;
+
+              return (
+                <motion.button
+                  key={friend.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  onClick={() => navigate(`/chat/${friend.id}`)}
+                  className="w-full flex items-center gap-3.5 px-3 py-3.5 rounded-[20px] hover:bg-white/[0.04] active:bg-white/[0.06] transition-colors text-left"
+                >
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    <div className="h-14 w-14 rounded-full overflow-hidden bg-white/10">
+                      {friend.photo_url ? (
+                        <img src={friend.photo_url} alt={friend.display_name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-[#0A84FF] to-[#BF5AF2] flex items-center justify-center text-white font-bold text-lg">
+                          {friend.display_name[0].toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    {friend.is_online && (
+                      <motion.span
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                        className="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-[#30D158] border-[3px] border-[#0A0A0F]"
+                      />
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 border-b border-white/[0.04] pb-3.5">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={cn(
+                        "text-[16px] font-semibold truncate",
+                        unreadCount > 0 ? "text-white" : "text-white/90"
+                      )}>
+                        {friend.display_name}
+                      </span>
+                      {lastMessage && (
+                        <span className={cn(
+                          "text-[12px] shrink-0 ml-2",
+                          unreadCount > 0 ? "text-[#0A84FF] font-bold" : "text-white/30"
+                        )}>
+                          {formatTime(lastMessage.created_at)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className={cn(
+                        "text-[13px] truncate pr-2",
+                        unreadCount > 0 ? "text-white/70 font-medium" : "text-white/35"
+                      )}>
+                        {isMine && lastMessage && <span className="text-white/25">You: </span>}
+                        {getPreview(lastMessage)}
+                      </p>
+                      {unreadCount > 0 && (
+                        <motion.span
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="shrink-0 min-w-[22px] h-[22px] rounded-full bg-[#0A84FF] text-white text-[11px] font-bold flex items-center justify-center px-1.5"
+                        >
+                          {unreadCount > 99 ? '99+' : unreadCount}
+                        </motion.span>
+                      )}
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── Individual Chat View ──────────────────────────────────────
 const ChatPage = () => {
   const { friendId } = useParams<{ friendId: string }>();
   const navigate = useNavigate();
@@ -220,23 +447,7 @@ const ChatPage = () => {
   const isMe = (msg: ChatMessage) => msg.sender_id === userProfile?.id;
 
   if (!friendId) {
-    return (
-      <div className="flex flex-col h-full items-center justify-center p-6 text-center">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-          <MessageCircle className="h-10 w-10 text-primary" />
-        </motion.div>
-        <h2 className="text-xl font-bold text-white mb-2">Togetherly Chat</h2>
-        <p className="text-white/50 max-w-[260px] leading-relaxed mb-8">
-          Secure, real-time messaging with your friends. Select a friend to start chatting.
-        </p>
-        <button
-          onClick={() => navigate('/friends')}
-          className="ios-btn bg-primary text-white px-8 py-3 rounded-full font-bold shadow-lg"
-        >
-          View Friends
-        </button>
-      </div>
-    );
+    return <ChatList userProfile={userProfile} navigate={navigate} />;
   }
 
   return (
@@ -312,7 +523,7 @@ const ChatPage = () => {
                       receiver_id: friend.id,
                       content: `🎥 I'm inviting you to watch together!`,
                       type: 'watch_invite',
-                      payload: { peer_id: permanentPeerId }
+                      payload: { peer_id: userProfile?.peer_id }
                     };
                     await supabase.from('messages').insert(inviteMsg);
                     localStorage.setItem('peerIdToConnect', friend.peer_id);

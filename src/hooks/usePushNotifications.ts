@@ -61,11 +61,11 @@ export const usePushNotifications = (): PushNotificationState => {
             }
 
             // Check for existing subscription
-            let subscription = await registration.pushManager.getSubscription();
+            let subscription = await (registration as any).pushManager.getSubscription();
 
             if (!subscription) {
                 // Create new subscription
-                subscription = await registration.pushManager.subscribe({
+                subscription = await (registration as any).pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
                 });
