@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnon = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
@@ -7,7 +7,12 @@ if (!supabaseUrl || !supabaseAnon) {
     console.warn('[Supabase] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY. DB features disabled.');
 }
 
-export const supabase = createClient(supabaseUrl ?? '', supabaseAnon ?? '');
+// Use a placeholder URL when env vars are missing to prevent crash
+const PLACEHOLDER_URL = 'https://placeholder.supabase.co';
+export const supabase: SupabaseClient = createClient(
+    supabaseUrl || PLACEHOLDER_URL,
+    supabaseAnon || 'placeholder-key'
+);
 
 // ── Types mirroring the Supabase schema ─────────────────────────
 export interface DBUser {

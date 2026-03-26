@@ -839,7 +839,7 @@ const ChatPage = () => {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => startRecording('audio')}
+                onClick={() => startRecording()}
                 className="h-11 w-11 shrink-0 rounded-full flex items-center justify-center text-white/90 hover:bg-white/10 transition-all duration-200"
               >
                 <Mic className="h-6 w-6" />
