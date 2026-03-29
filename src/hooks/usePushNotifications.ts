@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
-const VAPID_PUBLIC_KEY = 'BDxRolxe8GO9Y6tjKWhjztr9Yxy4_eD-WtB8vGa7hKS0rXJRtcZbOGV99tSDiBnf0XI3XOth9PQOYOdtMljla9g';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
 export interface PushNotificationState {
     permission: NotificationPermission;
@@ -47,6 +47,10 @@ export const usePushNotifications = (): PushNotificationState => {
 
     const subscribeToPush = useCallback(async (userId: string): Promise<boolean> => {
         if (!isSupported || permission !== 'granted') return false;
+        if (!VAPID_PUBLIC_KEY) {
+            console.error('[Push] VAPID_PUBLIC_KEY not configured. Push notifications disabled.');
+            return false;
+        }
 
         try {
             let registration = await navigator.serviceWorker.getRegistration();
