@@ -1,46 +1,27 @@
-import { Home, Monitor, MessageCircle, Users, UserCircle, Clapperboard } from 'lucide-react';
+import { Home, Users, UserCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
-const BASE_TABS = [
-  { key: 'home', label: 'Home', icon: Home, to: '/app' },
-  { key: 'watch', label: 'Watch', icon: Monitor, to: '/watch' },
-  { key: 'rooms', label: 'Rooms', icon: Users, to: '/rooms' },
-  { key: 'chat', label: 'Chat', icon: MessageCircle, to: '/chat' },
+// Phase 1: 3-tab navigation for spaces-based co-presence
+const MAIN_TABS = [
+  { key: 'spaces', label: 'Spaces', icon: Home, to: '/app' },
+  { key: 'people', label: 'People', icon: Users, to: '/friends' },
+  { key: 'you', label: 'You', icon: UserCircle, to: '/profile' },
 ];
-
-const FRIENDS_TAB = { key: 'friends', label: 'Friends', icon: Users, to: '/friends' };
-const PROFILE_TAB = { key: 'profile', label: 'Profile', icon: UserCircle, to: '/profile' };
 
 const spring = { type: 'spring' as const, stiffness: 480, damping: 30, mass: 0.6 };
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { userProfile, isGuest } = useAuth();
-  const [pendingCount, setPendingCount] = useState(0);
+  const { userProfile } = useAuth();
 
-  const TABS = isGuest ? BASE_TABS : [...BASE_TABS, FRIENDS_TAB, PROFILE_TAB];
+  const TABS = MAIN_TABS;
 
-  // Poll pending follow-request badge
-  useEffect(() => {
-    if (!userProfile) return;
-    const loadBadge = async () => {
-      const { count } = await supabase
-        .from('follows')
-        .select('*', { count: 'exact', head: true })
-        .eq('following_id', userProfile.id)
-        .eq('status', 'pending');
-      setPendingCount(count ?? 0);
-    };
-    loadBadge();
-    const interval = setInterval(loadBadge, 30_000);
-    return () => clearInterval(interval);
-  }, [userProfile]);
+  // Badge system will be implemented per tab in Phase 2+
+  // For now, simplified navigation
 
   return (
     <nav
@@ -59,13 +40,12 @@ const BottomNav = () => {
         style={{ paddingTop: 8, paddingBottom: 6, paddingLeft: 4, paddingRight: 4 }}
       >
         {TABS.map((tab) => {
-          const isActive =
+              const isActive =
             tab.to === '/app'
-              ? location.pathname === '/app'
+              ? location.pathname === '/app' || location.pathname === '/spaces'
               : location.pathname.startsWith(tab.to);
           const Icon = tab.icon;
-          const isFriends = tab.key === 'friends';
-          const isProfile = tab.key === 'profile';
+          const isProfile = tab.key === 'you';
 
           return (
             <button
@@ -131,13 +111,6 @@ const BottomNav = () => {
                     fill={isActive ? 'currentColor' : 'none'}
                     fillOpacity={isActive ? 0.15 : 0}
                   />
-                )}
-
-                {/* Pending badge on Friends */}
-                {isFriends && pendingCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-[#FF453A] text-white text-[9px] font-bold flex items-center justify-center px-0.5 z-20">
-                    {pendingCount > 9 ? '9+' : pendingCount}
-                  </span>
                 )}
               </motion.span>
 

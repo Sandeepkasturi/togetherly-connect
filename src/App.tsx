@@ -12,6 +12,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 
 import AuthPage from "./pages/AuthPage";
 import AppPage from "./pages/AppPage";
+import SpaceRoomPage from "./pages/SpaceRoomPage";
 import JoinPage from "./pages/JoinPage";
 import NotFound from "./pages/NotFound";
 import Documentation from "./pages/Documentation";
@@ -27,6 +28,7 @@ import RoomsPage from "./pages/RoomsPage";
 import RoomDetailsPage from "./pages/RoomDetailsPage";
 import SplashScreen from "@/components/SplashScreen";
 import LegalPage from "./pages/LegalPage";
+import PricingPage from "./pages/PricingPage";
 
 const queryClient = new QueryClient();
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string ?? '';
@@ -53,6 +55,7 @@ const AppRoutes = () => (
     {/* Public */}
     <Route path="/" element={<Navigate to="/auth" replace />} />
     <Route path="/auth" element={<AuthPage />} />
+    <Route path="/pricing" element={<PricingPage />} />
     <Route path="/documentation" element={<Documentation />} />
     <Route path="/join" element={<JoinPage />} />
 
@@ -64,6 +67,7 @@ const AppRoutes = () => (
     {/* Protected — all app routes */}
     <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
       <Route path="/app" element={<AppPage />} />
+      <Route path="/spaces/:id" element={<SpaceRoomPage />} />
       <Route path="/watch" element={<WatchPage />} />
       <Route path="/theater" element={<TheaterPage />} />
       <Route path="/browser" element={<BrowserPage />} />
