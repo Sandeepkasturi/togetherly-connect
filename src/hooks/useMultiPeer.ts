@@ -74,18 +74,32 @@ export const useMultiPeer = (roomId: string, roomType: RoomType = 'conference') 
         const initPeer = async () => {
             const { default: PeerClass } = await import('peerjs');
 
+            // Build ICE servers from environment variables
+            const iceServers = [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+            ];
+
+            // Add TURN server if configured
+            const turnUrl = import.meta.env.VITE_TURN_URL;
+            const turnUsername = import.meta.env.VITE_TURN_USERNAME;
+            const turnPassword = import.meta.env.VITE_TURN_PASSWORD;
+
+            if (turnUrl && turnUsername && turnPassword) {
+                iceServers.push({
+                    urls: turnUrl,
+                    username: turnUsername,
+                    credential: turnPassword,
+                });
+            }
+
             // Generate a random peer ID for this specific room session
             const newPeer = new PeerClass(`room_${userProfile.id}_${Math.random().toString(36).substring(2, 9)}`, {
                 host: '0.peerjs.com',
                 port: 443,
                 path: '/',
                 secure: true,
-                config: {
-                    iceServers: [
-                        { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                    ]
-                }
+                config: { iceServers }
             });
 
             newPeer.on('open', (id) => {
