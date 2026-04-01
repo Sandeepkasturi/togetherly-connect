@@ -2,118 +2,85 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, Outlet } from "react-router-dom";
-import { GoogleOAuthProvider } from "@react-oauth/google";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
-
-import { UserProvider } from "@/contexts/UserContext";
-import { PlaylistProvider } from "@/contexts/PlaylistContext";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-
-import AuthPage from "./pages/AuthPage";
-import AppPage from "./pages/AppPage";
-import JoinPage from "./pages/JoinPage";
-import NotFound from "./pages/NotFound";
-import Documentation from "./pages/Documentation";
-import AppLayout from "./layouts/AppLayout";
-import WatchPage from "./pages/WatchPage";
-import BrowserPage from "./pages/BrowserPage";
-import ChatPage from "./pages/ChatPage";
-import TheaterPage from "./pages/TheaterPage";
-import FriendsPage from "./pages/FriendsPage";
-import ProfilePage from "./pages/ProfilePage";
-import PublicProfilePage from "./pages/PublicProfilePage";
-import RoomsPage from "./pages/RoomsPage";
-import RoomDetailsPage from "./pages/RoomDetailsPage";
-import SplashScreen from "@/components/SplashScreen";
-import LegalPage from "./pages/LegalPage";
+import { lazy, Suspense } from "react";
+import { useDeviceType } from "@/hooks/useDeviceType";
+import MobileGate from "@/arena/components/shared/MobileGate";
 
 const queryClient = new QueryClient();
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string ?? '';
 
-// ── Route guard — redirect to /auth if not authenticated ─────
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
-  const location = useLocation();
+// Lazy load all pages
+const ArenaLanding = lazy(() => import("@/arena/pages/ArenaLanding"));
+const ChallengesPage = lazy(() => import("@/arena/pages/ChallengesPage"));
+const ChallengePage = lazy(() => import("@/arena/pages/ChallengePage"));
+const DashboardPage = lazy(() => import("@/arena/pages/DashboardPage"));
+const ExamPage = lazy(() => import("@/arena/pages/ExamPage"));
+const LeaderboardPage = lazy(() => import("@/arena/pages/LeaderboardPage"));
+const CertificatePage = lazy(() => import("@/arena/pages/CertificatePage"));
+const InterviewRoomPage = lazy(() => import("@/arena/pages/InterviewRoomPage"));
+const CompanyDashboard = lazy(() => import("@/arena/pages/CompanyDashboard"));
+const AdminPanel = lazy(() => import("@/arena/pages/AdminPanel"));
+const ArenaProfilePage = lazy(() => import("@/arena/pages/ArenaProfilePage"));
+const IDEPage = lazy(() => import("@/arena/pages/IDEPage"));
+const LegalPage = lazy(() => import("@/pages/LegalPage"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
 
-  if (isLoading) {
-    return <SplashScreen isVisible={true} />;
-  }
+const Loading = () => (
+  <div className="min-h-screen bg-arena-black flex items-center justify-center">
+    <div className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+  </div>
+);
 
-  if (!isAuthenticated) {
-    return <Navigate to="/auth" state={{ from: location }} replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// ── Inner app (needs AuthContext in scope) ───────────────────
 const AppRoutes = () => (
-  <Routes>
-    {/* Public */}
-    <Route path="/" element={<Navigate to="/auth" replace />} />
-    <Route path="/auth" element={<AuthPage />} />
-    <Route path="/documentation" element={<Documentation />} />
-    <Route path="/join" element={<JoinPage />} />
+  <Suspense fallback={<Loading />}>
+    <Routes>
+      {/* Public */}
+      <Route path="/" element={<Navigate to="/arena" replace />} />
+      <Route path="/arena" element={<ArenaLanding />} />
+      <Route path="/arena/certificate/:code" element={<CertificatePage />} />
+      <Route path="/arena/leaderboard/:challengeId" element={<LeaderboardPage />} />
 
-    {/* Legal Pages */}
-    <Route path="/privacy" element={<LegalPage defaultType="privacy" />} />
-    <Route path="/terms" element={<LegalPage defaultType="terms" />} />
-    <Route path="/security" element={<LegalPage defaultType="security" />} />
+      {/* Legal */}
+      <Route path="/privacy" element={<LegalPage defaultType="privacy" />} />
+      <Route path="/terms" element={<LegalPage defaultType="terms" />} />
 
-    {/* Protected — all app routes */}
-    <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
-      <Route path="/app" element={<AppPage />} />
-      <Route path="/watch" element={<WatchPage />} />
-      <Route path="/theater" element={<TheaterPage />} />
-      <Route path="/browser" element={<BrowserPage />} />
-      <Route path="/rooms" element={<RoomsPage />} />
-      <Route path="/rooms/:id" element={<RoomDetailsPage />} />
-      <Route path="/chat" element={<ChatPage />} />
-      <Route path="/chat/:friendId" element={<ChatPage />} />
-      <Route path="/friends" element={<FriendsPage />} />
-      <Route path="/profile" element={<ProfilePage />} />
-      <Route path="/profile/:userId" element={<PublicProfilePage />} />
-    </Route>
+      {/* Auth required (TODO: wrap with ProtectedRoute when auth is wired) */}
+      <Route path="/arena/challenges" element={<ChallengesPage />} />
+      <Route path="/arena/challenges/:slug" element={<ChallengePage />} />
+      <Route path="/arena/dashboard" element={<DashboardPage />} />
+      <Route path="/arena/exam/:bookingId" element={<ExamPage />} />
+      <Route path="/arena/ide" element={<IDEPage />} />
+      <Route path="/arena/interview/:roomId" element={<InterviewRoomPage />} />
+      <Route path="/arena/profile" element={<ArenaProfilePage />} />
 
-    <Route path="*" element={<NotFound />} />
-  </Routes>
+      {/* Company portal */}
+      <Route path="/arena/company" element={<CompanyDashboard />} />
+
+      {/* Admin */}
+      <Route path="/arena/admin" element={<AdminPanel />} />
+
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </Suspense>
 );
 
 const App = () => {
-  const isAuthReady = !!GOOGLE_CLIENT_ID;
+  const { isDesktop, isLoading } = useDeviceType();
 
-  if (typeof window !== 'undefined' && (window as any).bootStep) {
-    (window as any).bootStep('App Components Initializing...');
-  }
+  if (isLoading) return <Loading />;
+  if (!isDesktop) return <MobileGate />;
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isAuthReady ? (
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          <AuthProvider>
-            <UserProvider>
-              <PlaylistProvider>
-                <TooltipProvider>
-                  <Toaster />
-                  <Sonner />
-                  <BrowserRouter>
-                    <AppRoutes />
-                  </BrowserRouter>
-                  <Analytics />
-                </TooltipProvider>
-              </PlaylistProvider>
-            </UserProvider>
-          </AuthProvider>
-        </GoogleOAuthProvider>
-      ) : (
-        <div className="fixed inset-0 bg-black flex flex-col items-center justify-center p-6 text-center text-white">
-          <div className="bg-red-500/10 border border-red-500/50 p-6 rounded-2xl max-w-md">
-            <h2 className="text-xl font-bold mb-2">Configuration Missing</h2>
-            <p className="opacity-70 text-sm">VITE_GOOGLE_CLIENT_ID is not set. Please add it to your environment variables to enable authentication.</p>
-          </div>
-        </div>
-      )}
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+        <Analytics />
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
